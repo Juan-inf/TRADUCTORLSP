@@ -54,11 +54,13 @@ TRADUCTOR_LSP/
 │   ├── 01_EDA_LSP_Dataset.ipynb          # EDA + riesgos + estadísticas
 │   ├── 02_Preprocessing_Landmarks.ipynb  # MediaPipe Holistic
 │   ├── 03_Training_Comparison.ipynb      # CNN-LSTM vs ST-GCN vs Fusión
-│   └── 04_Error_Analysis_Report.ipynb    # Análisis de errores + informe
+│   ├── 04_Error_Analysis_Report.ipynb    # Análisis de errores + informe
+│   └── 05_Semana5_Experimentos_AB.ipynb  # A/B: Baseline vs Var1 vs Var2
 │
 ├── scripts/
 │   ├── run_eda_local.py                  # EDA ejecutable localmente
 │   ├── preprocess_sliding_window.py      # Genera manifest_segments.csv
+│   ├── extract_landmarks_only.py         # Extrae landmarks sin regenerar manifest
 │   ├── run_baseline.py                   # Baseline KNN + LogReg (sklearn)
 │   ├── run_training.py                   # Entrenamiento CNN-LSTM (PyTorch)
 │   └── run_pipeline.py                   # Pipeline end-to-end
@@ -168,16 +170,29 @@ LandmarkExtractor           ─── MediaPipe Holistic
 
 ## Métricas y Resultados
 
-| Modelo | Val Acc | Test Acc | F1-macro | Épocas |
-|--------|---------|---------|---------|--------|
-| Random baseline | — | 0.038 | 0.038 | — |
-| KNN (k=5, histograma) | — | 0.864 | 0.791 | — |
-| Naive Bayes | — | 0.860 | 0.792 | — |
-| LogReg (C=1) | — | **0.912** | **0.859** | — |
-| CNN-LSTM Light (MobileNetV3) | 0.865 | — | 0.794 | 2 |
-| CNN-LSTM Full | — | — | — | pendiente |
+### Baseline vs Experimentos A/B — Semana 5
 
-> **Splits temporales dentro de cada video** (70/15/15 por video): cada clase aparece en los tres particiones. El baseline LogReg supera al random en +2134%. CNN-LSTM en 2 épocas ya alcanza F1=0.79 y sigue mejorando.
+| Modelo / Variante | Test Acc | F1-macro | F1-weighted | Parámetros | Nota |
+|-------------------|---------|---------|------------|-----------|------|
+| Random baseline | 0.038 | 0.038 | — | — | — |
+| KNN (k=5) | 0.864 | 0.791 | 0.847 | — | sklearn |
+| LogReg (C=1) | **0.912** | **0.859** | 0.904 | — | sklearn |
+| **Baseline** CNN-LSTM Light | 0.830 | 0.721 | — | ~975K | MobileNetV3 + BiLSTM hidden=256 |
+| **Var1** hidden=128 | — | — | — | ~550K | ← un cambio: hidden size ↓ |
+| **Var2** lr=5e-4 | — | — | — | ~975K | ← un cambio: lr ↑ |
+
+> Resultados A/B completos en `logs/semana5_experimentos.txt` y `data/semana5_experimentos_ab.png`
+
+> **Splits temporales dentro de cada video** (70/15/15 por video): cada clase aparece en los tres particiones. El baseline LogReg supera al random en +2134%. Ver notebook 05 para análisis completo.
+
+### Landmarks MediaPipe
+
+| Dato | Valor |
+|------|-------|
+| Archivos .npy generados | 7,235 (100%) |
+| Tamaño total | 196 MB |
+| Mano activa (promedio) | 86.8% de frames |
+| Formato | [30, 75, 3] → 42 manos + 33 pose keypoints |
 
 ---
 
