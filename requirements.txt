@@ -1,0 +1,52 @@
+# ── Core ──────────────────────────────────────────────────────────────────
+torch>=2.1.0
+torchvision>=0.16.0
+torchaudio>=2.1.0
+
+# ── Video y visión ─────────────────────────────────────────────────────────
+opencv-python-headless>=4.8.0
+Pillow>=10.0.0
+
+# ── MediaPipe y landmarks ──────────────────────────────────────────────────
+mediapipe>=0.10.0
+
+# ── Transformers (VideoMAE) ────────────────────────────────────────────────
+transformers>=4.35.0
+accelerate>=0.24.0
+huggingface-hub>=0.19.0
+
+# ── Ciencia de datos ───────────────────────────────────────────────────────
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+scipy>=1.11.0
+
+# ── Visualización ─────────────────────────────────────────────────────────
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# ── Utilidades ────────────────────────────────────────────────────────────
+tqdm>=4.65.0
+PyYAML>=6.0
+einops>=0.7.0
+
+# ── Exportación y despliegue ──────────────────────────────────────────────
+onnx>=1.15.0
+onnxruntime>=1.16.0          # CPU
+# onnxruntime-gpu>=1.16.0    # descomenta para GPU
+
+# ── API ────────────────────────────────────────────────────────────────────
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+websockets>=12.0
+pydantic>=2.4.0
+
+# ── Demo ──────────────────────────────────────────────────────────────────
+gradio>=4.8.0
+
+# ── Monitoreo de entrenamiento ────────────────────────────────────────────
+wandb>=0.16.0
+
+# ── Colab / Drive ─────────────────────────────────────────────────────────
+# google-colab  # disponible automáticamente en Colab

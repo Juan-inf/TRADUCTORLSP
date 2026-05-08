@@ -1,0 +1,36 @@
+# Entorno virtual
+.venv310/
+notebooks/venv/
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Datos grandes (no versionar en git)
+data/videos/
+data/processed_pixels/
+data/landmarks/
+data/baseline_features.npz
+checkpoints/*.onnx
+
+# Modelos pesados
+*.pt
+*.pth
+
+# macOS
+.DS_Store
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# Logs y outputs temporales
+logs/
+
+*.log
+
+# IDE
+.vscode/
+.idea/

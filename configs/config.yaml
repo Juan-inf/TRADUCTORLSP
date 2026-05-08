@@ -1,0 +1,93 @@
+dataset:
+  drive_folder_id: "1JjakUGGrAn9YwdHrkAUNCmuzyS8jdCse"
+  raw_path: "data/raw"
+  processed_path: "data/processed"
+  landmarks_path: "data/landmarks"
+  splits_path: "data/splits"
+  extensions: [".mp4", ".MP4"]
+
+video:
+  height: 224
+  width: 224
+  fps: 25
+  n_frames: 30
+  interpolation: "bicubic"
+  imagenet_mean: [0.485, 0.456, 0.406]
+  imagenet_std: [0.229, 0.224, 0.225]
+
+landmarks:
+  use_hands: true
+  use_pose: true
+  use_face: false
+  hands_points: 42        # 21 × 2
+  pose_points: 33
+  face_points: 0
+  normalize_wrist: true   # invarianza posicional respecto muñeca derecha
+
+augmentation:
+  flip_prob: 0.5
+  speed_factors: [0.75, 1.25]
+  temporal_crop_min: 25
+  temporal_crop_max: 30
+  brightness_jitter: 0.2
+  contrast_jitter: 0.2
+  rotation_degrees: 10
+  landmark_noise_sigma: 0.01
+
+splits:
+  train: 0.70
+  val: 0.15
+  test: 0.15
+  stratify: true
+  random_seed: 42
+
+training:
+  epochs: 100
+  patience: 10
+  batch_size: 8
+  num_workers: 4
+  pin_memory: true
+  mixed_precision: true
+  optimizer:
+    name: "AdamW"
+    lr: 1.0e-4
+    weight_decay: 1.0e-4
+  scheduler:
+    name: "CosineAnnealingLR"
+    T_max: 100
+  loss: "CrossEntropyLoss"
+  weighted_loss: true
+
+models:
+  cnn_lstm:
+    backbone: "resnet50"
+    hidden_size: 512
+    num_layers: 2
+    dropout: 0.3
+  slowfast:
+    alpha: 8
+    beta: 0.125
+  videomae:
+    model_name: "MCG-NJU/videomae-base"
+    num_frames: 16
+  stgcn:
+    in_channels: 3
+    hidden_channels: 64
+    num_classes: null   # se llena automáticamente
+    num_layers: 4
+
+inference:
+  device: "cuda"
+  max_latency_ms: 200
+  onnx_opset: 17
+  confidence_threshold: 0.7
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  camera_index: 0
+  buffer_frames: 30
+
+wandb:
+  project: "traductor-lsp"
+  entity: null
