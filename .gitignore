@@ -26,8 +26,10 @@ checkpoints/*.onnx
 .ipynb_checkpoints/
 */.ipynb_checkpoints/
 
-# Logs y outputs temporales
+# Logs y outputs temporales (excepto resultados de experimentos)
 logs/
+!logs/semana5_experimentos.txt
+!logs/baseline_results.txt
 
 *.log
 
