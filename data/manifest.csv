@@ -1,27 +1,3 @@
-ruta,nombre,num_vineta,clase,n_frames,fps,ancho,alto,resolucion,duracion_seg,size_mb,valido
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (2).mp4,Historias vinetas (2).mp4,2,vineta_002,3045,29.94124828948123,1920,1080,1920x1080,101.7,40.05,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (3).mp4,Historias vinetas (3).mp4,3,vineta_003,17071,29.970000154493587,640,360,640x360,569.6,29.57,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (4).mp4,Historias vinetas (4).mp4,4,vineta_004,3525,29.950761797272285,1920,1080,1920x1080,117.69,55.56,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (5).mp4,Historias vinetas (5).mp4,5,vineta_005,3900,29.97002997002997,1920,1080,1920x1080,130.13,58.1,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (6).mp4,Historias vinetas (6).mp4,6,vineta_006,5835,29.97002997002997,1920,1080,1920x1080,194.69,69.32,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (8).mp4,Historias vinetas (8).mp4,8,vineta_008,3510,29.9453987032192,1920,1080,1920x1080,117.21,41.39,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (11).mp4,Historias vinetas (11).mp4,11,vineta_011,1800,29.97002997002997,1920,1080,1920x1080,60.06,24.76,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (12).mp4,Historias vinetas (12).mp4,12,vineta_012,2954,29.97,640,480,640x480,98.57,16.18,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (13).mp4,Historias vinetas (13).mp4,13,vineta_013,2579,29.97,640,480,640x480,86.05,14.1,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (14).mp4,Historias vinetas (14).mp4,14,vineta_014,2536,29.97,640,480,640x480,84.62,13.92,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (15).mp4,Historias vinetas (15).mp4,15,vineta_015,5027,29.97,640,480,640x480,167.73,27.44,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (17).mp4,Historias vinetas (17).mp4,17,vineta_017,4682,29.97,640,480,640x480,156.22,25.56,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (18).mp4,Historias vinetas (18).mp4,18,vineta_018,4003,29.97,640,480,640x480,133.57,21.88,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (19).mp4,Historias vinetas (19).mp4,19,vineta_019,2056,29.97,640,480,640x480,68.6,11.3,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (20).mp4,Historias vinetas (20).mp4,20,vineta_020,2414,29.97,640,480,640x480,80.55,13.24,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (21).mp4,Historias vinetas (21).mp4,21,vineta_021,5263,29.97,640,480,640x480,175.61,28.72,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (22).mp4,Historias vinetas (22).mp4,22,vineta_022,6106,29.97,640,480,640x480,203.74,33.25,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (23).mp4,Historias vinetas (23).mp4,23,vineta_023,7141,29.97,640,480,640x480,238.27,38.89,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (24).mp4,Historias vinetas (24).mp4,24,vineta_024,7472,29.97,640,480,640x480,249.32,40.72,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (25).mp4,Historias vinetas (25).mp4,25,vineta_025,1651,29.97,640,480,640x480,55.09,9.07,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (27).mp4,Historias vinetas (27).mp4,27,vineta_027,1547,29.97,640,480,640x480,51.62,8.51,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (29).mp4,Historias vinetas (29).mp4,29,vineta_029,2149,29.970085698546587,1280,720,1280x720,71.7,20.45,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (30).mp4,Historias vinetas (30).mp4,30,vineta_030,4420,29.9700909341379,1280,720,1280x720,147.48,41.21,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (37).mp4,Historias vinetas (37).mp4,37,vineta_037,2250,29.97002997002997,1920,1080,1920x1080,75.08,26.52,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (42).mp4,Historias vinetas (42).mp4,42,vineta_042,3133,29.97,640,480,640x480,104.54,17.15,True
-/Users/usuario/Documents/TRADUCTOR_LSP/data/videos/original/Historias vinetas (43).mp4,Historias vinetas (43).mp4,43,vineta_043,3094,29.97,640,480,640x480,103.24,16.9,True
+version https://git-lfs.github.com/spec/v1
+oid sha256:d2748bfbc93d25d65ee315ad61377126d91bad0e00f3e1cd2a4ebee45d5f1af2
+size 4706
