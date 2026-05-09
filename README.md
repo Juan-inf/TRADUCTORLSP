@@ -172,18 +172,29 @@ LandmarkExtractor           ─── MediaPipe Holistic
 
 ### Baseline vs Experimentos A/B — Semana 5
 
-| Modelo / Variante | Test Acc | F1-macro | F1-weighted | Parámetros | Nota |
-|-------------------|---------|---------|------------|-----------|------|
-| Random baseline | 0.038 | 0.038 | — | — | — |
-| KNN (k=5) | 0.864 | 0.791 | 0.847 | — | sklearn |
-| LogReg (C=1) | **0.912** | **0.859** | 0.904 | — | sklearn |
-| **Baseline** CNN-LSTM Light | 0.830 | 0.721 | — | ~975K | MobileNetV3 + BiLSTM hidden=256 |
-| **Var1** hidden=128 | — | — | — | ~550K | ← un cambio: hidden size ↓ |
-| **Var2** lr=5e-4 | — | — | — | ~975K | ← un cambio: lr ↑ |
+#### Baseline clásico (sklearn) — `scripts/run_baseline.py`
+
+| Modelo | Test Acc | F1-macro | F1-weighted | AUC | ms/seg |
+|--------|---------|---------|------------|-----|--------|
+| Random | 0.052 | 0.037 | 0.052 | 0.498 | 0.02 |
+| KNN (k=5) | 0.864 | 0.791 | 0.847 | 0.971 | 1.23 |
+| Naive Bayes | 0.860 | 0.792 | 0.854 | 0.994 | 0.09 |
+| **LogReg (C=1)** | **0.912** | **0.859** | 0.904 | 0.996 | 0.02 |
+
+#### Experimentos A/B — ST-GCN sobre Landmarks (Semana 5)
+
+| Modelo / Variante | Test Acc | F1-macro | F1-weighted | Parámetros | Cambio |
+|-------------------|---------|---------|------------|-----------|--------|
+| CNN-LSTM Light | 0.830 | 0.721 | — | ~975K | MobileNetV3 + BiLSTM |
+| **Baseline** ST-GCN (hidden=64, lr=1e-4) | 0.271 | 0.239 | 0.253 | 1,244K | — |
+| **Var1** ST-GCN (hidden=32, lr=1e-4) | 0.154 | 0.119 | 0.116 | 365K | ← hidden ↓50% |
+| **Var2** ST-GCN (hidden=64, lr=5e-4) | **0.435** | **0.331** | **0.429** | 1,244K | ← lr ×5 ✓ |
 
 > Resultados A/B completos en `logs/semana5_experimentos.txt` y `data/semana5_experimentos_ab.png`
 
-> **Splits temporales dentro de cada video** (70/15/15 por video): cada clase aparece en los tres particiones. El baseline LogReg supera al random en +2134%. Ver notebook 05 para análisis completo.
+> **Diseño A/B:** un solo cambio por variante, fit en train, val solo para early stopping, test evaluado una vez. Device: MPS (Apple GPU). Epochs: 5. **Conclusión:** lr más alto (Var2) mejora F1-macro en +0.09 vs Baseline; hidden más pequeño (Var1) degrada. Próximo paso: más épocas en Colab GPU + fusión CNN-LSTM + ST-GCN.
+
+> **Splits temporales dentro de cada video** (70/15/15 por video): cada clase aparece en las tres particiones. Leakage verificado: 0 frames solapados entre train y test. Ver notebook 05 para análisis completo.
 
 ### Landmarks MediaPipe
 
