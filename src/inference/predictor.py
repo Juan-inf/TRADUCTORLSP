@@ -336,7 +336,9 @@ class ONNXPredictor:
         except ImportError:
             raise ImportError("pip install onnxruntime")
 
-        providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+        available = ort.get_available_providers()
+        providers = [p for p in ('CoreMLExecutionProvider', 'CUDAExecutionProvider',
+                                  'CPUExecutionProvider') if p in available]
         self.session = ort.InferenceSession(onnx_path, providers=providers)
         self.input_names = [inp.name for inp in self.session.get_inputs()]
 
@@ -349,8 +351,10 @@ class ONNXPredictor:
 
     def predict(self, pixels: np.ndarray, landmarks: Optional[np.ndarray] = None) -> Dict:
         feeds = {}
-        if 'pixels' in self.input_names:
-            feeds['pixels'] = pixels.astype(np.float32)
+        # Usar el nombre real del primer input (puede ser 'pixels', 'input', 'x', etc.)
+        pixel_key = next((n for n in self.input_names if n in ('pixels', 'input', 'x')),
+                         self.input_names[0])
+        feeds[pixel_key] = pixels.astype(np.float32)
         if 'landmarks' in self.input_names and landmarks is not None:
             feeds['landmarks'] = landmarks.astype(np.float32)
 

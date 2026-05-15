@@ -16,6 +16,7 @@ import base64
 import asyncio
 import numpy as np
 import cv2
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, List
 
@@ -28,25 +29,63 @@ import torch
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.inference.predictor import LSPPredictor, ONNXPredictor
+from src.inference.predictor import ONNXPredictor
 
 # ── Configuración ────────────────────────────────────────────────────────────
 
 CONFIG = {
-    "checkpoint_path": "checkpoints/lsp_best.pt",
-    "onnx_path":       "checkpoints/lsp_model.onnx",
+    "checkpoint_path": "checkpoints/cnn_lstm_best.pt",
+    "onnx_path":       "checkpoints/cnn_lstm_best.onnx",
     "label2idx_path":  "data/label2idx.json",
     "n_frames":        30,
-    "img_size":        (224, 224),
+    "img_size":        (112, 112),   # shape exportada del ONNX
     "device":          "cuda" if torch.cuda.is_available() else "cpu",
-    "confidence_threshold": 0.65,
-    "mode":            "both",
+    "confidence_threshold": 0.40,
+    "mode":            "pixels",
 }
+
+# ── Estado global del predictor ──────────────────────────────────────────────
+
+predictor:   Optional[ONNXPredictor] = None
+idx2label:   dict = {}
+clase_texto: dict = {}   # clase_id → texto legible en castellano
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global predictor, idx2label, clase_texto
+    # Mapeo clase → texto castellano
+    clase_texto_path = Path("data/clase_texto.json")
+    if clase_texto_path.exists():
+        with open(clase_texto_path, encoding="utf-8") as f:
+            clase_texto = json.load(f)
+
+    if not Path(CONFIG["label2idx_path"]).exists():
+        print("ADVERTENCIA: label2idx.json no encontrado.")
+    else:
+        with open(CONFIG["label2idx_path"]) as f:
+            label2idx = json.load(f)
+        idx2label = {int(v): k for k, v in label2idx.items()}
+
+        if Path(CONFIG["onnx_path"]).exists():
+            print("Cargando modelo ONNX...")
+            predictor = ONNXPredictor(
+                onnx_path=CONFIG["onnx_path"],
+                label2idx_path=CONFIG["label2idx_path"],
+                n_frames=CONFIG["n_frames"],
+                img_size=CONFIG["img_size"],
+            )
+            print(f"Modelo ONNX listo — {len(idx2label)} clases")
+        else:
+            print(f"ONNX no encontrado: {CONFIG['onnx_path']}")
+    yield
+
 
 app = FastAPI(
     title="Traductor LSP",
     description="API de Lengua de Señas Peruana — Deep Learning en tiempo real",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -56,44 +95,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Estado global del predictor ──────────────────────────────────────────────
-
-predictor: Optional[LSPPredictor] = None
-idx2label: dict = {}
-
-
-@app.on_event("startup")
-async def load_model():
-    global predictor, idx2label
-
-    if not Path(CONFIG["label2idx_path"]).exists():
-        print("ADVERTENCIA: label2idx.json no encontrado. Ejecutar EDA primero.")
-        return
-
-    with open(CONFIG["label2idx_path"]) as f:
-        label2idx = json.load(f)
-    idx2label = {int(v): k for k, v in label2idx.items()}
-
-    if Path(CONFIG["onnx_path"]).exists():
-        print("Cargando modelo ONNX (optimizado)...")
-        predictor = ONNXPredictor(
-            onnx_path=CONFIG["onnx_path"],
-            label2idx_path=CONFIG["label2idx_path"],
-            n_frames=CONFIG["n_frames"],
-            img_size=CONFIG["img_size"],
-        )
-        print(f"Modelo ONNX listo. Clases: {len(idx2label)}")
-    else:
-        print("Modelo ONNX no encontrado. Verificar exportación.")
-
 
 # ── Modelos Pydantic ─────────────────────────────────────────────────────────
 
 class PredictionResult(BaseModel):
-    seña:       str
-    confidence: float
-    latency_ms: float
-    top3:       List[dict]
+    clase:           str
+    texto_castellano: str
+    confidence:      float
+    latency_ms:      float
+    top3:            List[dict]
 
 
 class HealthResponse(BaseModel):
@@ -297,32 +307,36 @@ def _extract_frames_from_file(
     return arr[np.newaxis]                         # [1, C, T, H, W]
 
 
+def _clase_a_texto(clase_id: str) -> str:
+    if clase_id in clase_texto:
+        return clase_texto[clase_id]
+    if clase_id.startswith("vineta_"):
+        return f"Historia viñeta {clase_id.replace('vineta_', '')}"
+    return clase_id
+
+
 def _run_inference(pixels: np.ndarray) -> dict:
-    """Ejecuta inferencia ONNX o PyTorch sobre batch de pixels."""
+    """Ejecuta inferencia ONNX sobre batch de pixels y devuelve texto castellano."""
     global predictor, idx2label
 
-    if isinstance(predictor, ONNXPredictor):
-        result = predictor.predict(pixels)
-    else:
-        # PyTorch
-        with torch.no_grad():
-            t = torch.from_numpy(pixels).float().to(CONFIG["device"])
-            logits = predictor.model(t)
-            import torch.nn.functional as F
-            probs = F.softmax(logits, dim=-1).cpu().numpy()[0]
-        idx = int(probs.argmax())
-        result = {
-            'seña': idx2label.get(idx, str(idx)),
-            'confidence': float(probs[idx]),
-            'probs': probs,
-        }
+    result = predictor.predict(pixels)
 
-    # Top-3
+    # Agregar texto en castellano
+    clase_id = result.get('seña', '')
+    result['clase']            = clase_id
+    result['texto_castellano'] = _clase_a_texto(clase_id)
+    result.pop('seña', None)
+
+    # Top-3 con texto castellano
     probs = result.pop('probs', None)
     if probs is not None:
         top3_idx = np.argsort(probs)[::-1][:3]
         result['top3'] = [
-            {'seña': idx2label.get(int(i), str(i)), 'confidence': float(probs[i])}
+            {
+                'clase':           idx2label.get(int(i), str(i)),
+                'texto_castellano': _clase_a_texto(idx2label.get(int(i), str(i))),
+                'confidence':      float(probs[i]),
+            }
             for i in top3_idx
         ]
     else:

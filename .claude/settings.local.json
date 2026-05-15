@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(python3)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(pkill -f \"uvicorn api.main\")",
+      "Bash(pkill -f \"app_gradio\")",
+      "Bash(.venv310/bin/uvicorn api.main:app --host 0.0.0.0 --port 8000)",
+      "Bash(echo \"API PID: $!\")",
+      "Bash(.venv310/bin/python demo/app_gradio.py)"
     ]
   }
 }

@@ -40,10 +40,13 @@ class GraphConv(nn.Module):
         x = x.view(B, 3, out_ch, T, N)               # [B, 3, out, T, N]
 
         # Multiplicación por adyacencia (mensaje passing)
-        # A: [3, N, N]  ×  x: [B, 3, out, T, N] → [B, out, T, N]
-        y = torch.einsum('knm,bkctm->bkctm', A, x)   # broadcasting sobre batch
-        # No es la forma correcta. Usar einsum correcto:
-        y = torch.einsum('knm,bkctm->bctm', A, x)    # suma sobre k y m
+        # y[b,c,t,n] = sum_k sum_m A[k,n,m] * x[b,k,c,t,m]
+        # Implementación eficiente via bmm para evitar OOM en MPS/CUDA
+        # x: [B, 3, C, T, N] → [3, B*C*T, N]
+        B2, K, C2, T2, N2 = x.shape
+        x_r = x.permute(1, 0, 2, 3, 4).reshape(K, B2 * C2 * T2, N2)  # [3, BCT, N]
+        y = torch.bmm(x_r, A.transpose(1, 2))                          # [3, BCT, N]
+        y = y.reshape(K, B2, C2, T2, N2).sum(0)                        # [B, C, T, N]
 
         return y
 
@@ -144,10 +147,12 @@ class STGCN(nn.Module):
         # Proyección inicial
         self.input_proj = nn.Conv2d(in_channels, hidden_channels, kernel_size=1)
 
-        # Bloques ST-GCN
+        # Bloques ST-GCN (soporta hasta 8 capas)
         channels = [hidden_channels, hidden_channels, hidden_channels * 2,
-                    hidden_channels * 2, hidden_channels * 4]
-        strides  = [1, 1, 2, 1, 2]
+                    hidden_channels * 2, hidden_channels * 4,
+                    hidden_channels * 4, hidden_channels * 4, hidden_channels * 4,
+                    hidden_channels * 4]
+        strides  = [1, 1, 2, 1, 2, 1, 1, 1]
 
         layers = []
         for i in range(num_layers):
