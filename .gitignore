@@ -13,6 +13,7 @@ data/videos/
 data/processed_pixels/
 data/landmarks/
 data/baseline_features.npz
+data/Glosas/
 checkpoints/*.onnx
 
 # Modelos pesados
