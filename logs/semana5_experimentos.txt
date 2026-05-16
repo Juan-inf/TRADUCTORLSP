@@ -1,69 +1,71 @@
 ========================================================================
 SEMANA 5 — EXPERIMENTOS A/B — SISTEMA LSP
-Fecha: 2026-05-08 23:24
+Fecha: 2026-05-15 20:15
 ========================================================================
 
 CONFIGURACIÓN COMÚN
-  Modelo:    ST-GCN (Spatial-Temporal GCN)
-  Datos:     Landmarks MediaPipe Holistic [T=30, N=75, C=3]
-  Dataset:   7235 segs con landmarks | 26 clases
-  Epochs:    5 | Batch: 32 | Device: mps
+  Dataset:   26 clases | 7235 segmentos | sliding window 30f stride 15
+  Backbone:  MobileNetV3-Small (pretrained ImageNet)
+  Imagen:    112x112 px
+  Epochs:    2
   Optimizer: AdamW + CosineAnnealingLR
+  Device:    mps
 
 DISEÑO A/B (un cambio por vez)
-  Baseline : hidden_channels=64, lr=1e-4
-  Var1     : hidden_channels=32, lr=1e-4  ← cambio: hidden size ↓
-  Var2     : hidden_channels=64, lr=5e-4  ← cambio: learning rate ↑
+  Baseline : hidden=256, lr=1e-4, augment=True
+  Var1     : hidden=128, lr=1e-4, augment=True  ← cambio: hidden size
+  Var2     : hidden=256, lr=5e-4, augment=True  ← cambio: learning rate
 
 TABLA COMPARATIVA
-                               Accuracy  F1-macro  F1-weighted Parámetros  Tiempo (s)
-Variante                                                                             
-Baseline (hidden=64, lr=1e-4)    0.2712    0.2389       0.2527  1,244,296         0.0
-Var1 (hidden=32, lr=1e-4)        0.1538    0.1185       0.1161    365,320         0.0
-Var2 (hidden=64, lr=5e-4)        0.4349    0.3307       0.4286  1,244,296         0.0
+                   Accuracy  F1-macro  F1-weighted Parámetros  Tiempo (s)
+Variante                                                                 
+Baseline             0.4808    0.3947       0.3947  1,902,010       461.1
+Var1 (hidden=128)    0.2423    0.1380       0.1380  1,219,642       506.7
+Var2 (lr=5e-4)       0.5115    0.3931       0.3931  1,902,010       551.2
 
-MEJOR: Var2 (hidden=64, lr=5e-4) — F1-macro=0.3307 (Δ=+0.0918)
+MEJOR VARIANTE: Baseline — F1-macro=0.3947 (Δ=+0.0000)
 
 PIPELINE Y FEATURES
-  Input:        .npy landmarks [30, 75, 3] por segmento
-  Normalización: keypoints relativos a muñeca derecha
-  Augmentación: ruido σ=0.01 + flip horizontal (solo train)
-  Balanceo:     WeightedRandomSampler (solo train)
+  Input:        MP4 segmentos [start_frame, end_frame]
+  Preproceso:   resize 112x112, norm ImageNet, 30 frames/segmento
+  Augmentación: flip temporal 50% (solo train)
+  Balanceo:     WeightedRandomSampler (peso=1/count_clase, solo train)
 
 LEAKAGE CHECK
   Solapamiento frames train/test: NO
-  Split tipo: TEMPORAL por video (70/15/15)
+  Tipo split: TEMPORAL por video
+  Clases en train/val/test: {'test': 26, 'train': 26, 'val': 26}
 
-REPORTE CLASIFICACIÓN — MEJOR VARIANTE
+REPORTE POR CLASE — MEJOR VARIANTE
               precision    recall  f1-score   support
 
-  vineta_002      0.264     0.452     0.333        31
-  vineta_003      0.940     0.830     0.882       171
-  vineta_004      0.120     0.083     0.098        36
-  vineta_005      0.500     0.179     0.264        39
-  vineta_006      0.712     0.627     0.667        59
-  vineta_008      0.560     0.400     0.467        35
-  vineta_011      0.056     0.111     0.074        18
-  vineta_012      0.000     0.000     0.000        30
-  vineta_013      0.255     0.462     0.329        26
-  vineta_014      0.286     0.385     0.328        26
-  vineta_015      0.357     0.098     0.154        51
-  vineta_017      0.356     0.553     0.433        47
-  vineta_018      0.578     0.650     0.612        40
-  vineta_019      0.216     0.381     0.276        21
-  vineta_020      0.125     0.208     0.156        24
-  vineta_021      0.692     0.509     0.587        53
-  vineta_022      0.492     0.492     0.492        61
-  vineta_023      0.554     0.708     0.622        72
-  vineta_024      0.500     0.107     0.176        75
-  vineta_025      0.250     0.529     0.340        17
-  vineta_027      0.130     0.625     0.215        16
-  vineta_029      0.242     0.381     0.296        21
-  vineta_030      0.400     0.045     0.082        44
-  vineta_037      0.182     0.087     0.118        23
-  vineta_042      0.476     0.312     0.377        32
-  vineta_043      0.169     0.323     0.222        31
+  vineta_002      0.000     0.000     0.000        10
+  vineta_003      0.000     0.000     0.000        10
+  vineta_004      0.533     0.800     0.640        10
+  vineta_005      0.667     0.400     0.500        10
+  vineta_006      1.000     1.000     1.000        10
+  vineta_008      1.000     1.000     1.000        10
+  vineta_011      0.444     0.800     0.571        10
+  vineta_012      0.263     1.000     0.417        10
+  vineta_013      0.000     0.000     0.000        10
+  vineta_014      0.500     1.000     0.667        10
+  vineta_015      0.000     0.000     0.000        10
+  vineta_017      1.000     0.600     0.750        10
+  vineta_018      1.000     0.100     0.182        10
+  vineta_019      0.000     0.000     0.000        10
+  vineta_020      0.227     1.000     0.370        10
+  vineta_021      0.000     0.000     0.000        10
+  vineta_022      1.000     0.200     0.333        10
+  vineta_023      0.714     1.000     0.833        10
+  vineta_024      0.000     0.000     0.000        10
+  vineta_025      0.000     0.000     0.000        10
+  vineta_027      1.000     0.800     0.889        10
+  vineta_029      0.000     0.000     0.000        10
+  vineta_030      0.455     1.000     0.625        10
+  vineta_037      1.000     1.000     1.000        10
+  vineta_042      0.500     0.100     0.167        10
+  vineta_043      0.206     0.700     0.318        10
 
-    accuracy                          0.435      1099
-   macro avg      0.362     0.367     0.331      1099
-weighted avg      0.485     0.435     0.429      1099
+    accuracy                          0.481       260
+   macro avg      0.443     0.481     0.395       260
+weighted avg      0.443     0.481     0.395       260
