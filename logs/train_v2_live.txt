@@ -1,0 +1,32 @@
+Device: mps
+Train 5051 | Val 1085 | Test 1099
+
+=================================================================
+Modelo: stgcn_v2  |  Parámetros: 11,344,222
+Epochs=80 | LR=0.001 | Hidden=128 | Batch=32
+=================================================================
+  Ep   1/80 | tr_loss=2.6665 tr_acc=0.205 tr_f1=0.197 | vl_acc=0.223 vl_f1=0.164 | lr=6.67e-04
+  ✓ Nuevo mejor F1-macro val: 0.1639
+  Ep   2/80 | tr_loss=2.0717 tr_acc=0.408 tr_f1=0.401 | vl_acc=0.513 vl_f1=0.392 | lr=1.00e-03
+  ✓ Nuevo mejor F1-macro val: 0.3921
+  Ep   3/80 | tr_loss=1.8127 tr_acc=0.504 tr_f1=0.502 | vl_acc=0.532 vl_f1=0.431 | lr=1.00e-03
+  ✓ Nuevo mejor F1-macro val: 0.4310
+  Ep   4/80 | tr_loss=1.6228 tr_acc=0.589 tr_f1=0.586 | vl_acc=0.621 vl_f1=0.533 | lr=1.00e-03
+  ✓ Nuevo mejor F1-macro val: 0.5329
+  Ep   5/80 | tr_loss=1.5427 tr_acc=0.616 tr_f1=0.611 | vl_acc=0.591 vl_f1=0.542 | lr=9.98e-04
+  ✓ Nuevo mejor F1-macro val: 0.5421
+  Ep   6/80 | tr_loss=1.4414 tr_acc=0.655 tr_f1=0.650 | vl_acc=0.599 vl_f1=0.508 | lr=9.96e-04
+  Ep   7/80 | tr_loss=1.4082 tr_acc=0.673 tr_f1=0.672 | vl_acc=0.672 vl_f1=0.583 | lr=9.93e-04
+  ✓ Nuevo mejor F1-macro val: 0.5831
+  Ep   8/80 | tr_loss=1.3397 tr_acc=0.701 tr_f1=0.700 | vl_acc=0.676 vl_f1=0.606 | lr=9.90e-04
+  ✓ Nuevo mejor F1-macro val: 0.6057
+  Ep   9/80 | tr_loss=1.3021 tr_acc=0.728 tr_f1=0.723 | vl_acc=0.663 vl_f1=0.575 | lr=9.85e-04
+  Ep  10/80 | tr_loss=1.2491 tr_acc=0.755 tr_f1=0.754 | vl_acc=0.700 vl_f1=0.632 | lr=9.80e-04
+  ✓ Nuevo mejor F1-macro val: 0.6320
+  Ep  11/80 | tr_loss=1.2210 tr_acc=0.765 tr_f1=0.762 | vl_acc=0.705 vl_f1=0.631 | lr=9.74e-04
+  Ep  12/80 | tr_loss=1.2022 tr_acc=0.764 tr_f1=0.764 | vl_acc=0.693 vl_f1=0.635 | lr=9.67e-04
+  ✓ Nuevo mejor F1-macro val: 0.6347
+  Ep  13/80 | tr_loss=1.1517 tr_acc=0.789 tr_f1=0.788 | vl_acc=0.717 vl_f1=0.636 | lr=9.59e-04
+  ✓ Nuevo mejor F1-macro val: 0.6360
+  Ep  14/80 | tr_loss=1.1376 tr_acc=0.806 tr_f1=0.807 | vl_acc=0.679 vl_f1=0.595 | lr=9.50e-04
+  Ep  15/80 | tr_loss=1.1021 tr_acc=0.818 tr_f1=0.817 | vl_acc=0.671 vl_f1=0.606 | lr=9.41e-04

@@ -168,11 +168,9 @@ LandmarkExtractor           ─── MediaPipe Holistic
 
 ---
 
-## Métricas y Resultados
+## Métricas y Resultados — Semana 5
 
-### Baseline vs Experimentos A/B — Semana 5
-
-#### Baseline clásico (sklearn) — `scripts/run_baseline.py`
+### Baseline clásico (sklearn) — `scripts/run_baseline.py`
 
 | Modelo | Test Acc | F1-macro | F1-weighted | AUC | ms/seg |
 |--------|---------|---------|------------|-----|--------|
@@ -181,20 +179,48 @@ LandmarkExtractor           ─── MediaPipe Holistic
 | Naive Bayes | 0.860 | 0.792 | 0.854 | 0.994 | 0.09 |
 | **LogReg (C=1)** | **0.912** | **0.859** | 0.904 | 0.996 | 0.02 |
 
-#### Experimentos A/B — ST-GCN sobre Landmarks (Semana 5)
+### Experimentos A/B — Un cambio por vez
 
-| Modelo / Variante | Test Acc | F1-macro | F1-weighted | Parámetros | Cambio |
-|-------------------|---------|---------|------------|-----------|--------|
-| CNN-LSTM Light | 0.830 | 0.721 | — | ~975K | MobileNetV3 + BiLSTM |
-| **Baseline** ST-GCN (hidden=64, lr=1e-4) | 0.271 | 0.239 | 0.253 | 1,244K | — |
-| **Var1** ST-GCN (hidden=32, lr=1e-4) | 0.154 | 0.119 | 0.116 | 365K | ← hidden ↓50% |
-| **Var2** ST-GCN (hidden=64, lr=5e-4) | **0.435** | **0.331** | **0.429** | 1,244K | ← lr ×5 ✓ |
+| # | Variante | Cambio | Test Acc | F1-macro | F1-weighted | Params | Épocas |
+|---|----------|--------|---------|---------|------------|--------|--------|
+| B | **Baseline** (CNN-LSTM, hidden=256, lr=1e-4) | — punto de partida | **0.830** | **0.721** | 0.780 | 3.6M | 50 |
+| V1 | **Var1** (CNN-LSTM, hidden=128, lr=1e-4) | hidden 256→128 (–65% LSTM) | 0.757 | 0.590 | 0.722 | 1.8M | 2 |
+| V2 | **Var2** (STGCN-64, lr=5e-4, landmarks) | arch+features: STGCN sobre kp | 0.435 | 0.331 | 0.429 | 1.2M | 5 |
+| v2+ | **STGCN-v2** (hidden=128, lr=1e-3, en curso) | más canales + einsum corregido | — | **0.636*** | — | 11.3M | 13/80 |
 
-> Resultados A/B completos en `logs/semana5_experimentos.txt` y `data/semana5_experimentos_ab.png`
+> *Val F1 a época 13 (entrenamiento pausado, best checkpoint guardado).
 
-> **Diseño A/B:** un solo cambio por variante, fit en train, val solo para early stopping, test evaluado una vez. Device: MPS (Apple GPU). Epochs: 5. **Conclusión:** lr más alto (Var2) mejora F1-macro en +0.09 vs Baseline; hidden más pequeño (Var1) degrada. Próximo paso: más épocas en Colab GPU + fusión CNN-LSTM + ST-GCN.
+**Gráfico comparativo:** `data/semana5_experimentos_ab.png`  
+**Log completo:** `logs/semana5_experimentos_v2.txt`
 
-> **Splits temporales dentro de cada video** (70/15/15 por video): cada clase aparece en las tres particiones. Leakage verificado: 0 frames solapados entre train y test. Ver notebook 05 para análisis completo.
+### Feature Set y Pipeline (Semana 5)
+
+| | Baseline / Var1 | Var2 / STGCN-v2 |
+|--|----------------|----------------|
+| **Input** | Frames RGB [T=30, H=112, W=112] | Landmarks MediaPipe [T=30, N=75, C=3] |
+| **Features** | MobileNetV3-Small → 576 feat/frame | 75 kp (42 manos + 33 pose) × 3 coords |
+| **Temporal** | BiLSTM 2 capas → avg pool | ST-GCN (grafo espacio-temporal) |
+| **Augmentación** | flip temporal 50% (solo train) | ruido σ=0.015 + flip + speed ×0.6–1.4 |
+| **Normalización** | ImageNet µ/σ fijos (sin fit) | coords relativas (fit solo en train) |
+| **Balanceo** | WeightedRandomSampler (solo train) | WeightedRandomSampler (solo train) |
+
+### Validación y Leakage
+
+| Check | Resultado |
+|-------|----------|
+| **Tipo de split** | TEMPORAL por video: primeros frames → train, últimos → test |
+| **Ratios** | 70% train / 15% val / 15% test |
+| **Clases en los 3 splits** | 26/26 ✓ |
+| **Solapamiento frames train/test** | **0 frames** ✓ (verificado programáticamente) |
+| **Data leakage de normalización** | ImageNet: parámetros fijos; landmarks: fit solo sobre train ✓ |
+| **Val usado para** | Early stopping únicamente (no selección de hiperparámetros) |
+| **Test evaluado** | Una sola vez por variante al final ✓ |
+
+**Conclusiones A/B:**
+1. Baseline CNN-LSTM es la variante más fuerte (F1=0.721) — mayor capacidad LSTM captura mejor la temporalidad de señas continuas.
+2. Var1 (hidden=128) cae −0.131 F1: la capacidad del modelo es crítica.
+3. Var2 STGCN con solo 5 épocas alcanza F1=0.331; STGCN-v2 extendido muestra Val F1=0.636 en época 13.
+4. **Próximo paso:** fusión CNN-LSTM + STGCN-v2 para superar 0.80 F1-macro.
 
 ### Landmarks MediaPipe
 

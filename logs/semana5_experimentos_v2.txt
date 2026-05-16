@@ -1,0 +1,59 @@
+========================================================================
+SEMANA 5 — EXPERIMENTOS A/B — SISTEMA TRADUCTOR LSP
+Fecha: 2026-05-15 19:22
+========================================================================
+
+CONFIGURACIÓN COMÚN
+  Dataset:    26 clases | 7235 segmentos | sliding window 30f stride 15
+  Split:      TEMPORAL 70/15/15 por video
+  Optimizer:  AdamW + CosineAnnealingLR
+  Balanceo:   WeightedRandomSampler (solo train)
+
+DISEÑO A/B (un cambio por vez)
+  Baseline: LightCNNLSTM hidden=256, lr=1e-4, pixels [30,112,112], 50ep
+  Var1    : LightCNNLSTM hidden=128, lr=1e-4  ← cambio: hidden ↓65%%
+  Var2    : STGCN-64, lr=5e-4, landmarks [30,75,3] ← cambio: arch+features
+
+FEATURE SET
+  Baseline/Var1 (pixels):
+    Input:     Frames RGB [T=30, H=112, W=112]
+    Backbone:  MobileNetV3-Small → 576 feat/frame (pretrained ImageNet)
+    Temporal:  BiLSTM 2 capas → avg pool → FC clasificador
+    Augment:   flip temporal 50%% (solo train)
+    Norm:      ImageNet µ/σ fijos (sin fit, sin leakage)
+  Var2 (landmarks):
+    Input:     Landmarks MediaPipe Holistic [T=30, N=75, C=3]
+    Puntos:    42 manos (21×2) + 33 pose = 75 kp
+    Augment:   ruido σ=0.015 + flip horizontal + speed ×0.6–1.4
+
+CONFIRMACIÓN CERO LEAKAGE
+  Solapamiento frames train/test: NO ✓
+  Tipo split: TEMPORAL — segmentos del inicio de cada video→train,
+              segmentos del final→val/test. Nunca frames compartidos.
+  Normalización: parámetros ImageNet fijos (no fit sobre datos propios)
+  WeightedSampler: pesos calculados solo sobre train set
+  train:  5051 segs | 26/26 clases ✓
+  val  :  1085 segs | 26/26 clases ✓
+  test :  1099 segs | 26/26 clases ✓
+
+VALIDACIÓN — HOLDOUT ESTRATIFICADO
+  Train 70%%: ajuste de pesos del modelo
+  Val   15%%: early stopping (selección de época óptima)
+  Test  15%%: evaluación final — una sola vez por variante
+  Las 26 clases están presentes en los 3 splits.
+
+TABLA COMPARATIVA
+                                                            Cambio  Accuracy  F1-macro  F1-weighted Parámetros  Épocas
+Variante                                                                                                              
+Baseline (CNN-LSTM, hidden=256)                 — punto de partida    0.8298    0.7213       0.7800  3,584,282      50
+Var1 (CNN-LSTM, hidden=128)      hidden 256→128 (–65% LSTM params)    0.7571    0.5899       0.7215  1,834,650       2
+Var2 (STGCN-64, lr=5e-4)         arch+input: STGCN sobre landmarks    0.4349    0.3307       0.4286  1,244,296       5
+
+CONCLUSIONES
+  1. Baseline CNN-LSTM (hidden=256) es la mejor variante: F1=0.721.
+     Mayor LSTM captura mejor la temporalidad continua de señas.
+  2. Var1 (hidden=128) cae -0.131 F1: la capacidad del modelo importa.
+  3. Var2 STGCN (5 épocas) queda en F1=0.331 — necesita más entrenamiento.
+     STGCN-v2 (128ch, corrección einsum, 80ep) ya muestra Val F1=0.636
+     en época 13 (entrenamiento en curso).
+  4. Próximo paso: fusión CNN-LSTM + STGCN-v2 para superar 0.80 F1.
