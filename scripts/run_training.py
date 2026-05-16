@@ -115,17 +115,22 @@ class LightCNNLSTM(nn.Module):
         for p in self.backbone.parameters():
             p.requires_grad = True
 
-    def forward(self, x):
-        # x: [B, C, T, H, W]
+    def _encode(self, x):
+        """Shared encoder: pixels → LSTM embedding [B, hidden]."""
         B, C, T, H, W = x.shape
-        # Procesar frame a frame (más eficiente en memoria)
-        x = x.permute(0, 2, 1, 3, 4).reshape(B * T, C, H, W)  # [B*T, C, H, W]
-        feats = self.pool(self.backbone(x)).squeeze(-1).squeeze(-1)  # [B*T, 576]
-        feats = feats.reshape(B, T, -1)                               # [B, T, 576]
-        feats = self.proj(feats)                                       # [B, T, hidden]
-        out, _ = self.lstm(feats)                                      # [B, T, hidden]
-        out = out.mean(dim=1)                                          # [B, hidden] avg pool temporal
-        return self.classifier(out)
+        x = x.permute(0, 2, 1, 3, 4).reshape(B * T, C, H, W)
+        feats = self.pool(self.backbone(x)).squeeze(-1).squeeze(-1)
+        feats = feats.reshape(B, T, -1)
+        feats = self.proj(feats)
+        out, _ = self.lstm(feats)
+        return out.mean(dim=1)  # [B, hidden]
+
+    def forward(self, x):
+        return self.classifier(self._encode(x))
+
+    def get_embedding(self, x):
+        """Returns LSTM embedding before classifier: [B, hidden]."""
+        return self._encode(x)
 
 
 # ── Training loop ─────────────────────────────────────────────────────────

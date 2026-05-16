@@ -179,30 +179,48 @@ LandmarkExtractor           ─── MediaPipe Holistic
 | Naive Bayes | 0.860 | 0.792 | 0.854 | 0.994 | 0.09 |
 | **LogReg (C=1)** | **0.912** | **0.859** | 0.904 | 0.996 | 0.02 |
 
-### Experimentos A/B — Un cambio por vez
+### Cross-Validation — Landmarks 675-dim (5-fold estratificado)
 
-| # | Variante | Cambio | Test Acc | F1-macro | F1-weighted | Params | Épocas |
+> **Metodología:** StratifiedKFold(5) sobre train+val, scaler fit solo en fold train, test nunca visto.
+
+| Modelo | CV F1-macro (mean ± std) | CV Accuracy | Features |
+|--------|--------------------------|-------------|---------|
+| LogReg (C=1) | ver `logs/semana5_experimentos.txt` | — | mean+std+vel keypoints (675-dim) |
+
+### Experimentos A/B — Un cambio por vez (LightCNNLSTM sobre pixels)
+
+> **Diseño:** un solo cambio por variante. Fit exclusivamente en train. Val para early stopping. Test evaluado una sola vez.  
+> Ejecutado en MPS (Apple GPU), 2 épocas, 520 muestras train (FAST_MODE comparable).
+
+| # | Variante | Cambio | Test Acc | F1-macro | F1-weighted | Params | Tiempo |
 |---|----------|--------|---------|---------|------------|--------|--------|
-| B | **Baseline** (CNN-LSTM, hidden=256, lr=1e-4) | — punto de partida | **0.830** | **0.721** | 0.780 | 3.6M | 50 |
-| V1 | **Var1** (CNN-LSTM, hidden=128, lr=1e-4) | hidden 256→128 (–65% LSTM) | 0.757 | 0.590 | 0.722 | 1.8M | 2 |
-| V2 | **Var2** (STGCN-64, lr=5e-4, landmarks) | arch+features: STGCN sobre kp | 0.435 | 0.331 | 0.429 | 1.2M | 5 |
-| v2+ | **STGCN-v2** (hidden=128, lr=1e-3, en curso) | más canales + einsum corregido | — | **0.636*** | — | 11.3M | 13/80 |
-
-> *Val F1 a época 13 (entrenamiento pausado, best checkpoint guardado).
+| B | **Baseline** (hidden=256, lr=1e-4) | — punto de partida | **0.481** | **0.395** | 0.395 | 1.9M | 461s |
+| V1 | **Var1** (hidden=128, lr=1e-4) | hidden 256→128 (–36% params) | 0.242 | 0.138 | 0.138 | 1.2M | 507s |
+| V2 | **Var2** (hidden=256, lr=5e-4) | lr ×5 (único cambio) | 0.512 | 0.393 | 0.393 | 1.9M | 551s |
 
 **Gráfico comparativo:** `data/semana5_experimentos_ab.png`  
-**Log completo:** `logs/semana5_experimentos_v2.txt`
+**Log completo:** `logs/semana5_experimentos.txt`
+
+**Conclusiones A/B:**
+1. **Baseline** (hidden=256, lr=1e-4) es la variante más estable con F1-macro=0.395.
+2. **Var1** (hidden=128) cae −0.257 F1: la capacidad del LSTM es crítica para señas continuas.
+3. **Var2** (lr=5e-4) logra mayor accuracy (0.512) pero F1 similar al baseline — lr agresivo no estabiliza bien con solo 2 épocas.
+4. **Próximo paso:** fusión LightCNNLSTM + ST-GCN sobre landmarks para superar F1=0.50.
 
 ### Feature Set y Pipeline (Semana 5)
 
-| | Baseline / Var1 | Var2 / STGCN-v2 |
-|--|----------------|----------------|
-| **Input** | Frames RGB [T=30, H=112, W=112] | Landmarks MediaPipe [T=30, N=75, C=3] |
-| **Features** | MobileNetV3-Small → 576 feat/frame | 75 kp (42 manos + 33 pose) × 3 coords |
-| **Temporal** | BiLSTM 2 capas → avg pool | ST-GCN (grafo espacio-temporal) |
-| **Augmentación** | flip temporal 50% (solo train) | ruido σ=0.015 + flip + speed ×0.6–1.4 |
-| **Normalización** | ImageNet µ/σ fijos (sin fit) | coords relativas (fit solo en train) |
-| **Balanceo** | WeightedRandomSampler (solo train) | WeightedRandomSampler (solo train) |
+| | Baseline / Var1 / Var2 |
+|--|----------------------|
+| **Input** | Frames RGB [T=30, H=112, W=112, C=3] por segmento |
+| **Features** | MobileNetV3-Small (pretrained ImageNet) → 576 feat/frame |
+| **Proyección** | Linear(576→hidden) + LayerNorm + ReLU + Dropout(0.3) |
+| **Temporal** | BiLSTM 2 capas → avg pooling temporal |
+| **Clasificador** | Linear(hidden→128) → ReLU → Dropout(0.4) → Linear(128→26) |
+| **Augmentación** | flip temporal 50% (solo train) |
+| **Normalización** | ImageNet µ/σ fijos (no fit sobre datos — sin leakage) |
+| **Balanceo** | WeightedRandomSampler peso=1/count_clase (solo train) |
+| **Var1 quita** | 65K params LSTM (hidden 256→128) |
+| **Var2 cambia** | lr 1e-4→5e-4 (único cambio) |
 
 ### Validación y Leakage
 
@@ -212,15 +230,10 @@ LandmarkExtractor           ─── MediaPipe Holistic
 | **Ratios** | 70% train / 15% val / 15% test |
 | **Clases en los 3 splits** | 26/26 ✓ |
 | **Solapamiento frames train/test** | **0 frames** ✓ (verificado programáticamente) |
-| **Data leakage de normalización** | ImageNet: parámetros fijos; landmarks: fit solo sobre train ✓ |
-| **Val usado para** | Early stopping únicamente (no selección de hiperparámetros) |
-| **Test evaluado** | Una sola vez por variante al final ✓ |
-
-**Conclusiones A/B:**
-1. Baseline CNN-LSTM es la variante más fuerte (F1=0.721) — mayor capacidad LSTM captura mejor la temporalidad de señas continuas.
-2. Var1 (hidden=128) cae −0.131 F1: la capacidad del modelo es crítica.
-3. Var2 STGCN con solo 5 épocas alcanza F1=0.331; STGCN-v2 extendido muestra Val F1=0.636 en época 13.
-4. **Próximo paso:** fusión CNN-LSTM + STGCN-v2 para superar 0.80 F1-macro.
+| **Leakage normalización** | Parámetros ImageNet fijos; landmarks fit solo sobre train ✓ |
+| **Val usado para** | Early stopping únicamente (no para selección de HPs) |
+| **Test evaluado** | Una sola vez por variante, al final ✓ |
+| **Cross-Validation** | 5-fold StratifiedKFold sobre train+val (holdout test intacto) ✓ |
 
 ### Landmarks MediaPipe
 
