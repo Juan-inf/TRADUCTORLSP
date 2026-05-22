@@ -180,9 +180,9 @@ results = {
                           "y_true": yt_s, "y_pred": yp_s, "hist": None},
 }
 
-# ── Módulo de fusión ──────────────────────────────────────────────────────────
+# ── Módulo de combinación tardía ──────────────────────────────────────────────
 
-class FusionHead(nn.Module):
+class CabezaCombinada(nn.Module):
     def __init__(self, dim_a, dim_b, n_classes, strategy="concat", hidden=256, dropout=0.35):
         super().__init__()
         self.strategy = strategy
@@ -207,12 +207,12 @@ class FusionHead(nn.Module):
             return self.net(out.squeeze(1))
 
 
-class FusionModel(nn.Module):
+class ModeloCombinado(nn.Module):
     def __init__(self, bb_a, bb_b, strategy, hidden=256, dropout=0.35):
         super().__init__()
         self.bb_a = bb_a
         self.bb_b = bb_b
-        self.head = FusionHead(bb_a.emb_dim, bb_b.emb_dim,
+        self.head = CabezaCombinada(bb_a.emb_dim, bb_b.emb_dim,
                                N_CLASSES, strategy, hidden, dropout)
 
     def forward(self, x):
@@ -222,8 +222,8 @@ class FusionModel(nn.Module):
         return self.head(ea, eb)
 
 
-def run_fusion(strategy, epochs=25, lr=5e-4, patience=8):
-    model = FusionModel(m_lstm, m_stgcn, strategy).to(device)
+def run_variante(strategy, epochs=25, lr=5e-4, patience=8):
+    model = ModeloCombinado(m_lstm, m_stgcn, strategy).to(device)
     opt   = torch.optim.AdamW(model.head.parameters(), lr=lr, weight_decay=1e-4)
     sch   = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
     crit  = nn.CrossEntropyLoss(label_smoothing=0.05)
@@ -275,7 +275,7 @@ def run_fusion(strategy, epochs=25, lr=5e-4, patience=8):
     acc_te, f1_te, f1w_te, y_true, y_pred = evaluate(model, te_dl)
     print(f"\n  TEST acc={acc_te:.4f}  F1-macro={f1_te:.4f}  F1-w={f1w_te:.4f}  ({(time.time()-t0)/60:.1f} min)")
 
-    ckpt_path = CKPT_DIR / f"semana6_fusion_{strategy}_best.pt"
+    ckpt_path = CKPT_DIR / f"semana6_{strategy}_best.pt"
     torch.save({"head_state": best_state, "strategy": strategy,
                 "dim_a": DIM_A, "dim_b": DIM_B, "n_classes": N_CLASSES,
                 "test_f1_macro": f1_te, "test_acc": acc_te, "val_f1_best": best_f1}, ckpt_path)
@@ -289,11 +289,11 @@ def run_fusion(strategy, epochs=25, lr=5e-4, patience=8):
 # ── Experimentos ──────────────────────────────────────────────────────────────
 SEP = "=" * 60
 
-print(f"\n{SEP}\nVariante A — Fusión CONCAT  (BiLSTM {DIM_A}d + ST-GCN {DIM_B}d)\n{SEP}")
-results["Fusión concat"]   = run_fusion("concat",    epochs=25, lr=5e-4)
+print(f"\n{SEP}\nVariante A — Combinación CONCAT  (BiLSTM {DIM_A}d + ST-GCN {DIM_B}d)\n{SEP}")
+results["Combinación concat"]   = run_variante("concat",    epochs=25, lr=5e-4)
 
-print(f"\n{SEP}\nVariante B — Fusión ATTENTION  (cross-attn 4 heads)\n{SEP}")
-results["Fusión attention"] = run_fusion("attention", epochs=25, lr=3e-4)
+print(f"\n{SEP}\nVariante B — Combinación ATTENTION  (cross-attn 4 heads)\n{SEP}")
+results["Combinación attention"] = run_variante("attention", epochs=25, lr=3e-4)
 
 # ── Tabla comparativa ─────────────────────────────────────────────────────────
 print(f"\n{'='*65}")
@@ -304,19 +304,19 @@ print("-" * 65)
 for name, r in sorted(results.items(), key=lambda x: -x[1]["f1"]):
     print(f"  {name:<30} {r['acc']:>7.4f} {r['f1']:>9.4f} {r['f1w']:>12.4f}")
 
-# Reporte por clase — mejor variante de fusión
-fusion_best = max((k for k in results if "baseline" not in k),
-                  key=lambda k: results[k]["f1"])
-print(f"\nMejor variante Semana 6: {fusion_best}  (F1-macro={results[fusion_best]['f1']:.4f})")
-print(classification_report(results[fusion_best]["y_true"],
-                             results[fusion_best]["y_pred"],
+# Reporte por clase — mejor variante
+mejor_variante = max((k for k in results if "baseline" not in k),
+                     key=lambda k: results[k]["f1"])
+print(f"\nMejor variante Semana 6: {mejor_variante}  (F1-macro={results[mejor_variante]['f1']:.4f})")
+print(classification_report(results[mejor_variante]["y_true"],
+                             results[mejor_variante]["y_pred"],
                              target_names=CLASS_NAMES, zero_division=0, digits=3))
 
 # ── Guardar log ───────────────────────────────────────────────────────────────
 import datetime
 log_lines = [
     "=" * 65,
-    "SPRINT SEMANA 6 — RESULTADOS FINALES FUSIÓN TARDÍA LSP",
+    "SPRINT SEMANA 6 — RESULTADOS FINALES COMBINACIÓN TARDÍA LSP",
     f"Fecha: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}",
     "=" * 65, "",
     f"{'Modelo':<32} {'Acc':>7} {'F1-macro':>9} {'F1-weighted':>12}",
@@ -325,8 +325,8 @@ log_lines = [
 for name, r in sorted(results.items(), key=lambda x: -x[1]["f1"]):
     log_lines.append(f"  {name:<30} {r['acc']:>7.4f} {r['f1']:>9.4f} {r['f1w']:>12.4f}")
 log_lines += ["", "Reporte por clase — mejor variante:",
-              classification_report(results[fusion_best]["y_true"],
-                                    results[fusion_best]["y_pred"],
+              classification_report(results[mejor_variante]["y_true"],
+                                    results[mejor_variante]["y_pred"],
                                     target_names=CLASS_NAMES, zero_division=0, digits=3)]
 (LOG_DIR / "semana6_resultados_finales.txt").write_text("\n".join(log_lines))
 print(f"\nLog: logs/semana6_resultados_finales.txt")
@@ -340,8 +340,8 @@ print("CSV: data/semana6_resultados.csv")
 
 # ── Gráfico ───────────────────────────────────────────────────────────────────
 fig, axes = plt.subplots(1, 2, figsize=(13, 4.5))
-fig.suptitle("Sprint Semana 6 — Fusión tardía LSP", fontsize=12)
-colors = {"Fusión concat": "#2196F3", "Fusión attention": "#FF5722"}
+fig.suptitle("Sprint Semana 6 — Combinación tardía LSP", fontsize=12)
+colors = {"Combinación concat": "#2196F3", "Combinación attention": "#FF5722"}
 for name, col in colors.items():
     if name not in results or results[name]["hist"] is None: continue
     h  = results[name]["hist"]
@@ -357,5 +357,5 @@ for ax in axes:
 axes[0].set_title("F1-macro"); axes[0].set_xlabel("Época")
 axes[1].set_title("Accuracy val"); axes[1].set_xlabel("Época")
 plt.tight_layout()
-fig.savefig(DATA_DIR / "semana6_fusion_curves.png", dpi=130, bbox_inches="tight")
-print("Gráfico: data/semana6_fusion_curves.png")
+fig.savefig(DATA_DIR / "semana6_curvas.png", dpi=130, bbox_inches="tight")
+print("Gráfico: data/semana6_curvas.png")

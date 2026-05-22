@@ -19,8 +19,8 @@ def parse_args():
                    default="all")
     p.add_argument("--dataset_path", type=str, default="data/raw",
                    help="Ruta raíz del dataset de videos MP4")
-    p.add_argument("--model",        type=str, default="fusion",
-                   choices=["cnn_lstm", "stgcn", "videomae", "fusion"])
+    p.add_argument("--model",        type=str, default="combinado",
+                   choices=["cnn_lstm", "stgcn", "videomae", "combinado"])
     p.add_argument("--epochs",       type=int, default=50)
     p.add_argument("--batch_size",   type=int, default=8)
     p.add_argument("--device",       type=str, default="cuda")
@@ -107,7 +107,7 @@ def stage_preprocess(args):
 def stage_train(args):
     print(f"\n[3/5] Entrenando modelo: {args.model}...")
     import torch
-    from src.models import CNNLSTM, STGCN, VideoMAEWrapper, LSPFusionModel
+    from src.models import CNNLSTM, STGCN, VideoMAEWrapper, LSPModeloCombinado
     from src.dataset.lsp_dataset import get_dataloaders
     from src.training.trainer import LSPTrainer
 
@@ -122,7 +122,7 @@ def stage_train(args):
         "cnn_lstm": "pixels",
         "stgcn":    "landmarks",
         "videomae": "pixels",
-        "fusion":   "both",
+        "combinado": "both",
     }
     mode = mode_map[args.model]
 
@@ -146,10 +146,10 @@ def stage_train(args):
     else:
         pixel_bb    = CNNLSTM(n_classes=n_classes, pretrained=True)
         landmark_bb = STGCN(n_classes=n_classes, n_nodes=75)
-        model = LSPFusionModel(
+        model = LSPModeloCombinado(
             pixel_backbone=pixel_bb, landmark_backbone=landmark_bb,
             dim_pixels=1024, dim_landmarks=256,
-            n_classes=n_classes, fusion_strategy="concat",
+            n_classes=n_classes, estrategia="concat",
         )
 
     cw_tensor = torch.tensor([cw.get(str(i), 1.0) for i in range(n_classes)], dtype=torch.float32)

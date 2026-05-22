@@ -1,10 +1,10 @@
-# ── Semana 6 — Variante B: Fusión tardía con cross-attention (ST-GCN + BiLSTM) ─
+# ── Semana 6 — Variante B: Combinación tardía con cross-attention (ST-GCN + BiLSTM) ─
 # Proyecta embeddings al mismo espacio y aplica multi-head attention entre ramas.
-# Reproducir: .venv310/bin/python scripts/run_semana6_fusion.py --strategy attention
+# Reproducir: .venv310/bin/python scripts/run_semana6.py --strategy attention
 
 experiment:
-  name: "semana6_fusion_attention"
-  description: "Fusión tardía ST-GCN v2 + BiLSTM v2 — cross-attention 8 heads"
+  name: "semana6_attention"
+  description: "Combinación tardía ST-GCN v2 + BiLSTM v2 — cross-attention 8 heads"
   seed: 42
 
 dataset:
@@ -24,7 +24,7 @@ backbones:
     frozen: true
     embedding_dim: 256
 
-fusion:
+combinacion:
   strategy: "attention"
   hidden_dim: 256           # proyección común antes de attention
   num_heads: 8
@@ -42,5 +42,5 @@ training:
   label_smoothing: 0.05
 
 output:
-  checkpoint: "checkpoints/semana6_fusion_attention_best.pt"
-  log: "logs/semana6_fusion_attention.txt"
+  checkpoint: "checkpoints/semana6_attention_best.pt"
+  log: "logs/semana6_attention.txt"

@@ -1,15 +1,15 @@
 """
-Semana 6 — Experimento de Fusión Tardía LSP
+Semana 6 — Experimento de Combinación Tardía LSP
 ============================================
 Combina embeddings de ST-GCN v2 y BiLSTM v2 (ambos sobre landmarks).
-Carga backbones preentrenados, los congela, y entrena solo la cabeza de fusión.
+Carga backbones preentrenados, los congela, y entrena solo la cabeza de combinación.
 
 Estrategias disponibles: concat | attention | weighted_sum
 
 Uso:
-  .venv310/bin/python scripts/run_semana6_fusion.py --strategy concat
-  .venv310/bin/python scripts/run_semana6_fusion.py --strategy attention --epochs 30
-  .venv310/bin/python scripts/run_semana6_fusion.py --strategy weighted_sum --lr 3e-4
+  .venv310/bin/python scripts/run_semana6.py --strategy concat
+  .venv310/bin/python scripts/run_semana6.py --strategy attention --epochs 30
+  .venv310/bin/python scripts/run_semana6.py --strategy weighted_sum --lr 3e-4
 """
 
 import sys, json, time, argparse, warnings
@@ -34,7 +34,7 @@ from src.models import STGCN
 # ── Args ──────────────────────────────────────────────────────────────────────
 
 def get_args():
-    p = argparse.ArgumentParser(description="Semana 6 — Fusión tardía LSP")
+    p = argparse.ArgumentParser(description="Semana 6 — Combinación tardía LSP")
     p.add_argument("--strategy",    type=str,   default="concat",
                    choices=["concat", "attention", "weighted_sum"])
     p.add_argument("--epochs",      type=int,   default=30)
@@ -141,11 +141,11 @@ class STGCNWithEmbedding(nn.Module):
         return self.backbone(x.permute(0, 3, 1, 2))
 
 
-# ── Módulo de fusión tardía ───────────────────────────────────────────────────
+# ── Módulo de combinación tardía ───────────────────────────────────────────────────
 
-class FusionHead(nn.Module):
+class CabezaCombinada(nn.Module):
     """
-    Fusión tardía de dos embeddings.
+    Combinación tardía de dos embeddings.
     strategy: 'concat' | 'attention' | 'weighted_sum'
     """
     def __init__(self, dim_a, dim_b, n_classes, strategy="concat",
@@ -200,14 +200,14 @@ class FusionHead(nn.Module):
             return self.classifier(fused)
 
 
-class FusionModel(nn.Module):
-    """Backbones congelados + cabeza de fusión entrenable."""
+class ModeloCombinado(nn.Module):
+    """Backbones congelados + cabeza de combinación entrenable."""
     def __init__(self, backbone_a, backbone_b, dim_a, dim_b,
                  n_classes, strategy, hidden_dim, dropout):
         super().__init__()
         self.backbone_a = backbone_a
         self.backbone_b = backbone_b
-        self.head = FusionHead(dim_a, dim_b, n_classes, strategy, hidden_dim, dropout)
+        self.head = CabezaCombinada(dim_a, dim_b, n_classes, strategy, hidden_dim, dropout)
 
     def forward(self, x):
         with torch.no_grad():
@@ -289,7 +289,7 @@ def main():
     device = ("mps" if torch.backends.mps.is_available() else
               "cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
-    print(f"Estrategia de fusión: {args.strategy}")
+    print(f"Estrategia de combinación: {args.strategy}")
 
     DATA_DIR = ROOT / "data"
     LOG_DIR  = ROOT / "logs";        LOG_DIR.mkdir(exist_ok=True)
@@ -350,8 +350,8 @@ def main():
     dim_bilstm = emb_b.shape[-1]
     print(f"Dim embeddings: ST-GCN={dim_stgcn} | BiLSTM={dim_bilstm}")
 
-    # Modelo de fusión
-    model = FusionModel(
+    # Modelo de combinación tardía
+    model = ModeloCombinado(
         backbone_a=backbone_stgcn,
         backbone_b=backbone_bilstm,
         dim_a=dim_stgcn,
@@ -364,7 +364,7 @@ def main():
 
     head_params = sum(p.numel() for p in model.head.parameters())
     total_params = sum(p.numel() for p in model.parameters())
-    print(f"\nParámetros cabeza de fusión: {head_params:,}")
+    print(f"\nParámetros cabeza de combinación: {head_params:,}")
     print(f"Parámetros total (backbones congelados): {total_params:,}")
 
     optimizer = torch.optim.AdamW(
@@ -376,13 +376,13 @@ def main():
     criterion = nn.CrossEntropyLoss(label_smoothing=0.05)
 
     print(f"\n{'='*65}")
-    print(f"Fusión: {args.strategy} | Epochs={args.epochs} | LR={args.lr}")
+    print(f"Combinación: {args.strategy} | Epochs={args.epochs} | LR={args.lr}")
     print(f"{'='*65}")
 
     best_f1, best_state, patience_cnt = 0.0, None, 0
     history = defaultdict(list)
     t_start = time.time()
-    log_path = LOG_DIR / f"semana6_fusion_{args.strategy}.txt"
+    log_path = LOG_DIR / f"semana6_{args.strategy}.txt"
     log_lines = []
 
     for ep in range(1, args.epochs + 1):
@@ -421,7 +421,7 @@ def main():
     sep   = "=" * 65
     lines = [
         sep,
-        f"SEMANA 6 — FUSIÓN TARDÍA ({args.strategy.upper()}) — RESULTADOS FINALES",
+        f"SEMANA 6 — COMBINACIÓN TARDÍA ({args.strategy.upper()}) — RESULTADOS FINALES",
         f"Fecha: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}",
         sep,
         f"Estrategia:      {args.strategy}",
@@ -443,8 +443,8 @@ def main():
     print(f"FINAL Test acc={te_acc:.4f} | F1-macro={te_f1:.4f} | {elapsed/60:.1f} min")
     print(f"Log guardado: {log_path}")
 
-    # Guardar checkpoint cabeza de fusión
-    ckpt_path = CKPT_DIR / f"semana6_fusion_{args.strategy}_best.pt"
+    # Guardar checkpoint cabeza de combinación
+    ckpt_path = CKPT_DIR / f"semana6_{args.strategy}_best.pt"
     torch.save({
         "head_state":     best_state,
         "strategy":       args.strategy,
@@ -464,7 +464,7 @@ def main():
 
     # Gráfico de curvas de aprendizaje
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    fig.suptitle(f"Semana 6 — Fusión tardía ({args.strategy})", fontsize=12)
+    fig.suptitle(f"Semana 6 — Combinación tardía ({args.strategy})", fontsize=12)
 
     axes[0].plot(history["tr_f1"], "--", color="#2196F3", alpha=0.7, label="Train F1")
     axes[0].plot(history["vl_f1"], "-",  color="#2196F3", label="Val F1")
@@ -476,7 +476,7 @@ def main():
     axes[1].set_title("Accuracy"); axes[1].legend(); axes[1].grid(True, alpha=0.3)
 
     plt.tight_layout()
-    fig_path = ROOT / "data" / f"semana6_fusion_{args.strategy}.png"
+    fig_path = ROOT / "data" / f"semana6_{args.strategy}.png"
     plt.savefig(fig_path, dpi=120)
     print(f"Gráfico: {fig_path}")
 

@@ -1,5 +1,5 @@
 """
-Fusión multimodal: combina embeddings de píxeles (CNN-LSTM/VideoMAE)
+Combinación multimodal tardía: combina embeddings de píxeles (CNN-LSTM/VideoMAE)
 y landmarks (ST-GCN) para mejorar precisión en señas similares.
 """
 
@@ -8,9 +8,9 @@ import torch.nn as nn
 from typing import Optional
 
 
-class MultimodalFusion(nn.Module):
+class MultimodalCombinacion(nn.Module):
     """
-    Fusión tardía de dos ramas:
+    Combinación tardía de dos ramas:
       - Rama A (pixels):     embedding_a de dimensión dim_a
       - Rama B (landmarks):  embedding_b de dimensión dim_b
 
@@ -25,16 +25,16 @@ class MultimodalFusion(nn.Module):
         dim_a: int,
         dim_b: int,
         n_classes: int,
-        fusion_strategy: str = 'concat',
+        estrategia: str = 'concat',
         hidden_dim: int = 512,
         dropout: float = 0.3,
     ):
         super().__init__()
-        assert fusion_strategy in ('concat', 'attention', 'weighted_sum')
-        self.fusion_strategy = fusion_strategy
+        assert estrategia in ('concat', 'attention', 'weighted_sum')
+        self.estrategia = estrategia
         self.n_classes = n_classes
 
-        if fusion_strategy == 'concat':
+        if estrategia == 'concat':
             self.classifier = nn.Sequential(
                 nn.Linear(dim_a + dim_b, hidden_dim),
                 nn.LayerNorm(hidden_dim),
@@ -43,7 +43,7 @@ class MultimodalFusion(nn.Module):
                 nn.Linear(hidden_dim, n_classes),
             )
 
-        elif fusion_strategy == 'attention':
+        elif estrategia == 'attention':
             # Proyectar ambas ramas al mismo espacio
             self.proj_a = nn.Linear(dim_a, hidden_dim)
             self.proj_b = nn.Linear(dim_b, hidden_dim)
@@ -54,7 +54,7 @@ class MultimodalFusion(nn.Module):
                 nn.Linear(hidden_dim, n_classes),
             )
 
-        elif fusion_strategy == 'weighted_sum':
+        elif estrategia == 'weighted_sum':
             self.proj_a = nn.Linear(dim_a, hidden_dim)
             self.proj_b = nn.Linear(dim_b, hidden_dim)
             self.gate   = nn.Parameter(torch.tensor(0.5))
@@ -65,26 +65,26 @@ class MultimodalFusion(nn.Module):
             )
 
     def forward(self, emb_a: torch.Tensor, emb_b: torch.Tensor) -> torch.Tensor:
-        if self.fusion_strategy == 'concat':
-            fused = torch.cat([emb_a, emb_b], dim=-1)
-            return self.classifier(fused)
+        if self.estrategia == 'concat':
+            combinado = torch.cat([emb_a, emb_b], dim=-1)
+            return self.classifier(combinado)
 
-        elif self.fusion_strategy == 'attention':
+        elif self.estrategia == 'attention':
             qa = self.proj_a(emb_a).unsqueeze(1)   # [B, 1, D]
             kb = self.proj_b(emb_b).unsqueeze(1)   # [B, 1, D]
             out, _ = self.attn(qa, kb, kb)
             return self.classifier(out.squeeze(1))
 
-        elif self.fusion_strategy == 'weighted_sum':
+        elif self.estrategia == 'weighted_sum':
             alpha = torch.sigmoid(self.gate)
-            fused = alpha * self.proj_a(emb_a) + (1 - alpha) * self.proj_b(emb_b)
-            return self.classifier(fused)
+            combinado = alpha * self.proj_a(emb_a) + (1 - alpha) * self.proj_b(emb_b)
+            return self.classifier(combinado)
 
 
-class LSPFusionModel(nn.Module):
+class LSPModeloCombinado(nn.Module):
     """
-    Modelo completo de fusión multimodal para LSP.
-    Encapsula ambas ramas y el módulo de fusión.
+    Modelo completo de combinación multimodal tardía para LSP.
+    Encapsula ambas ramas y el módulo de combinación.
 
     Permite entrenamiento conjunto end-to-end o por separado de cada rama.
     """
@@ -96,16 +96,16 @@ class LSPFusionModel(nn.Module):
         dim_pixels: int,
         dim_landmarks: int,
         n_classes: int,
-        fusion_strategy: str = 'concat',
+        estrategia: str = 'concat',
         hidden_dim: int = 512,
         dropout: float = 0.3,
     ):
         super().__init__()
         self.pixel_backbone = pixel_backbone
         self.landmark_backbone = landmark_backbone
-        self.fusion = MultimodalFusion(
+        self.combinacion = MultimodalCombinacion(
             dim_pixels, dim_landmarks, n_classes,
-            fusion_strategy, hidden_dim, dropout,
+            estrategia, hidden_dim, dropout,
         )
 
     def forward(
@@ -115,7 +115,7 @@ class LSPFusionModel(nn.Module):
     ) -> torch.Tensor:
         emb_pixels    = self.pixel_backbone.get_embedding(pixels)
         emb_landmarks = self.landmark_backbone.get_embedding(landmarks)
-        return self.fusion(emb_pixels, emb_landmarks)
+        return self.combinacion(emb_pixels, emb_landmarks)
 
     def on_epoch_start(self, epoch: int):
         for backbone in (self.pixel_backbone, self.landmark_backbone):

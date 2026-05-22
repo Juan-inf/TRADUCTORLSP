@@ -84,21 +84,21 @@ Split temporal 70/15/15 → train 5,051 | val 1,085 | test 1,099 · 26 clases en
 <p><strong>Baseline deep (Semana 5):</strong> CNN-LSTM (MobileNetV3 + BiLSTM h=256, 50 épocas) alcanzó F1-macro=0.721 en el split de Semana 5.</p>
 <hr />
 <h2 id="3-experimentos-ab-sprint-semana-6">3. Experimentos A/B — Sprint Semana 6</h2>
-<p>El experimento de Semana 6 introduce <strong>fusión tardía</strong>: combinar dos backbones preentrenados sobre landmarks MediaPipe Holistic (75 keypoints × 3 coords × 30 frames), congelando sus pesos y entrenando solo una cabeza de clasificación conjunta.</p>
+<p>El experimento de Semana 6 introduce <strong>combinación tardía</strong>: combinar dos backbones preentrenados sobre landmarks MediaPipe Holistic (75 keypoints × 3 coords × 30 frames), congelando sus pesos y entrenando solo una cabeza de clasificación conjunta.</p>
 <p><strong>Backbones disponibles (checkpoints de sprints anteriores):</strong><br />
 - <code>checkpoints/lstm_best.pt</code> — BiLSTM bidireccional (embedding dim=256)<br />
 - <code>checkpoints/stgcn_best.pt</code> — ST-GCN ligero (embedding dim=128)</p>
-<h3 id="variante-a-fusion-concat">Variante A — Fusión concat</h3>
+<h3 id="variante-a-concat">Variante A — Combinación concat</h3>
 <ul>
 <li><strong>Cambio:</strong> Concatenar embeddings BiLSTM (256d) + ST-GCN (128d) → MLP 256 → 26 clases</li>
 <li><strong>Motivación:</strong> La concatenación preserva la información de ambas vistas (temporal secuencial vs. grafo espacial) sin perder dimensionalidad. La cabeza aprende el peso relativo implícitamente.</li>
-<li><strong>Hipótesis:</strong> La fusión superará a ambos backbones individuales en ≥ 5 puntos de F1-macro al combinar vistas complementarias.</li>
+<li><strong>Hipótesis:</strong> La combinación superará a ambos backbones individuales en ≥ 5 puntos de F1-macro al combinar vistas complementarias.</li>
 </ul>
-<h3 id="variante-b-fusion-attention">Variante B — Fusión attention</h3>
+<h3 id="variante-b-attention">Variante B — Combinación attention</h3>
 <ul>
 <li><strong>Cambio:</strong> Proyectar ambos embeddings al mismo espacio (256d) y aplicar multi-head cross-attention (4 heads) entre las ramas antes del clasificador.</li>
 <li><strong>Motivación:</strong> La atención permite que cada rama consulte la otra selectivamente, focalizando en aspectos discriminativos para cada clase.</li>
-<li><strong>Hipótesis:</strong> Fusión attention alcanzará F1 ≥ concat con menos parámetros efectivos al focalizar el peso en características relevantes.</li>
+<li><strong>Hipótesis:</strong> Combinación attention alcanzará F1 ≥ concat con menos parámetros efectivos al focalizar el peso en características relevantes.</li>
 </ul>
 <hr />
 <h2 id="4-resultados">4. Resultados</h2>
@@ -132,7 +132,7 @@ Split temporal 70/15/15 → train 5,051 | val 1,085 | test 1,099 · 26 clases en
 <td>~80 ms</td>
 </tr>
 <tr>
-<td><strong>Fusión concat</strong> <em>(Sem 6, Var A)</em></td>
+<td><strong>Combinación concat</strong> <em>(Sem 6, Var A)</em></td>
 <td><strong>0.501</strong></td>
 <td><strong>0.590</strong></td>
 <td><strong>0.588</strong></td>
@@ -140,7 +140,7 @@ Split temporal 70/15/15 → train 5,051 | val 1,085 | test 1,099 · 26 clases en
 <td>~12 ms</td>
 </tr>
 <tr>
-<td>Fusión attention <em>(Sem 6, Var B)</em></td>
+<td>Combinación attention <em>(Sem 6, Var B)</em></td>
 <td>0.316</td>
 <td>0.372</td>
 <td>0.375</td>
@@ -166,10 +166,10 @@ Split temporal 70/15/15 → train 5,051 | val 1,085 | test 1,099 · 26 clases en
 </tbody>
 </table>
 <blockquote>
-<p><strong>Nota sobre backbones individuales:</strong> El BiLSTM (val F1=0.734 durante su entrenamiento) y el ST-GCN (val F1=0.496) muestran F1 bajo en el test set de Semana 6. Esto indica <strong>divergencia de split</strong>: los checkpoints fueron entrenados con splits aleatorios en <code>run_local_pipeline.py</code>, mientras que Semana 6 usa split temporal estricto por video. La cabeza de fusión se entrena con el split correcto, por eso su rendimiento es más alto y honesto.</p>
+<p><strong>Nota sobre backbones individuales:</strong> El BiLSTM (val F1=0.734 durante su entrenamiento) y el ST-GCN (val F1=0.496) muestran F1 bajo en el test set de Semana 6. Esto indica <strong>divergencia de split</strong>: los checkpoints fueron entrenados con splits aleatorios en <code>run_local_pipeline.py</code>, mientras que Semana 6 usa split temporal estricto por video. La cabeza de combinación se entrena con el split correcto, por eso su rendimiento es más alto y honesto.</p>
 </blockquote>
-<h3 id="grafico-principal-curvas-de-aprendizaje-fusion">Gráfico principal: Curvas de aprendizaje — fusión</h3>
-<p>Archivo generado: <code>data/semana6_fusion_curves.png</code></p>
+<h3 id="grafico-principal-curvas-de-aprendizaje">Gráfico principal: Curvas de aprendizaje — combinación</h3>
+<p>Archivo generado: <code>data/semana6_curvas.png</code></p>
 <pre><code>Variante A (concat) — F1-macro val por época:
   ep 1: 0.371 | ep 5: 0.540 | ep 10: 0.581 | ep 16: 0.602 | ep 23: 0.611 ← mejor
   Convergencia estable. Best val F1=0.611 → test F1=0.501
@@ -225,7 +225,7 @@ Val   1,085 seg | 26/26 clases ✓<br />
 Test  1,099 seg | 26/26 clases ✓</p>
 <hr />
 <h2 id="6-conclusion-y-decision-tecnica">6. Conclusión y Decisión Técnica</h2>
-<h3 id="variante-adoptada-fusion-concat-var-a">Variante adoptada: <strong>Fusión concat (Var A)</strong></h3>
+<h3 id="variante-adoptada-concat-var-a">Variante adoptada: <strong>Combinación concat (Var A)</strong></h3>
 <p><strong>Justificación:</strong></p>
 <ol>
 <li>
@@ -235,7 +235,7 @@ Test  1,099 seg | 26/26 clases ✓</p>
 <p><strong>Latencia competitiva (~12 ms):</strong> Los backbones están congelados; en inferencia solo corre un forward pass de cada backbone más la cabeza MLP. Viable para el target de &lt;200 ms.</p>
 </li>
 <li>
-<p><strong>Hallazgo de integridad:</strong> Los backbones individuales evaluados en el split temporal muestran F1 bajo (0.15–0.21), revelando que sus métricas históricas (val F1=0.734) fueron medidas sobre splits con leakage. La fusión entrenada correctamente da la primera estimación honesta del rendimiento real del sistema.</p>
+<p><strong>Hallazgo de integridad:</strong> Los backbones individuales evaluados en el split temporal muestran F1 bajo (0.15–0.21), revelando que sus métricas históricas (val F1=0.734) fueron medidas sobre splits con leakage. La combinación entrenada correctamente da la primera estimación honesta del rendimiento real del sistema.</p>
 </li>
 </ol>
 <table>
@@ -243,7 +243,7 @@ Test  1,099 seg | 26/26 clases ✓</p>
 <tr>
 <th>Criterio</th>
 <th>CNN-LSTM (Sem5)</th>
-<th>Fusión concat (Sem6)</th>
+<th>Combinación concat (Sem6)</th>
 </tr>
 </thead>
 <tbody>
@@ -270,7 +270,7 @@ Test  1,099 seg | 26/26 clases ✓</p>
 </tbody>
 </table>
 <p>*medido en split de Semana 5, no directamente comparable.</p>
-<p><strong>Impacto en producción:</strong> La fusión puede desplegarse en CPU con ~12 ms por segmento, habilitando inferencia en tiempo real en hardware de aula. La próxima mejora crítica es reentrenar los backbones con el split temporal correcto para mejorar la calidad de los embeddings.</p>
+<p><strong>Impacto en producción:</strong> La combinación puede desplegarse en CPU con ~12 ms por segmento, habilitando inferencia en tiempo real en hardware de aula. La próxima mejora crítica es reentrenar los backbones con el split temporal correcto para mejorar la calidad de los embeddings.</p>
 <hr />
 <h2 id="7-reproducibilidad">7. Reproducibilidad</h2>
 <pre><code class="language-bash"># Entorno
@@ -283,14 +283,14 @@ python scripts/semana6_run.py
 # Resultados generados:
 #   logs/semana6_resultados_finales.txt   ← tabla + reporte por clase
 #   data/semana6_resultados.csv           ← tabla comparativa CSV
-#   data/semana6_fusion_curves.png        ← curvas de aprendizaje
-#   checkpoints/semana6_fusion_concat_best.pt
-#   checkpoints/semana6_fusion_attention_best.pt
+#   data/semana6_curvas.png        ← curvas de aprendizaje
+#   checkpoints/semana6_concat_best.pt
+#   checkpoints/semana6_attention_best.pt
 </code></pre>
 <p><strong>Configs por variante:</strong></p>
 <pre><code>entregas/semana6/configs/exp_stgcn_v2.yaml          ← backbone config
-entregas/semana6/configs/exp_fusion_concat.yaml      ← Var A
-entregas/semana6/configs/exp_fusion_attention.yaml   ← Var B
+entregas/semana6/configs/exp_concat.yaml      ← Var A
+entregas/semana6/configs/exp_attention.yaml   ← Var B
 </code></pre>
 <p><strong>Hashes de datos:</strong></p>
 <pre><code>manifest_segments.csv  MD5: 9ee1eda5f05cdeebfde3c7b2a1806972
@@ -317,13 +317,13 @@ Commit HEAD:           8722d2087fafa5c8d76eaa0de890960cca43695c
 <td>0.208 (split Sem6)</td>
 </tr>
 <tr>
-<td><code>checkpoints/semana6_fusion_concat_best.pt</code></td>
-<td>Fusión concat</td>
+<td><code>checkpoints/semana6_concat_best.pt</code></td>
+<td>Combinación concat</td>
 <td><strong>0.501</strong></td>
 </tr>
 <tr>
-<td><code>checkpoints/semana6_fusion_attention_best.pt</code></td>
-<td>Fusión attention</td>
+<td><code>checkpoints/semana6_attention_best.pt</code></td>
+<td>Combinación attention</td>
 <td>0.315</td>
 </tr>
 </tbody>
@@ -332,7 +332,7 @@ Commit HEAD:           8722d2087fafa5c8d76eaa0de890960cca43695c
 <h2 id="8-riesgos-y-proximos-pasos">8. Riesgos y Próximos Pasos</h2>
 <ul>
 <li>
-<p><strong>Riesgo principal — Split mismatch en checkpoints:</strong> Los backbones (<code>lstm_best.pt</code>, <code>stgcn_best.pt</code>) fueron entrenados con splits aleatorios (leakage implícito). La fusión corrige esto en la cabeza, pero la calidad de los embeddings sigue siendo subóptima. <strong>Acción inmediata Semana 7:</strong> reentrenar ambos backbones con el split temporal estricto del manifest actual y reejecutar la fusión.</p>
+<p><strong>Riesgo principal — Split mismatch en checkpoints:</strong> Los backbones (<code>lstm_best.pt</code>, <code>stgcn_best.pt</code>) fueron entrenados con splits aleatorios (leakage implícito). La combinación corrige esto en la cabeza, pero la calidad de los embeddings sigue siendo subóptima. <strong>Acción inmediata Semana 7:</strong> reentrenar ambos backbones con el split temporal estricto del manifest actual y reejecutar la combinación.</p>
 </li>
 <li>
 <p><strong>Riesgo secundario — Generalización a signers no vistos:</strong> El dataset tiene un signer por viñeta. Con 26 videos/26 clases, los modelos pueden estar aprendiendo apariencia del signer en lugar de la seña. F1=0.501 en test no garantiza generalización a nuevos usuarios. Mitigation: aumentar landmarks con flip/ruido/rotación (ya implementado) y conseguir dataset con múltiples signers por clase en el siguiente sprint.</p>
