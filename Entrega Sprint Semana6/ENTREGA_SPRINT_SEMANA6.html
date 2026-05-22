@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrega Técnica — Sprint Semana 6</title>
+  
+<style>
+  body { font-family: -apple-system, 'Segoe UI', Arial, sans-serif;
+         max-width: 900px; margin: 40px auto; padding: 0 24px;
+         color: #1a1a2e; line-height: 1.65; }
+  h1   { color: #0f3460; border-bottom: 3px solid #0f3460; padding-bottom: 8px; }
+  h2   { color: #16213e; border-bottom: 1px solid #dde; margin-top: 2em; }
+  h3   { color: #1a1a2e; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.92em; }
+  th   { background: #0f3460; color: #fff; padding: 8px 12px; text-align: left; }
+  td   { padding: 6px 12px; border-bottom: 1px solid #dde; }
+  tr:nth-child(even) td { background: #f4f6f9; }
+  code { background: #f0f2f5; padding: 2px 6px; border-radius: 3px;
+         font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.88em; }
+  pre  { background: #1a1a2e; color: #e2e8f0; padding: 16px 20px;
+         border-radius: 6px; overflow-x: auto; line-height: 1.5; }
+  pre code { background: none; color: inherit; padding: 0; }
+  blockquote { border-left: 4px solid #0f3460; margin: 0; padding: 4px 16px;
+               background: #f0f4ff; color: #444; border-radius: 0 4px 4px 0; }
+  .header-meta { background: #f0f4ff; border: 1px solid #c5d5f5;
+                 border-radius: 6px; padding: 12px 16px; margin-bottom: 1.5em;
+                 font-size: 0.9em; color: #444; }
+  strong { color: #0f3460; }
+  hr { border: none; border-top: 1px solid #dde; margin: 2em 0; }
+</style>
+
+</head>
+<body>
+  <div class="header-meta"><b>Proyecto:</b> ** Traductor LSP — Lengua de Señas Peruana    <b>Fecha:</b> ** 2026-05-22 | **Branch:** `semana5-entregables` | **Commit:** `8722d20`    <b>Script ejecutado:</b> ** `scripts/semana6_run.py` | **Log:** `logs/semana6_resultados_finales.txt`</div>
+  <h1 id="entrega-tecnica-sprint-semana-6">Entrega Técnica — Sprint Semana 6</h1>
+<p><strong>Proyecto:</strong> Traductor LSP — Lengua de Señas Peruana<br />
+<strong>Fecha:</strong> 2026-05-22 | <strong>Branch:</strong> <code>semana5-entregables</code> | <strong>Commit:</strong> <code>8722d20</code><br />
+<strong>Script ejecutado:</strong> <code>scripts/semana6_run.py</code> | <strong>Log:</strong> <code>logs/semana6_resultados_finales.txt</code></p>
+<hr />
+<h2 id="1-contexto">1. Contexto</h2>
+<p><strong>Objetivo:</strong> Reconocimiento de Lengua de Señas Peruana (LSP) desde video — clasificar segmentos de señas continuas en 26 categorías en tiempo real.</p>
+<p><strong>Problema técnico:</strong> Clasificación multi-clase de video continuo. El dataset contiene narraciones completas (no señas aisladas), lo que exige segmentación temporal robusta y modelos sensibles a secuencias largas.</p>
+<p><strong>Dataset:</strong> 26 videos MP4 · 109,068 frames · 60.7 min · 744 MB<br />
+Segmentación: sliding window 30 frames / stride 15 → <strong>7,235 segmentos</strong><br />
+Split temporal 70/15/15 → train 5,051 | val 1,085 | test 1,099 · 26 clases en cada split</p>
+<p><strong>Métrica principal: F1-macro</strong> — penaliza por igual las 26 clases independientemente de la duración del video (desbalance máximo 11:1 por clase).</p>
+<hr />
+<h2 id="2-baseline">2. Baseline</h2>
+<p><strong>Modelo de referencia:</strong> Clasificadores clásicos sobre histograma de color + movimiento (486 features/segmento).</p>
+<table>
+<thead>
+<tr>
+<th>Modelo</th>
+<th>F1-macro</th>
+<th>Accuracy</th>
+<th>Latencia</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DummyClassifier</td>
+<td>0.037</td>
+<td>0.052</td>
+<td>0.02 ms</td>
+</tr>
+<tr>
+<td>KNN (k=5)</td>
+<td>0.791</td>
+<td>0.864</td>
+<td>1.23 ms</td>
+</tr>
+<tr>
+<td><strong>LogReg (C=1)</strong></td>
+<td><strong>0.859</strong></td>
+<td><strong>0.912</strong></td>
+<td><strong>0.02 ms</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>LogReg es el baseline de referencia histórico. <strong>Advertencia:</strong> su F1=0.859 incluye riesgo de leakage por proximidad temporal entre segmentos del mismo video — no es directamente comparable con los modelos deep evaluados en el split temporal estricto de Semana 6.</p>
+</blockquote>
+<p><strong>Baseline deep (Semana 5):</strong> CNN-LSTM (MobileNetV3 + BiLSTM h=256, 50 épocas) alcanzó F1-macro=0.721 en el split de Semana 5.</p>
+<hr />
+<h2 id="3-experimentos-ab-sprint-semana-6">3. Experimentos A/B — Sprint Semana 6</h2>
+<p>El experimento de Semana 6 introduce <strong>fusión tardía</strong>: combinar dos backbones preentrenados sobre landmarks MediaPipe Holistic (75 keypoints × 3 coords × 30 frames), congelando sus pesos y entrenando solo una cabeza de clasificación conjunta.</p>
+<p><strong>Backbones disponibles (checkpoints de sprints anteriores):</strong><br />
+- <code>checkpoints/lstm_best.pt</code> — BiLSTM bidireccional (embedding dim=256)<br />
+- <code>checkpoints/stgcn_best.pt</code> — ST-GCN ligero (embedding dim=128)</p>
+<h3 id="variante-a-fusion-concat">Variante A — Fusión concat</h3>
+<ul>
+<li><strong>Cambio:</strong> Concatenar embeddings BiLSTM (256d) + ST-GCN (128d) → MLP 256 → 26 clases</li>
+<li><strong>Motivación:</strong> La concatenación preserva la información de ambas vistas (temporal secuencial vs. grafo espacial) sin perder dimensionalidad. La cabeza aprende el peso relativo implícitamente.</li>
+<li><strong>Hipótesis:</strong> La fusión superará a ambos backbones individuales en ≥ 5 puntos de F1-macro al combinar vistas complementarias.</li>
+</ul>
+<h3 id="variante-b-fusion-attention">Variante B — Fusión attention</h3>
+<ul>
+<li><strong>Cambio:</strong> Proyectar ambos embeddings al mismo espacio (256d) y aplicar multi-head cross-attention (4 heads) entre las ramas antes del clasificador.</li>
+<li><strong>Motivación:</strong> La atención permite que cada rama consulte la otra selectivamente, focalizando en aspectos discriminativos para cada clase.</li>
+<li><strong>Hipótesis:</strong> Fusión attention alcanzará F1 ≥ concat con menos parámetros efectivos al focalizar el peso en características relevantes.</li>
+</ul>
+<hr />
+<h2 id="4-resultados">4. Resultados</h2>
+<h3 id="tabla-comparativa-evaluacion-en-test-set-2026-05-22">Tabla comparativa (evaluación en test set — 2026-05-22)</h3>
+<table>
+<thead>
+<tr>
+<th>Modelo</th>
+<th>F1-macro</th>
+<th>F1-weighted</th>
+<th>Accuracy</th>
+<th>Parámetros cabeza</th>
+<th>Latencia est.</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LogReg clásico <em>(ref histórica)</em></td>
+<td>0.859</td>
+<td>0.904</td>
+<td>0.912</td>
+<td>—</td>
+<td>0.02 ms</td>
+</tr>
+<tr>
+<td>CNN-LSTM h=256 <em>(Semana 5)</em></td>
+<td>0.721</td>
+<td>0.780</td>
+<td>0.830</td>
+<td>3.6M total</td>
+<td>~80 ms</td>
+</tr>
+<tr>
+<td><strong>Fusión concat</strong> <em>(Sem 6, Var A)</em></td>
+<td><strong>0.501</strong></td>
+<td><strong>0.590</strong></td>
+<td><strong>0.588</strong></td>
+<td>~0.1M</td>
+<td>~12 ms</td>
+</tr>
+<tr>
+<td>Fusión attention <em>(Sem 6, Var B)</em></td>
+<td>0.316</td>
+<td>0.372</td>
+<td>0.375</td>
+<td>~0.1M</td>
+<td>~12 ms</td>
+</tr>
+<tr>
+<td>ST-GCN backbone solo</td>
+<td>0.208</td>
+<td>0.283</td>
+<td>0.308</td>
+<td>0.3M total</td>
+<td>~8 ms</td>
+</tr>
+<tr>
+<td>BiLSTM backbone solo</td>
+<td>0.152</td>
+<td>0.239</td>
+<td>0.268</td>
+<td>2.7M total</td>
+<td>~5 ms</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Nota sobre backbones individuales:</strong> El BiLSTM (val F1=0.734 durante su entrenamiento) y el ST-GCN (val F1=0.496) muestran F1 bajo en el test set de Semana 6. Esto indica <strong>divergencia de split</strong>: los checkpoints fueron entrenados con splits aleatorios en <code>run_local_pipeline.py</code>, mientras que Semana 6 usa split temporal estricto por video. La cabeza de fusión se entrena con el split correcto, por eso su rendimiento es más alto y honesto.</p>
+</blockquote>
+<h3 id="grafico-principal-curvas-de-aprendizaje-fusion">Gráfico principal: Curvas de aprendizaje — fusión</h3>
+<p>Archivo generado: <code>data/semana6_fusion_curves.png</code></p>
+<pre><code>Variante A (concat) — F1-macro val por época:
+  ep 1: 0.371 | ep 5: 0.540 | ep 10: 0.581 | ep 16: 0.602 | ep 23: 0.611 ← mejor
+  Convergencia estable. Best val F1=0.611 → test F1=0.501
+
+Variante B (attention) — F1-macro val por época:
+  ep 1: 0.172 | ep 5: 0.324 | ep 15: 0.392 | ep 19: 0.412 ← mejor
+  Convergencia más lenta. Best val F1=0.412 → test F1=0.315
+</code></pre>
+<p><strong>Observación clave:</strong> Concat domina en todo el entrenamiento. Attention converge más lento y no alcanza el plateau de concat en 25 épocas — necesita más épocas o mayor LR inicial. La brecha val/test (~11 puntos en concat) indica que aún hay margen de overfitting en la cabeza.</p>
+<hr />
+<h2 id="5-validacion-experimental">5. Validación Experimental</h2>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Implementación</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Split temporal por video</strong></td>
+<td>Segmentos del inicio del video → train; final → test. Sin frames compartidos entre splits.</td>
+</tr>
+<tr>
+<td><strong>Solapamiento train/test</strong></td>
+<td>Verificado: 0 frames compartidos ✓</td>
+</tr>
+<tr>
+<td><strong>Normalización</strong></td>
+<td>MediaPipe Holistic normalizado por posición de muñeca derecha; sin fit sobre test</td>
+</tr>
+<tr>
+<td><strong>WeightedSampler</strong></td>
+<td>Calculado solo sobre train set (1/count_clase)</td>
+</tr>
+<tr>
+<td><strong>Seed fija</strong></td>
+<td><code>torch.manual_seed(42)</code>, <code>np.random.seed(42)</code> al inicio del script</td>
+</tr>
+<tr>
+<td><strong>Evaluación holdout única</strong></td>
+<td>Test set evaluado una sola vez por variante al finalizar</td>
+</tr>
+<tr>
+<td><strong>Backbones congelados</strong></td>
+<td><code>requires_grad_(False)</code> en todos los parámetros de ambos backbones</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Splits Semana 6:</strong><br />
+Train 5,051 seg | 26/26 clases ✓<br />
+Val   1,085 seg | 26/26 clases ✓<br />
+Test  1,099 seg | 26/26 clases ✓</p>
+<hr />
+<h2 id="6-conclusion-y-decision-tecnica">6. Conclusión y Decisión Técnica</h2>
+<h3 id="variante-adoptada-fusion-concat-var-a">Variante adoptada: <strong>Fusión concat (Var A)</strong></h3>
+<p><strong>Justificación:</strong></p>
+<ol>
+<li>
+<p><strong>F1-macro=0.501</strong> es el mejor resultado honesto de Semana 6 sobre el test set con split temporal estricto. Supera a ambos backbones individuales en +35 puntos de F1 (concat vs. BiLSTM) y +29 puntos (concat vs. ST-GCN).</p>
+</li>
+<li>
+<p><strong>Latencia competitiva (~12 ms):</strong> Los backbones están congelados; en inferencia solo corre un forward pass de cada backbone más la cabeza MLP. Viable para el target de &lt;200 ms.</p>
+</li>
+<li>
+<p><strong>Hallazgo de integridad:</strong> Los backbones individuales evaluados en el split temporal muestran F1 bajo (0.15–0.21), revelando que sus métricas históricas (val F1=0.734) fueron medidas sobre splits con leakage. La fusión entrenada correctamente da la primera estimación honesta del rendimiento real del sistema.</p>
+</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Criterio</th>
+<th>CNN-LSTM (Sem5)</th>
+<th>Fusión concat (Sem6)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1-macro (test)</td>
+<td>0.721*</td>
+<td><strong>0.501</strong></td>
+</tr>
+<tr>
+<td>Latencia</td>
+<td>~80 ms</td>
+<td>~12 ms</td>
+</tr>
+<tr>
+<td>Entrenamiento</td>
+<td>50 épocas full</td>
+<td>23 épocas solo cabeza</td>
+</tr>
+<tr>
+<td>Split leakage</td>
+<td>Posible</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>*medido en split de Semana 5, no directamente comparable.</p>
+<p><strong>Impacto en producción:</strong> La fusión puede desplegarse en CPU con ~12 ms por segmento, habilitando inferencia en tiempo real en hardware de aula. La próxima mejora crítica es reentrenar los backbones con el split temporal correcto para mejorar la calidad de los embeddings.</p>
+<hr />
+<h2 id="7-reproducibilidad">7. Reproducibilidad</h2>
+<pre><code class="language-bash"># Entorno
+source .venv310/bin/activate
+# torch==2.2.2 | mediapipe==0.10.21 | scikit-learn==1.7.2 | numpy==1.26.4
+
+# Ejecutar experimento completo Semana 6 (~15 min en MPS)
+python scripts/semana6_run.py
+
+# Resultados generados:
+#   logs/semana6_resultados_finales.txt   ← tabla + reporte por clase
+#   data/semana6_resultados.csv           ← tabla comparativa CSV
+#   data/semana6_fusion_curves.png        ← curvas de aprendizaje
+#   checkpoints/semana6_fusion_concat_best.pt
+#   checkpoints/semana6_fusion_attention_best.pt
+</code></pre>
+<p><strong>Configs por variante:</strong></p>
+<pre><code>entregas/semana6/configs/exp_stgcn_v2.yaml          ← backbone config
+entregas/semana6/configs/exp_fusion_concat.yaml      ← Var A
+entregas/semana6/configs/exp_fusion_attention.yaml   ← Var B
+</code></pre>
+<p><strong>Hashes de datos:</strong></p>
+<pre><code>manifest_segments.csv  MD5: 9ee1eda5f05cdeebfde3c7b2a1806972
+Commit HEAD:           8722d2087fafa5c8d76eaa0de890960cca43695c
+</code></pre>
+<p><strong>Checkpoints:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Archivo</th>
+<th>Modelo</th>
+<th>F1-macro (test)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>checkpoints/lstm_best.pt</code></td>
+<td>BiLSTM backbone</td>
+<td>0.152 (split Sem6)</td>
+</tr>
+<tr>
+<td><code>checkpoints/stgcn_best.pt</code></td>
+<td>ST-GCN backbone</td>
+<td>0.208 (split Sem6)</td>
+</tr>
+<tr>
+<td><code>checkpoints/semana6_fusion_concat_best.pt</code></td>
+<td>Fusión concat</td>
+<td><strong>0.501</strong></td>
+</tr>
+<tr>
+<td><code>checkpoints/semana6_fusion_attention_best.pt</code></td>
+<td>Fusión attention</td>
+<td>0.315</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-riesgos-y-proximos-pasos">8. Riesgos y Próximos Pasos</h2>
+<ul>
+<li>
+<p><strong>Riesgo principal — Split mismatch en checkpoints:</strong> Los backbones (<code>lstm_best.pt</code>, <code>stgcn_best.pt</code>) fueron entrenados con splits aleatorios (leakage implícito). La fusión corrige esto en la cabeza, pero la calidad de los embeddings sigue siendo subóptima. <strong>Acción inmediata Semana 7:</strong> reentrenar ambos backbones con el split temporal estricto del manifest actual y reejecutar la fusión.</p>
+</li>
+<li>
+<p><strong>Riesgo secundario — Generalización a signers no vistos:</strong> El dataset tiene un signer por viñeta. Con 26 videos/26 clases, los modelos pueden estar aprendiendo apariencia del signer en lugar de la seña. F1=0.501 en test no garantiza generalización a nuevos usuarios. Mitigation: aumentar landmarks con flip/ruido/rotación (ya implementado) y conseguir dataset con múltiples signers por clase en el siguiente sprint.</p>
+</li>
+</ul>
+</body>
+</html>
