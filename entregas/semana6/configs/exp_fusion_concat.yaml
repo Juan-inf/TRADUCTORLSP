@@ -1,0 +1,45 @@
+# ── Semana 6 — Variante A: Fusión tardía concat (ST-GCN + BiLSTM) ────────────
+# Cargar backbones preentrenados, congelar, entrenar solo cabeza de fusión.
+# Reproducir: .venv310/bin/python scripts/run_semana6_fusion.py --strategy concat
+
+experiment:
+  name: "semana6_fusion_concat"
+  description: "Fusión tardía ST-GCN v2 + BiLSTM v2 — estrategia concat"
+  seed: 42
+
+dataset:
+  manifest: "data/manifest_segments.csv"
+  label2idx: "data/label2idx.json"
+  n_frames: 30
+  n_nodes: 75
+  n_channels: 3
+
+backbones:
+  stgcn:
+    checkpoint: "checkpoints/stgcn_v2_best.pt"
+    frozen: true
+    embedding_dim: 128     # última capa avg-pool de ST-GCN
+  bilstm:
+    checkpoint: "checkpoints/bilstm_v2_best.pt"
+    frozen: true
+    embedding_dim: 256     # 2 * hidden (bidireccional)
+
+fusion:
+  strategy: "concat"       # concat | attention | weighted_sum
+  hidden_dim: 512
+  dropout: 0.3
+  n_classes: 26
+
+training:
+  epochs: 30
+  batch_size: 64
+  optimizer: "AdamW"
+  lr: 5.0e-4
+  weight_decay: 1.0e-4
+  scheduler: "cosine"
+  patience: 10
+  label_smoothing: 0.05
+
+output:
+  checkpoint: "checkpoints/semana6_fusion_concat_best.pt"
+  log: "logs/semana6_fusion_concat.txt"

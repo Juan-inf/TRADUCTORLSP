@@ -1,0 +1,19 @@
+======================================================================
+  Entrega Técnica — Sprint Semana 6
+======================================================================
+
+  Proyecto: Traductor LSP — Lengua de Señas Peruana  
+  Fecha: 2026-05-22 · Branch: `semana5-entregables` · Commit: `8722d20`  
+  Script ejecutado: `scripts/semana6_run.py` · Log: `logs/semana6_resultados_finales.txt`
+
+======================================================================
+  TABLA DE RESULTADOS (test set)
+======================================================================
+| Modelo | F1-macro | Accuracy | Latencia |
+|--------|----------|----------|----------|
+| DummyClassifier | 0.037 | 0.052 | 0.02 ms |
+| KNN (k=5) | 0.791 | 0.864 | 1.23 ms |
+| **LogReg (C=1)** | **0.859** | **0.912** | **0.02 ms** |
+
+
+======================================================================
