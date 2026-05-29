@@ -176,7 +176,48 @@ Commit HEAD:           8722d2087fafa5c8d76eaa0de890960cca43695c
 
 ---
 
-## 8. Riesgos y Próximos Pasos
+## 8. Checklist de Validación Sprint 2
+
+| # | Requisito | Estado | Evidencia |
+|---|-----------|--------|-----------|
+| 1 | **Split correcto** (estratificado/temporal/grupal) | ✅ | GroupKFold(n_splits=5) con `groups=num_vineta` — ningún segmento de la misma viñeta aparece en train y test simultáneamente. Split temporal por video: primeros frames → train, últimos → test. Código: `gkf.split(X, y, groups=video_ids)` · `calibracion_s6.py:221` |
+| 2 | **Fit solo en train** (escala/PCA/TE) | ✅ | Todos los pipelines usan `sklearn.Pipeline([("scaler", StandardScaler()), ("clf", ...)])`. El `pipe.fit(X[tr_idx], y[tr_idx])` garantiza que `StandardScaler` calcula media/std **únicamente** sobre índices de entrenamiento. Código: `calibracion_s6.py:222-228`, `semana6_run.py` normalización por `ref = seg[:, 21:22, :]` calculada por segmento (sin fit global). |
+| 3 | **Seeds fijadas y mismo protocolo que Semana 5** | ✅ | `np.random.seed(42)` → `calibracion_s6.py:44`; `torch.manual_seed(42)` + `np.random.seed(42)` → `semana6_run.py:24-25`; `random_state=42` en todos los estimadores (`LogisticRegression`, `permutation_importance`, `learning_curve`). Mismo protocolo GroupKFold/5 usado en Semana 5. |
+| 4 | **Sin cambios de data** entre baseline y evaluación final | ✅ | `manifest_segments.csv` MD5=`9ee1eda5f05cdeebfde3c7b2a1806972` (7,235 segmentos). Hash idéntico al reportado en la entrega de Semana 5. Dataset congelado desde `scripts/preprocess_sliding_window.py` — ningún archivo `.npy` fue modificado entre experimentos. |
+| 5 | **Logs completos** (config, métricas, timestamp) | ✅ | `data/calibracion_resumen.txt` (timestamp ISO, config completa, F1/Acc/ECE/Brier por variante) · `data/semana6_resultados.csv` (tabla comparativa CSV) · `Entrega Sprint Semana6/semana6_resultados_finales.txt` (log detallado por clase y época) · `data/calibracion_ablacion.csv` (5 folds × 3 configs) |
+
+### Verificación automática
+
+```bash
+# Reproducir la verificación completa del checklist
+source .venv310/bin/activate
+
+# Ítem 1-3: Ablación con split grupal y seeds fijas
+python scripts/calibracion_s6.py
+# → data/calibracion_resumen.txt  (timestamp + todas las métricas)
+# → data/calibracion_ablacion.csv (5 folds × 3 configuraciones)
+
+# Ítem 4: Verificar integridad del dataset
+md5 data/manifest_segments.csv
+# Expected: 9ee1eda5f05cdeebfde3c7b2a1806972
+
+# Ítem 5: Verificar logs generados
+ls -la data/calibracion_*.csv data/calibracion_*.txt data/semana6_resultados*.csv
+```
+
+### Entorno de ejecución (reproducibilidad)
+
+```
+Python  : 3.10.19
+sklearn : 1.7.2
+torch   : 2.2.2
+numpy   : 1.26.4
+seed    : 42 (numpy + torch + random_state en todos los estimadores)
+```
+
+---
+
+## 9. Riesgos y Próximos Pasos
 
 - **Riesgo principal — Split mismatch en checkpoints:** Los backbones (`lstm_best.pt`, `stgcn_best.pt`) fueron entrenados con splits aleatorios (leakage implícito). La combinación tardía corrige esto en la cabeza, pero la calidad de los embeddings sigue siendo subóptima. **Acción inmediata Semana 7:** reentrenar ambos backbones con el split temporal estricto del manifest actual y reejecutar la combinación.
 
