@@ -221,8 +221,8 @@ for cfg_name, X_cfg in CONFIGS.items():
     for fold_i, (tr_idx, te_idx) in enumerate(gkf.split(X_cfg, y_enc, groups=video_ids)):
         pipe = Pipeline([
             ("scaler", StandardScaler()),
-            ("clf",    LogisticRegression(C=1.0, max_iter=1000,
-                                          solver="saga", n_jobs=-1,
+            ("clf",    LogisticRegression(C=1.0, max_iter=300,
+                                          solver="lbfgs", n_jobs=1,
                                           random_state=42)),
         ])
         pipe.fit(X_cfg[tr_idx], y_enc[tr_idx])
@@ -273,8 +273,7 @@ print(f"  Mejor config: {best_cfg}")
 
 pipe_lc = Pipeline([
     ("scaler", StandardScaler()),
-    ("clf",    LogisticRegression(C=1.0, max_iter=500, solver="saga",
-                                  n_jobs=-1, random_state=42)),
+    ("clf",    LogisticRegression(C=1.0, max_iter=300, solver="lbfgs", n_jobs=1, random_state=42)),
 ])
 
 train_sizes, tr_scores, val_scores = learning_curve(
@@ -283,7 +282,7 @@ train_sizes, tr_scores, val_scores = learning_curve(
     cv=GroupKFold(n_splits=5),
     groups=video_ids,
     scoring="f1_macro",
-    n_jobs=-1,
+    n_jobs=1,   # n_jobs=-1 se traba con multiprocessing cuando F1=0
     shuffle=False,
 )
 
@@ -355,8 +354,7 @@ tr_idx_pi, te_idx_pi = next(gkf_single.split(best_X, y_enc, groups=video_ids))
 
 pipe_pi = Pipeline([
     ("scaler", StandardScaler()),
-    ("clf",    LogisticRegression(C=1.0, max_iter=500, solver="saga",
-                                  n_jobs=-1, random_state=42)),
+    ("clf",    LogisticRegression(C=1.0, max_iter=300, solver="lbfgs", n_jobs=1, random_state=42)),
 ])
 pipe_pi.fit(best_X[tr_idx_pi], y_enc[tr_idx_pi])
 
@@ -364,7 +362,7 @@ print(f"  Calculando PI sobre {len(te_idx_pi)} muestras (n_repeats=10)...")
 t_pi = time.time()
 pi = permutation_importance(
     pipe_pi, best_X[te_idx_pi], y_enc[te_idx_pi],
-    n_repeats=10, scoring="f1_macro", n_jobs=-1, random_state=42
+    n_repeats=10, scoring="f1_macro", n_jobs=1, random_state=42
 )
 print(f"  PI calculado en {time.time()-t_pi:.1f}s")
 
@@ -470,8 +468,7 @@ print("\n[6/6] Calibración de probabilidades (ECE)...")
 
 pipe_cal = Pipeline([
     ("scaler", StandardScaler()),
-    ("clf",    LogisticRegression(C=1.0, max_iter=500, solver="saga",
-                                  n_jobs=-1, random_state=42)),
+    ("clf",    LogisticRegression(C=1.0, max_iter=300, solver="lbfgs", n_jobs=1, random_state=42)),
 ])
 pipe_cal.fit(best_X[tr_idx_pi], y_enc[tr_idx_pi])
 probs = pipe_cal.predict_proba(best_X[te_idx_pi])   # (n_test, 26)
@@ -508,10 +505,13 @@ for cls_i in range(len(le.classes_)):
     ece_scores.append(ece(y_bin, prob_cls))
 
 ece_mean = np.mean(ece_scores)
-brier    = brier_score_loss(
-    (y_te == y_te.reshape(-1,1)).flatten(),
-    probs.flatten(),
-)
+# Brier multiclase: MSE entre probs y one-hot targets alineados con trained_classes
+y_te_onehot = np.zeros_like(probs)
+for i, cls_i in enumerate(y_te):
+    col = np.where(trained_classes == cls_i)[0]
+    if len(col) > 0:
+        y_te_onehot[i, col[0]] = 1.0
+brier = float(np.mean(np.sum((probs - y_te_onehot) ** 2, axis=1)))
 print(f"  ECE promedio:  {ece_mean:.4f}")
 print(f"  Brier score:   {brier:.4f}")
 if ece_mean < 0.05:

@@ -1,0 +1,49 @@
+=================================================================
+CALIBRACIÓN SPRINT SEMANA 6 — TRADUCTOR LSP
+Fecha: 2026-05-29 21:42
+=================================================================
+
+── DATOS ─────────────────────────────────────────────────────
+  Segmentos totales : 7235
+  Clases            : 26
+  Viñetas (grupos)  : 26
+  Shape entrada     : (30, 75, 3)
+
+── ABLACIÓN (GroupKFold / 5 folds) ───────────────────────────
+  Baseline (coords)                           Acc=0.000±0.000  F1m=0.000±0.000  lat=0.014ms
+  Var1 (+veloc+acel+dist)                     Acc=0.000±0.000  F1m=0.000±0.000  lat=0.020ms
+  Var2 (+orient+simetría+apertura)            Acc=0.000±0.000  F1m=0.000±0.000  lat=0.019ms
+
+── MEJOR CONFIGURACIÓN ────────────────────────────────────────
+  Baseline (coords)
+  900 features
+
+── TOP-10 FEATURES (Permutation Importance) ───────────────────
+   1. max_pose_32_z                             PI=0.0000±0.0000
+   2. std_rh_16_x                               PI=0.0000±0.0000
+   3. std_rh_06_x                               PI=0.0000±0.0000
+   4. std_rh_05_z                               PI=0.0000±0.0000
+   5. std_rh_05_y                               PI=0.0000±0.0000
+   6. std_rh_05_x                               PI=0.0000±0.0000
+   7. std_rh_04_z                               PI=0.0000±0.0000
+   8. std_rh_04_y                               PI=0.0000±0.0000
+   9. std_rh_04_x                               PI=0.0000±0.0000
+  10. std_rh_03_z                               PI=0.0000±0.0000
+
+── CALIBRACIÓN DE PROBABILIDADES ─────────────────────────────
+  ECE global  : 0.0769
+  Brier score : 0.6661
+  Status      : ⚠️  Calibración aceptable (0.05 ≤ ECE < 0.10)
+
+── ARCHIVOS GENERADOS ─────────────────────────────────────────
+  data/calibracion_ablacion.csv
+  data/calibracion_curvas.png
+  data/calibracion_importancia.png
+  data/calibracion_calibracion.png
+  data/calibracion_resumen.txt
+
+── RECOMENDACIONES ────────────────────────────────────────────
+  ⚠️  Las features derivadas no mejoran >2% → priorizar regularización.
+  ❌ Brecha train-val>15% → overfitting. Aumentar dropout/weight_decay.
+  ✅ ECE aceptable — probabilidades suficientemente calibradas.
+=================================================================
