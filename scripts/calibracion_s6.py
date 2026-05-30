@@ -493,10 +493,18 @@ def ece(y_true_bin, y_prob_1d, n_bins=10):
 
 
 # Calcular ECE por clase y promedio
+# pipe_cal.classes_ puede tener menos clases que le.classes_ si alguna
+# no apareció en el fold de entrenamiento (GroupKFold estricto por viñeta)
+trained_classes = pipe_cal.named_steps["clf"].classes_  # índices numéricos vistos
 ece_scores = []
 for cls_i in range(len(le.classes_)):
-    y_bin     = (y_te == cls_i).astype(int)
-    prob_cls  = probs[:, cls_i]
+    y_bin = (y_te == cls_i).astype(int)
+    # Buscar columna correcta; si la clase no estaba en train → prob=0
+    col = np.where(trained_classes == cls_i)[0]
+    if len(col) == 0:
+        prob_cls = np.zeros(len(y_te))
+    else:
+        prob_cls = probs[:, col[0]]
     ece_scores.append(ece(y_bin, prob_cls))
 
 ece_mean = np.mean(ece_scores)
@@ -524,8 +532,9 @@ fig.suptitle(f"Curvas de Calibración por Clase (Top-6 clases en test)\n"
              fontsize=10, fontweight="bold")
 
 for ax, cls_i in zip(axes.flat, top6_cls):
-    y_bin    = (y_te == cls_i).astype(int)
-    prob_cls = probs[:, cls_i]
+    y_bin = (y_te == cls_i).astype(int)
+    col = np.where(trained_classes == cls_i)[0]
+    prob_cls = probs[:, col[0]] if len(col) > 0 else np.zeros(len(y_te))
     if y_bin.sum() == 0:
         ax.set_visible(False)
         continue
