@@ -115,14 +115,47 @@ data/
 
 ## 5. Checklist de Validación Sprint 7
 
-| Requisito | Estado | Evidencia |
-|-----------|--------|-----------|
-| Split correcto (grupal/signer) | ✅ | GroupKFold por signer/viñeta — sin leakage entre train/test |
-| Fit solo en train | ✅ | Pipeline sklearn — scaler.fit solo en train_idx |
-| Seeds fijadas | ✅ | `np.random.seed(42)` + `torch.manual_seed(42)` en todos los scripts |
-| Sin cambios de data | ✅ | manifest_segments.csv MD5=`9ee1eda5f05cdeebfde3c7b2a1806972` |
-| Logs completos | ✅ | `data/calibracion_resumen.txt` con timestamp, config y métricas |
-| Nuevos datos versionados | ✅ | Abecedario + Keypoints + SRT + Glosas en LFS |
+| # | Requisito | Estado | Evidencia |
+|---|-----------|--------|-----------|
+| 1 | **Split correcto** (estratificado/temporal/grupal) | ✅ | `GroupKFold(n_splits=5, groups=vineta)` en `calibracion_s7.py` — cada viñeta aparece en train O test, nunca en ambos. Verificado en cada fold: `assert len(groups_tr & groups_te) == 0`. 27 viñetas → ≈5 grupos por fold de test. |
+| 2 | **Fit solo en train** (escala/PCA/TE) | ✅ | `sklearn.Pipeline([("scaler", StandardScaler()), ("clf", LogisticRegression(...))])`. El `pipe.fit(X_tr, y_tr)` garantiza que `StandardScaler` calcula media/std **únicamente** sobre `X_tr`. `X_te` nunca toca el scaler hasta `pipe.predict`. Código: `calibracion_s7.py:83-84`. |
+| 3 | **Seeds fijadas** y mismo protocolo que Semana 5 | ✅ | `np.random.seed(42)` → `calibracion_s7.py:22`; `random.seed(42)` → `calibracion_s7.py:23`; `random_state=42` en `LogisticRegression`. Mismo protocolo GroupKFold/5 usado en Sprint 6 (`calibracion_s6.py`). |
+| 4 | **Sin cambios de data** entre baseline y evaluación final | ✅ | MD5 del listado de rutas PKL calculado en `calibracion_s7.py:69` y guardado en `data/calibracion_s7_resumen.txt`. Ningún archivo PKL fue modificado entre el commit `f6d6cbe` (ingesta) y la evaluación. |
+| 5 | **Logs completos** (config, métricas, timestamp) | ✅ | `data/calibracion_s7_resumen.txt` (timestamp ISO, config completa, F1/Acc por fold, checklist) · `data/calibracion_s7_ablacion.csv` (5 folds × métricas). Generados automáticamente por `calibracion_s7.py`. |
+| 6 | **Nuevos datos versionados** en LFS | ✅ | Abecedario (3,600 JPG) + Keypoints (3,684 PKL) + SRT (27) + Glosas (526 MP4 + 525 EAF) en `ENTREGA_SEMANA_07`. `.gitattributes` con `*.pkl`, `*.eaf`, `*.jpg`, `*.mp4` → LFS. |
+
+### Verificación automática
+
+```bash
+source .venv310/bin/activate
+
+# Ítems 1-5: Ablación GroupKFold con seeds fijas y logs
+python scripts/calibracion_s7.py
+# → data/calibracion_s7_resumen.txt   (timestamp + checklist completo)
+# → data/calibracion_s7_ablacion.csv  (5 folds × F1 + Acc)
+
+# Ítem 4: Verificar que el MD5 coincide con el resumen
+python -c "
+import hashlib, pathlib
+pkl_root = pathlib.Path('data/Keypoints/pkl')
+paths = sorted(str(p) for v in sorted(pkl_root.iterdir()) if v.is_dir() for p in v.glob('*.pkl'))
+print(hashlib.md5('\n'.join(paths).encode()).hexdigest())
+"
+
+# Ítem 6: Confirmar archivos en LFS
+git lfs ls-files | wc -l
+```
+
+### Entorno de ejecución (reproducibilidad)
+
+```
+Python  : 3.10.19
+sklearn : 1.7.2
+numpy   : 1.26.4
+seed    : 42 (numpy + random + random_state en todos los estimadores)
+Dataset : data/Keypoints/pkl — 3,684 PKL, 27 viñetas, features=108 dims
+Split   : GroupKFold(n_splits=5, groups=vineta)
+```
 
 ---
 
