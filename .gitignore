@@ -8,12 +8,12 @@ __pycache__/
 *.pyo
 .pytest_cache/
 
-# Datos grandes (no versionar en git)
+# Datos grandes (no versionar en git sin LFS)
 data/videos/
 data/processed_pixels/
 data/landmarks/
 data/baseline_features.npz
-data/Glosas/
+# data/Glosas/ — versionado via LFS en Sprint 7
 checkpoints/*.onnx
 
 # Modelos pesados

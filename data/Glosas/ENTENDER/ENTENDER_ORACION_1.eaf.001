@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ANNOTATION_DOCUMENT AUTHOR="" DATE="2023-09-15T20:06:48-05:00"
+    FORMAT="3.0" VERSION="3.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.mpi.nl/tools/elan/EAFv3.0.xsd">
+    <HEADER MEDIA_FILE="" TIME_UNITS="milliseconds">
+        <MEDIA_DESCRIPTOR
+            MEDIA_URL="file:///C:/Users/sabin/OneDrive/Documents/Diccionario LSP/0. Glosado IA/5. Segundo avance (corregido)/ENTENDER/ENTENDER_ORACION_1.mp4"
+            MIME_TYPE="video/mp4" RELATIVE_MEDIA_URL="../project-spanish-dictionary-lsp-main/DATOS/ENTENDER/ENTENDER_ORACION_1.mp4"/>
+        <PROPERTY NAME="URN">urn:nl-mpi-tools-elan-eaf:39ed7a10-665a-4989-af74-e2eda9751923</PROPERTY>
+        <PROPERTY NAME="lastUsedAnnotationId">8</PROPERTY>
+    </HEADER>
+    <TIME_ORDER>
+        <TIME_SLOT TIME_SLOT_ID="ts1" TIME_VALUE="780"/>
+        <TIME_SLOT TIME_SLOT_ID="ts2" TIME_VALUE="780"/>
+        <TIME_SLOT TIME_SLOT_ID="ts3" TIME_VALUE="780"/>
+        <TIME_SLOT TIME_SLOT_ID="ts4" TIME_VALUE="790"/>
+        <TIME_SLOT TIME_SLOT_ID="ts5" TIME_VALUE="800"/>
+        <TIME_SLOT TIME_SLOT_ID="ts6" TIME_VALUE="1410"/>
+        <TIME_SLOT TIME_SLOT_ID="ts7" TIME_VALUE="1410"/>
+        <TIME_SLOT TIME_SLOT_ID="ts8" TIME_VALUE="1410"/>
+        <TIME_SLOT TIME_SLOT_ID="ts9" TIME_VALUE="1410"/>
+        <TIME_SLOT TIME_SLOT_ID="ts10" TIME_VALUE="1410"/>
+        <TIME_SLOT TIME_SLOT_ID="ts11" TIME_VALUE="1410"/>
+        <TIME_SLOT TIME_SLOT_ID="ts12" TIME_VALUE="2720"/>
+        <TIME_SLOT TIME_SLOT_ID="ts13" TIME_VALUE="2720"/>
+        <TIME_SLOT TIME_SLOT_ID="ts14" TIME_VALUE="2720"/>
+        <TIME_SLOT TIME_SLOT_ID="ts15" TIME_VALUE="2720"/>
+        <TIME_SLOT TIME_SLOT_ID="ts16" TIME_VALUE="2730"/>
+    </TIME_ORDER>
+    <TIER LINGUISTIC_TYPE_REF="default-lt" TIER_ID="GLOSA">
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a1"
+                TIME_SLOT_REF1="ts1" TIME_SLOT_REF2="ts7">
+                <ANNOTATION_VALUE>AH-YA</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a2"
+                TIME_SLOT_REF1="ts8" TIME_SLOT_REF2="ts12">
+                <ANNOTATION_VALUE>ENTENDER</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+    </TIER>
+    <TIER LINGUISTIC_TYPE_REF="default-lt" TIER_ID="No manuales">
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a3"
+                TIME_SLOT_REF1="ts4" TIME_SLOT_REF2="ts13">
+                <ANNOTATION_VALUE>mueca (cara con empatía/comprensión)</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+    </TIER>
+    <TIER LINGUISTIC_TYPE_REF="default-lt" TIER_ID="Clasificadores">
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a4"
+                TIME_SLOT_REF1="ts5" TIME_SLOT_REF2="ts6">
+                <ANNOTATION_VALUE>CL: Y una mano</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a5"
+                TIME_SLOT_REF1="ts9" TIME_SLOT_REF2="ts16">
+                <ANNOTATION_VALUE>CL: S y CL: 1 misma mano a la vez</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+    </TIER>
+    <TIER LINGUISTIC_TYPE_REF="default-lt" TIER_ID="Traducción">
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a6"
+                TIME_SLOT_REF1="ts2" TIME_SLOT_REF2="ts14">
+                <ANNOTATION_VALUE>Ah ya, comprendo.</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+    </TIER>
+    <TIER LINGUISTIC_TYPE_REF="default-lt" TIER_ID="GLOSA_IA">
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a7"
+                TIME_SLOT_REF1="ts3" TIME_SLOT_REF2="ts10">
+                <ANNOTATION_VALUE>AH-YA_1</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+        <ANNOTATION>
+            <ALIGNABLE_ANNOTATION ANNOTATION_ID="a8"
+                TIME_SLOT_REF1="ts11" TIME_SLOT_REF2="ts15">
+                <ANNOTATION_VALUE>ENTENDER_1</ANNOTATION_VALUE>
+            </ALIGNABLE_ANNOTATION>
+        </ANNOTATION>
+    </TIER>
+    <LINGUISTIC_TYPE GRAPHIC_REFERENCES="false"
+        LINGUISTIC_TYPE_ID="default-lt" TIME_ALIGNABLE="true"/>
+    <CONSTRAINT
+        DESCRIPTION="Time subdivision of parent annotation's time interval, no time gaps allowed within this interval" STEREOTYPE="Time_Subdivision"/>
+    <CONSTRAINT
+        DESCRIPTION="Symbolic subdivision of a parent annotation. Annotations refering to the same parent are ordered" STEREOTYPE="Symbolic_Subdivision"/>
+    <CONSTRAINT DESCRIPTION="1-1 association with a parent annotation" STEREOTYPE="Symbolic_Association"/>
+    <CONSTRAINT
+        DESCRIPTION="Time alignable annotations within the parent annotation's time interval, gaps are allowed" STEREOTYPE="Included_In"/>
+</ANNOTATION_DOCUMENT>
