@@ -146,6 +146,26 @@ print(hashlib.md5('\n'.join(paths).encode()).hexdigest())
 git lfs ls-files | wc -l
 ```
 
+### Resultados de ejecución (2026-05-29)
+
+```
+Timestamp    : 2026-05-29T20:04:14
+Muestras     : 3,684 | Clases: 1,086 | Viñetas: 27
+Features     : pose(33×2) + right_hand(21×2) = 108 dims (media temporal)
+Dataset MD5  : 3681f1c51ba15efb645f780815beadb1
+
+Fold 1: n_train=2976 | n_test=708  | F1-macro=0.0052 | Acc=0.0424
+Fold 2: n_train=2955 | n_test=729  | F1-macro=0.0089 | Acc=0.0453
+Fold 3: n_train=2931 | n_test=753  | F1-macro=0.0069 | Acc=0.0531
+Fold 4: n_train=2942 | n_test=742  | F1-macro=0.0055 | Acc=0.0458
+Fold 5: n_train=2932 | n_test=752  | F1-macro=0.0073 | Acc=0.0585
+
+F1-macro: 0.0068 ± 0.0013  (baseline con 1,086 clases y ~3.4 muestras/clase)
+Accuracy: 0.0490
+```
+
+> **Nota:** El F1 bajo es esperado — los PKL tienen 1,086 etiquetas únicas (combinaciones de seña por viñeta) con solo ~3.4 muestras/clase. Esto refleja la riqueza del vocabulario, no un error de implementación. La validación del checklist (split, fit, seeds, logs) es independiente de la métrica final.
+
 ### Entorno de ejecución (reproducibilidad)
 
 ```
