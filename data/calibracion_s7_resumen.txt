@@ -1,5 +1,5 @@
 === Calibración Sprint 7 — Checklist Validación ===
-Timestamp    : 2026-05-29T20:04:14
+Timestamp    : 2026-05-29T20:20:38
 Dataset      : data/Keypoints/pkl  (3684 muestras, 1086 clases)
 Dataset MD5  : 3681f1c51ba15efb645f780815beadb1
 Features     : pose(33×2) + right_hand(21×2) = 108 dims (media temporal)
