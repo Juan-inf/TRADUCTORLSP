@@ -115,7 +115,6 @@ pipe = Pipeline([
         random_state=SEED,
         C=1.0,
         solver="lbfgs",
-        multi_class="multinomial",
     )),
 ])
 
@@ -233,7 +232,7 @@ last_tr, last_te = list(GroupKFold(n_splits=5).split(X, y, groups=groups))[-1]
 pipe_cal = Pipeline([
     ("scaler", StandardScaler()),
     ("clf", LogisticRegression(max_iter=500, random_state=SEED, C=1.0,
-                               solver="lbfgs", multi_class="multinomial")),
+                               solver="lbfgs")),
 ])
 pipe_cal.fit(X[last_tr], y[last_tr])
 probs_all = pipe_cal.predict_proba(X[last_te])

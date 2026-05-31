@@ -1,6 +1,6 @@
 =================================================================
 CALIBRACIÓN SPRINT SEMANA 6 — TRADUCTOR LSP
-Fecha: 2026-05-29 21:42
+Fecha: 2026-05-31 00:35
 =================================================================
 
 ── DATOS ─────────────────────────────────────────────────────
@@ -10,9 +10,9 @@ Fecha: 2026-05-29 21:42
   Shape entrada     : (30, 75, 3)
 
 ── ABLACIÓN (GroupKFold / 5 folds) ───────────────────────────
-  Baseline (coords)                           Acc=0.000±0.000  F1m=0.000±0.000  lat=0.014ms
-  Var1 (+veloc+acel+dist)                     Acc=0.000±0.000  F1m=0.000±0.000  lat=0.020ms
-  Var2 (+orient+simetría+apertura)            Acc=0.000±0.000  F1m=0.000±0.000  lat=0.019ms
+  Baseline (coords)                           Acc=0.000±0.000  F1m=0.000±0.000  lat=0.009ms
+  Var1 (+veloc+acel+dist)                     Acc=0.000±0.000  F1m=0.000±0.000  lat=0.014ms
+  Var2 (+orient+simetría+apertura)            Acc=0.000±0.000  F1m=0.000±0.000  lat=0.013ms
 
 ── MEJOR CONFIGURACIÓN ────────────────────────────────────────
   Baseline (coords)
@@ -20,19 +20,19 @@ Fecha: 2026-05-29 21:42
 
 ── TOP-10 FEATURES (Permutation Importance) ───────────────────
    1. max_pose_32_z                             PI=0.0000±0.0000
-   2. std_rh_16_x                               PI=0.0000±0.0000
-   3. std_rh_06_x                               PI=0.0000±0.0000
-   4. std_rh_05_z                               PI=0.0000±0.0000
-   5. std_rh_05_y                               PI=0.0000±0.0000
-   6. std_rh_05_x                               PI=0.0000±0.0000
-   7. std_rh_04_z                               PI=0.0000±0.0000
-   8. std_rh_04_y                               PI=0.0000±0.0000
-   9. std_rh_04_x                               PI=0.0000±0.0000
-  10. std_rh_03_z                               PI=0.0000±0.0000
+   2. max_pose_32_y                             PI=0.0000±0.0000
+   3. max_pose_32_x                             PI=0.0000±0.0000
+   4. max_pose_31_z                             PI=0.0000±0.0000
+   5. max_pose_31_y                             PI=0.0000±0.0000
+   6. max_pose_31_x                             PI=0.0000±0.0000
+   7. max_pose_30_z                             PI=0.0000±0.0000
+   8. max_pose_30_y                             PI=0.0000±0.0000
+   9. max_pose_30_x                             PI=0.0000±0.0000
+  10. max_pose_29_z                             PI=0.0000±0.0000
 
 ── CALIBRACIÓN DE PROBABILIDADES ─────────────────────────────
   ECE global  : 0.0769
-  Brier score : 0.6661
+  Brier score : 0.6686
   Status      : ⚠️  Calibración aceptable (0.05 ≤ ECE < 0.10)
 
 ── ARCHIVOS GENERADOS ─────────────────────────────────────────

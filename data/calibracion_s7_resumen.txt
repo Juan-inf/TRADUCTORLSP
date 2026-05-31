@@ -1,7 +1,7 @@
 === Calibración Sprint 7 — Checklist Validación ===
-Timestamp    : 2026-05-29T20:29:04
+Timestamp    : 2026-05-31T01:01:40
 Dataset      : data/Keypoints/pkl  (3684 muestras, 1086 clases)
-Dataset MD5  : 3681f1c51ba15efb645f780815beadb1
+Dataset MD5  : 473828a489f4797b839218c8169a05e1
 Features     : pose(33×2) + right_hand(21×2) = 108 dims (media temporal)
 Split        : GroupKFold(n_splits=5, groups=vineta) — sin leakage
 Pipeline     : StandardScaler → LogisticRegression(C=1, seed=42)
@@ -22,5 +22,5 @@ Seed         : np.random=42, random=42, random_state=42
   [OK] 1. Split correcto: GroupKFold(n=5, groups=vineta), 0 grupos compartidos
   [OK] 2. Fit solo en train: Pipeline.fit(X_tr) — scaler nunca ve X_te
   [OK] 3. Seeds fijadas: np.random.seed(42), random_state=42
-  [OK] 4. Sin cambios de data: MD5=3681f1c51ba15efb645f780815beadb1
+  [OK] 4. Sin cambios de data: MD5=473828a489f4797b839218c8169a05e1
   [OK] 5. Logs completos: calibracion_s7_resumen.txt + calibracion_s7_ablacion.csv
