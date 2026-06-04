@@ -1,13 +1,11 @@
 """
-Demo Traductor LSP — MediaPipe Holistic + STGCN + CNN-LSTM
-Detecta manos, dedos, cuerpo y rostro en tiempo real y traduce señas LSP.
+Demo Traductor LSP — MediaPipe Holistic + RF (1086 señas LSP → texto español)
+Detecta manos/cuerpo en tiempo real y traduce señas individuales a español.
 """
 
-import json, time, warnings
+import json, time, pickle, warnings
 import numpy as np
 import cv2
-import torch
-import torch.nn.functional as F
 from pathlib import Path
 from collections import deque
 import sys
@@ -23,14 +21,12 @@ import mediapipe as mp
 
 # ── Configuración ─────────────────────────────────────────────────────────────
 
-LABEL2IDX_PATH  = "data/label2idx.json"
-CLASE_TEXTO_PATH = "data/clase_texto.json"
-ONNX_PATH       = "checkpoints/cnn_lstm_best.onnx"
-STGCN_CKPT      = "checkpoints/ab_var2_lr5e4.pt"
+RF_CKPT         = "checkpoints/rf_signs.pkl"   # modelo principal (1086 señas LSP)
+SIGN_LABEL_PATH = "data/sign_label2idx.json"
 
 N_FRAMES  = 30
 IMG_SIZE  = (112, 112)
-N_KP      = 75   # 42 manos + 33 pose
+N_KP      = 75   # layout: [0:21]=left_hand, [21:42]=right_hand, [42:75]=pose
 DEVICE    = "cpu"
 
 IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], np.float32)
@@ -38,7 +34,7 @@ IMAGENET_STD  = np.array([0.229, 0.224, 0.225], np.float32)
 
 # Buffers globales
 pixel_buffer = deque(maxlen=N_FRAMES)
-kp_buffer    = deque(maxlen=N_FRAMES)
+kp_buffer    = deque(maxlen=N_FRAMES)   # cada elemento: (75, 3)
 
 # ── MediaPipe ─────────────────────────────────────────────────────────────────
 
@@ -61,52 +57,25 @@ COLOR_FACE  = (200, 200, 200)   # gris — rostro
 
 # ── Modelos ───────────────────────────────────────────────────────────────────
 
-onnx_session = None
-stgcn_model  = None
-idx2label    = {}
-clase_texto  = {}
+rf_model   = None   # Pipeline sklearn: StandardScaler + RandomForest
+idx2label  = {}     # int → nombre seña en español
 
 
 def load_models():
-    global onnx_session, stgcn_model, idx2label, clase_texto
+    global rf_model, idx2label
 
-    if Path(CLASE_TEXTO_PATH).exists():
-        with open(CLASE_TEXTO_PATH, encoding="utf-8") as f:
-            clase_texto = json.load(f)
-
-    if not Path(LABEL2IDX_PATH).exists():
-        print("label2idx.json no encontrado")
+    if not Path(RF_CKPT).exists():
+        print(f"[ERROR] No se encontró {RF_CKPT}. Ejecuta: python scripts/train_sign_model.py")
         return
 
-    with open(LABEL2IDX_PATH) as f:
-        l2i = json.load(f)
-    idx2label = {int(v): k for k, v in l2i.items()}
-
-    # CNN-LSTM ONNX (píxeles)
-    if Path(ONNX_PATH).exists():
-        try:
-            import onnxruntime as ort
-            avail = ort.get_available_providers()
-            provs = [p for p in ("CoreMLExecutionProvider", "CPUExecutionProvider")
-                     if p in avail]
-            onnx_session = ort.InferenceSession(ONNX_PATH, providers=provs)
-            print(f"CNN-LSTM ONNX listo — {len(idx2label)} clases")
-        except Exception as e:
-            print(f"ONNX error: {e}")
-
-    # STGCN (landmarks)
-    if Path(STGCN_CKPT).exists():
-        try:
-            from src.models import STGCN
-            m = STGCN(n_classes=len(idx2label), n_nodes=N_KP,
-                      in_channels=3, hidden_channels=64, num_layers=4)
-            ck = torch.load(STGCN_CKPT, map_location=DEVICE)
-            m.load_state_dict(ck["model_state"])
-            m.eval()
-            stgcn_model = m
-            print(f"STGCN listo — val_acc={ck.get('val_acc', '?'):.3f}")
-        except Exception as e:
-            print(f"STGCN error: {e}")
+    try:
+        with open(RF_CKPT, "rb") as f:
+            data = pickle.load(f)
+        rf_model  = data["pipeline"]
+        idx2label = data["idx2label"]
+        print(f"Modelo RF listo — {data['n_classes']} señas LSP | F1-train={data['f1_train']:.3f}")
+    except Exception as e:
+        print(f"Error cargando RF: {e}")
 
 
 load_models()
@@ -237,72 +206,51 @@ def draw_status_bar(vis: np.ndarray, detected: dict, result: dict | None) -> np.
 
 # ── Inferencia ────────────────────────────────────────────────────────────────
 
-def clase_a_texto(clase_id: str) -> str:
-    if clase_id in clase_texto:
-        return clase_texto[clase_id]
-    if clase_id.startswith("vineta_"):
-        return f"Historia viñeta {clase_id.replace('vineta_', '')}"
-    return clase_id
+def kp_buffer_to_feature(kp_seq: np.ndarray) -> np.ndarray:
+    """
+    Convierte secuencia de keypoints [T, 75, 3] al vector de 108 features
+    que usa el modelo RF (media temporal de pose x/y + right_hand x/y).
+    Layout kp: [0:21]=left_hand, [21:42]=right_hand, [42:75]=pose
+    """
+    pose       = kp_seq[:, 42:75, :2]   # (T, 33, 2)
+    right_hand = kp_seq[:, 21:42, :2]   # (T, 21, 2)
+
+    # Media temporal
+    pose_mean = pose.mean(axis=0)            # (33, 2)
+    rh_mean   = right_hand.mean(axis=0)      # (21, 2)
+
+    # Concatenar igual que extract_features(): pose_x, pose_y, rh_x, rh_y
+    feat = np.concatenate([
+        pose_mean[:, 0],    # pose x  (33)
+        pose_mean[:, 1],    # pose y  (33)
+        rh_mean[:, 0],      # right_hand x  (21)
+        rh_mean[:, 1],      # right_hand y  (21)
+    ]).astype(np.float32)   # (108,)
+    return feat
 
 
-@torch.no_grad()
-def run_stgcn(kp_seq: np.ndarray) -> dict:
-    """STGCN sobre secuencia de landmarks [T, N, 3]."""
-    x = torch.from_numpy(kp_seq).unsqueeze(0).float()   # [1, T, N, 3]
-    logits = stgcn_model(x)
-    probs  = F.softmax(logits, dim=-1).numpy()[0]
-    idx    = int(probs.argmax())
-    clase  = idx2label.get(idx, "desconocida")
-    top3   = [{"clase": idx2label.get(int(i), str(i)),
-               "texto": clase_a_texto(idx2label.get(int(i), str(i))),
-               "prob":  float(probs[i])}
-              for i in np.argsort(probs)[::-1][:3]]
-    return {"clase": clase, "texto": clase_a_texto(clase),
-            "confidence": float(probs[idx]), "top3": top3, "modelo": "STGCN"}
+def run_rf_inference(kp_seq: np.ndarray) -> dict:
+    """RF sobre vector de 108 features → nombre de seña en español."""
+    feat  = kp_buffer_to_feature(kp_seq).reshape(1, -1)
+    proba = rf_model.predict_proba(feat)[0]
+    idx   = int(proba.argmax())
+    conf  = float(proba[idx])
+    seña  = idx2label.get(idx, "?")
 
-
-def run_cnnlstm(pixel_seq: np.ndarray) -> dict:
-    """CNN-LSTM ONNX sobre secuencia de píxeles [T, H, W, C]."""
-    arr    = np.transpose(pixel_seq, (3, 0, 1, 2))[np.newaxis].astype(np.float32)
-    names  = [i.name for i in onnx_session.get_inputs()]
-    iname  = next((n for n in names if n in ("pixels", "input", "x")), names[0])
-    logits = onnx_session.run(None, {iname: arr})[0]
-    probs  = np.exp(logits[0] - logits[0].max())
-    probs /= probs.sum()
-    idx    = int(probs.argmax())
-    clase  = idx2label.get(idx, "desconocida")
-    top3   = [{"clase": idx2label.get(int(i), str(i)),
-               "texto": clase_a_texto(idx2label.get(int(i), str(i))),
-               "prob":  float(probs[i])}
-              for i in np.argsort(probs)[::-1][:3]]
-    return {"clase": clase, "texto": clase_a_texto(clase),
-            "confidence": float(probs[idx]), "top3": top3, "modelo": "CNN-LSTM"}
+    top3 = [{"clase": idx2label.get(int(i), str(i)), "prob": float(proba[i])}
+            for i in np.argsort(proba)[::-1][:3]]
+    return {"clase": seña, "texto": seña, "confidence": conf,
+            "top3": top3, "modelo": "RF-LSP"}
 
 
 def run_inference() -> dict | None:
-    """Elige el mejor modelo disponible y ejecuta inferencia."""
-    if len(kp_buffer) < N_FRAMES and len(pixel_buffer) < N_FRAMES:
+    """Ejecuta inferencia RF cuando el buffer tiene suficientes frames."""
+    if rf_model is None or len(kp_buffer) < N_FRAMES:
         return None
-
-    t0 = time.perf_counter()
-    result = None
-
-    # STGCN si hay landmarks suficientes (prioritario: usa señas reales)
-    if stgcn_model is not None and len(kp_buffer) >= N_FRAMES:
-        kp_seq = np.stack(list(kp_buffer))   # [T, N, 3]
-        result = run_stgcn(kp_seq)
-
-    # CNN-LSTM como fallback / segundo modelo
-    if onnx_session is not None and len(pixel_buffer) >= N_FRAMES:
-        pix_seq = np.stack(list(pixel_buffer))  # [T, H, W, C]
-        r_cnn   = run_cnnlstm(pix_seq)
-        # Usar CNN-LSTM si no hay resultado STGCN o si tiene mayor confianza
-        if result is None or r_cnn["confidence"] > result["confidence"] + 0.15:
-            result = r_cnn
-
-    if result:
-        result["latency_ms"] = (time.perf_counter() - t0) * 1000
-
+    t0     = time.perf_counter()
+    kp_seq = np.stack(list(kp_buffer))   # (30, 75, 3)
+    result = run_rf_inference(kp_seq)
+    result["latency_ms"] = (time.perf_counter() - t0) * 1000
     return result
 
 
@@ -381,7 +329,7 @@ def process_video_file(video_path):
     total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     idx_s = np.linspace(0, total - 1, N_FRAMES, dtype=int)
 
-    kp_frames, px_frames, detected_any = [], [], {k: False for k in ["mano_izq","mano_der","cuerpo","rostro"]}
+    kp_frames, detected_any = [], {k: False for k in ["mano_izq","mano_der","cuerpo","rostro"]}
     for idx in idx_s:
         cap.set(cv2.CAP_PROP_POS_FRAMES, int(idx))
         ret, frame = cap.read()
@@ -393,31 +341,20 @@ def process_video_file(video_path):
         for k in detected_any:
             if det[k]:
                 detected_any[k] = True
-        px = cv2.resize(frame_rgb, IMG_SIZE).astype(np.float32)
-        px_frames.append((px / 255.0 - IMAGENET_MEAN) / IMAGENET_STD)
     cap.release()
 
     if len(kp_frames) < 5:
         return None, "Video demasiado corto.", "", ""
 
-    # Pad a N_FRAMES si hace falta
     while len(kp_frames) < N_FRAMES:
         kp_frames.append(kp_frames[-1])
-        px_frames.append(px_frames[-1])
 
-    t0  = time.perf_counter()
-    result = None
-    if stgcn_model is not None:
-        result = run_stgcn(np.stack(kp_frames))
-    if onnx_session is not None:
-        r_cnn = run_cnnlstm(np.stack(px_frames))
-        if result is None or r_cnn["confidence"] > result["confidence"] + 0.15:
-            result = r_cnn
-    if result:
-        result["latency_ms"] = (time.perf_counter() - t0) * 1000
+    if rf_model is None:
+        return None, "Modelo no cargado. Ejecuta scripts/train_sign_model.py", "", ""
 
-    if not result:
-        return None, "No se pudo predecir.", "", ""
+    t0     = time.perf_counter()
+    result = run_rf_inference(np.stack(kp_frames))
+    result["latency_ms"] = (time.perf_counter() - t0) * 1000
 
     conf      = result["confidence"] * 100
     result_md = (
@@ -426,7 +363,7 @@ def process_video_file(video_path):
         f"**Latencia:** {result['latency_ms']:.0f} ms"
     )
     top3_md = "**Top 3:**\n" + "\n".join(
-        f"{i+1}. {t['texto']} — {t['prob']*100:.1f}%"
+        f"{i+1}. {t['clase']} — {t['prob']*100:.1f}%"
         for i, t in enumerate(result.get("top3", []))
     )
     estado_md = (
@@ -450,8 +387,8 @@ with gr.Blocks(title="Traductor LSP") as demo:
 
     gr.Markdown("""
     # 🤟 Traductor LSP → Castellano
-    **MediaPipe Holistic** detecta manos, dedos, cuerpo y rostro en tiempo real.
-    **STGCN + CNN-LSTM** reconoce la seña y muestra el texto en castellano.
+    **MediaPipe Holistic** detecta manos y cuerpo en tiempo real.
+    **RandomForest** (1086 señas LSP) reconoce la seña y muestra el texto en castellano.
     """)
 
     with gr.Tabs():
@@ -508,12 +445,13 @@ MediaPipe Holistic
      ├── 33 keypoints pose/cuerpo     (azul)
      └── 468 keypoints rostro         (gris)
      ↓
-Modelo 1 — ST-GCN        → sobre 75 keypoints [T=30, N=75, C=3]
-Modelo 2 — CNN-LSTM ONNX → sobre píxeles      [T=30, 112, 112, 3]
+Extracción de features (108 dims)
+     pose x/y (33×2=66) + mano derecha x/y (21×2=42)
+     Media temporal sobre 30 frames
      ↓
-Se usa el modelo con mayor confianza
+RandomForest — 1086 señas LSP
      ↓
-Texto en castellano
+Nombre de la seña en español
 ```
 
 ## Partes del cuerpo detectadas
@@ -525,12 +463,15 @@ Texto en castellano
 | Cuerpo/Pose | 🔵 Azul | 33 keypoints (hombros, codos, muñecas, caderas...) |
 | Rostro | ⚪ Gris | 468 keypoints (ojos, labios, cejas, nariz) |
 
-## Modelos
+## Modelo principal
 
-| Modelo | Input | Acc test | Uso |
-|--------|-------|---------|-----|
-| **ST-GCN** | Landmarks [T,N,C] | 52.5% val | Principal (usa señas reales) |
-| **CNN-LSTM** | Píxeles [T,H,W,C] | 83.0% | Fallback / confirmación |
+| Modelo | Input | Clases | Uso |
+|--------|-------|--------|-----|
+| **RF-LSP** | 108 features (pose+mano) | **1086 señas LSP** | Reconocimiento seña→texto |
+
+## Nota sobre precisión
+El modelo fue entrenado con ~3.4 muestras/clase en promedio.
+Con más datos de entrenamiento por seña, la precisión mejora significativamente.
             """)
 
 if __name__ == "__main__":
