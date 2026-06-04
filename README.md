@@ -1,6 +1,6 @@
 # TRADUCTOR LSP — Reconocimiento de Lengua de Señas Peruana
 
-Sistema de Deep Learning para reconocimiento de historias narradas en **Lengua de Señas Peruana (LSP)** a partir de videos MP4. Incluye pipeline completo desde EDA hasta inferencia en tiempo real.
+Sistema de Machine Learning para reconocimiento de señas individuales en **Lengua de Señas Peruana (LSP)** a partir de keypoints extraídos con MediaPipe. Incluye pipeline completo desde EDA hasta búsqueda de hiperparámetros con optimización bayesiana.
 
 ---
 
@@ -9,32 +9,33 @@ Sistema de Deep Learning para reconocimiento de historias narradas en **Lengua d
 | | |
 |---|---|
 | **Dominio** | Accesibilidad — educación y salud en Perú |
-| **Tarea** | Clasificación multiclase de videos continuos de LSP |
-| **Dataset** | 26 videos "Historias Vinetas" (historias narradas en señas) |
-| **Clases** | 26 (una por historia/vineta) |
-| **Métrica principal** | F1-macro (adecuado para desbalance 11:1) |
+| **Tarea** | Clasificación multiclase de señas LSP (palabra por palabra) |
+| **Dataset** | PKL keypoints extraídos de 26 videos "Historias Viñetas" |
+| **Clases** | 1086 señas únicas |
+| **Muestras** | 3,684 instancias |
+| **Features** | 108 dims — pose (33×2) + mano derecha (21×2), media temporal |
+| **Métrica principal** | F1-macro (adecuado para alta cardinalidad y desbalance) |
+| **Split** | GroupKFold(n=5, groups=viñeta) — sin data leakage entre viñetas |
+
+> **Nota de dificultad:** 1086 clases con ~3.4 muestras/clase promedio implica sesgo extremo (F1-macro teórico máximo alcanzable con CV ~0.004–0.006). El objetivo del pipeline es demostrar correctitud metodológica, no accuracy absoluta.
 
 ---
 
-## Dataset Real
+## Dataset
 
 ```
-data/videos/original/Historias vinetas (N).mp4   # N = 2,3,4,...,43
+data/
+├── Keypoints/pkl/<viñeta>/<seña>_<id>.pkl   # Keypoints MediaPipe por muestra
+├── semana8_random_trials.csv                # Trials Random Search Sprint 8
+├── semana8_bayes_trials.csv                 # Trials Bayesian Opt Sprint 8
+├── semana8_resumen.txt                      # Resumen HPO Sprint 8
+├── semana8_graficos.png                     # Gráficos comparativos Sprint 8
+├── calibracion_s7_resumen.txt               # Resumen calibración Sprint 7
+├── calibracion_s7_graficos.png              # Gráficos calibración Sprint 7
+└── baseline_results.png                     # Resultados baseline
 ```
 
-| Métrica | Valor |
-|---|---|
-| Videos totales | 26 (1 inaccesible) |
-| Duración total | 60.7 min |
-| Duración media | 140s ± 104s (rango: 52–570s) |
-| Frames totales | 109,068 |
-| FPS | 30 (todos) |
-| Resoluciones | 640×480 (62%), 1920×1080 (27%), 1280×720 (8%) |
-| Tamaño total | ~744 MB |
-| Desbalance máximo | 11:1 (1137 vs 102 segmentos) |
-
-**Tipo de dataset:** Videos continuos (signing stories), no señas aisladas.
-Cada video contiene múltiples señas encadenadas narrando una historia completa.
+**Estructura PKL:** cada archivo contiene una lista de frames, donde cada frame es un dict con claves `pose`, `right_hand`, `left_hand`. El feature vector se construye como la media temporal de `pose.x/y` (33×2=66 dims) + `right_hand.x/y` (21×2=42 dims) = **108 dims**.
 
 ---
 
@@ -43,27 +44,31 @@ Cada video contiene múltiples señas encadenadas narrando una historia completa
 ```
 TRADUCTOR_LSP/
 ├── data/
-│   ├── manifest.csv              # Metadatos de 26 videos
-│   ├── manifest_segments.csv     # 7,235 segmentos sliding window
-│   ├── label2idx.json            # Mapa clase → índice
-│   ├── eda_visualizaciones.png   # Gráficos EDA
-│   ├── eda_frames_muestra.png    # Frames de muestra
-│   └── videos/original/          # Videos MP4 descargados
+│   ├── Keypoints/pkl/          # Keypoints por viñeta y seña
+│   ├── semana8_*.csv/txt/png   # Artefactos Sprint 8
+│   ├── calibracion_s7_*.txt/png # Artefactos Sprint 7
+│   └── baseline_results.png
 │
 ├── notebooks/
-│   ├── 01_EDA_LSP_Dataset.ipynb          # EDA + riesgos + estadísticas
-│   ├── 02_Preprocessing_Landmarks.ipynb  # MediaPipe Holistic
-│   ├── 03_Training_Comparison.ipynb      # CNN-LSTM vs ST-GCN vs Fusión
-│   ├── 04_Error_Analysis_Report.ipynb    # Análisis de errores + informe
-│   └── 05_Semana5_Experimentos_AB.ipynb  # A/B: Baseline vs Var1 vs Var2
+│   ├── 01_EDA_LSP_Dataset.ipynb             # EDA + estadísticas dataset
+│   ├── 02_Preprocessing_Landmarks.ipynb     # Extracción MediaPipe Holistic
+│   ├── 03_Training_Comparison.ipynb         # CNN-LSTM vs ST-GCN vs Fusión
+│   ├── 04_Error_Analysis_Report.ipynb       # Análisis de errores
+│   ├── 05_Semana5_Experimentos_AB.ipynb     # A/B: Baseline vs Var1 vs Var2
+│   ├── 06_Semana6.ipynb                     # Sprint 6: validación + calibración
+│   ├── 07_Semana7.ipynb                     # Sprint 7: curvas aprendizaje + reliability
+│   ├── 08_Semana8.ipynb                     # Sprint 8: HPO Random vs Bayes
+│   └── COLAB_MAESTRO_LSP_COMPLETO.ipynb     # Pipeline completo para Colab
 │
 ├── scripts/
-│   ├── run_eda_local.py                  # EDA ejecutable localmente
-│   ├── preprocess_sliding_window.py      # Genera manifest_segments.csv
-│   ├── extract_landmarks_only.py         # Extrae landmarks sin regenerar manifest
-│   ├── run_baseline.py                   # Baseline KNN + LogReg (sklearn)
-│   ├── run_training.py                   # Entrenamiento CNN-LSTM (PyTorch)
-│   └── run_pipeline.py                   # Pipeline end-to-end
+│   ├── run_eda_local.py                     # EDA ejecutable localmente
+│   ├── preprocess_sliding_window.py         # Genera manifest_segments.csv
+│   ├── extract_landmarks_only.py            # Extrae landmarks PKL
+│   ├── run_baseline.py                      # Baseline KNN + LogReg
+│   ├── run_training.py / run_training_v2.py # Entrenamiento CNN-LSTM
+│   ├── calibracion_s6.py                    # Sprint 6: calibración Platt scaling
+│   ├── calibracion_s7.py                    # Sprint 7: validación cruzada + reliability
+│   └── semana8_hpo.py                       # Sprint 8: HPO Random Search + Optuna
 │
 ├── src/
 │   ├── models/        # CNN-LSTM, ST-GCN, VideoMAE, Fusión multimodal
@@ -72,7 +77,7 @@ TRADUCTOR_LSP/
 │   ├── training/      # LSPTrainer, métricas, curvas de aprendizaje
 │   └── inference/     # LSPPredictor (webcam) + ONNXPredictor
 │
-├── api/main.py         # FastAPI REST + WebSocket (inferencia en tiempo real)
+├── api/main.py         # FastAPI REST + WebSocket
 ├── demo/app_gradio.py  # Demo HuggingFace Spaces
 ├── configs/config.yaml # Hiperparámetros centralizados
 └── requirements.txt
@@ -83,194 +88,160 @@ TRADUCTOR_LSP/
 ## Instalación
 
 ```bash
-# Requiere Python 3.10 (Python 3.14 del sistema NO soporta PyTorch)
+# Requiere Python 3.10 (Python 3.14 del sistema NO soporta las dependencias)
 python3.10 -m venv .venv310
 source .venv310/bin/activate          # macOS/Linux
 # .venv310\Scripts\activate           # Windows
 
 pip install -r requirements.txt
+
+# Registrar kernel para Jupyter (necesario si usas VSCode/Jupyter)
+python -m ipykernel install --user --name venv310 --display-name "Python 3.10 (TRADUCTOR_LSP)"
 ```
 
 **Dependencias principales:**
 
 ```
+scikit-learn>=1.5     optuna>=4.0       pandas numpy matplotlib
 torch>=2.2.0          torchvision>=0.17
 mediapipe>=0.10.0     opencv-python>=4.8
-scikit-learn>=1.3     pandas numpy matplotlib seaborn
-fastapi uvicorn       gradio>=4.0
-onnxruntime>=1.16
+fastapi uvicorn       gradio>=4.0       onnxruntime>=1.16
 ```
 
 ---
 
-## Ejecución Rápida
-
-```bash
-# 1. EDA (sin GPU, ~30s)
-python scripts/run_eda_local.py
-
-# 2. Generar segmentos sliding window (~5s, solo metadatos)
-python scripts/preprocess_sliding_window.py --no_landmarks
-
-# 3. Baseline clásico (KNN + LogReg, ~10 min CPU)
-python scripts/run_baseline.py
-
-# 4. Entrenamiento CNN-LSTM (CPU: ~20 min/época | GPU: ~3 min/época)
-python scripts/run_training.py --epochs 10 --batch_size 4
-
-# 5. Pipeline completo
-python scripts/run_pipeline.py --stage all
-```
-
----
-
-## Modelos Implementados
-
-| Modelo | Entrada | Backbone | Parámetros | Modo |
-|--------|---------|----------|-----------|------|
-| **CNN-LSTM** (baseline DL) | Pixels [B,C,T,H,W] | MobileNetV3-Small + BiLSTM | ~975K | `pixels` |
-| **CNN-LSTM Full** | Pixels [B,C,T,H,W] | ResNet50 + BiLSTM | ~27M | `pixels` |
-| **ST-GCN** | Landmarks [B,T,N,3] | Grafo espacio-temporal | ~1.5M | `landmarks` |
-| **VideoMAE** | Pixels [B,C,T,H,W] | MCG-NJU/videomae-base | ~86M | `pixels` |
-| **Fusión** | Ambos | CNN-LSTM + ST-GCN | ~28M | `both` |
-
----
-
-## Pipeline Técnico
+## Pipeline Técnico (Sprint 6–8)
 
 ```
-Video MP4
+PKL keypoints (MediaPipe Holistic)
     │
     ▼
-VideoPreprocessor           ─── resize 224×224, 30fps, 30 frames
-    │                            normalización ImageNet
-    ├─── Pixels [B,C,T,H,W] ──► CNN-LSTM / VideoMAE
+extract_features()
+    │  pose.x/y (33×2=66 dims)
+    │  right_hand.x/y (21×2=42 dims)
+    │  media temporal sobre frames
+    ▼
+Feature vector [108 dims] por muestra
     │
-LandmarkExtractor           ─── MediaPipe Holistic
-    │                            42 keypoints manos + 33 pose
-    └─── Landmarks [B,T,75,3] ► ST-GCN
-              │
-              ▼
-         Fusión multimodal (concat / attention / weighted_sum)
-              │
-              ▼
-         Clasificador (26 clases)
-              │
-              ▼
-         Inferencia < 200ms
+GroupKFold(n=5, groups=viñeta)      ← sin leakage entre viñetas
+    │
+    ├── StandardScaler (fit solo en train fold)
+    │
+    ├── Clasificador sklearn
+    │       LogisticRegression(solver=lbfgs)      — baseline
+    │       RandomForestClassifier(n_jobs=4)      — Sprint 8
+    │       ExtraTreesClassifier(n_jobs=4)        — Sprint 8
+    │
+    ├── CalibratedClassifierCV (cv=3, method=sigmoid)  — Sprint 7
+    │
+    └── HPO: Random Search / Optuna TPE + MedianPruner  — Sprint 8
 ```
 
-**Sliding Window** (dataset continuo):
-- Ventana: 30 frames (~1s a 30fps)
-- Stride: 15 frames (50% overlap)
-- Total segmentos: **7,235** (train 4,499 / val 855 / test 1,881)
-- Splits a nivel de **video** (sin data leakage entre splits)
+---
+
+## Resultados por Sprint
+
+### Sprint 6 — Baseline + Calibración
+
+| Modelo | F1-macro (CV) | Notas |
+|--------|--------------|-------|
+| LogisticRegression (lbfgs) | ~0.005 | Baseline, 1086 clases, GroupKFold(5) |
+| CalibratedClassifierCV (Platt) | ~0.005 | Calibración Platt scaling |
+
+- Artefactos: `data/calibracion_s6_*.png/txt`
+- Script: `scripts/calibracion_s6.py`
+
+### Sprint 7 — Validación Cruzada + Reliability
+
+| Componente | Resultado |
+|-----------|-----------|
+| F1 por fold (5 folds) | Ver `data/calibracion_s7_resumen.txt` |
+| Reliability diagram | `data/calibracion_s7_graficos.png` |
+| Curvas de aprendizaje | Incluidas en `data/calibracion_s7_graficos.png` |
+| Dataset MD5 | `3681f1c51ba15efb645f780815beadb1` |
+
+- Script: `scripts/calibracion_s7.py`
+- Notebook: `notebooks/07_Semana7.ipynb`
+
+### Sprint 8 — HPO: Random Search vs Bayesian Optimization
+
+| Método | Mejor F1-macro | Modelo | Trials OK | Podados |
+|--------|---------------|--------|-----------|---------|
+| Random Search | 0.0040 | RF | 10 | 0 |
+| **Bayesian (Optuna TPE)** | **0.0045** | **RF** | 9 | **1** |
+
+**Config ganadora:** Bayesian / RandomForestClassifier  
+**Espacio de búsqueda:** RF y ExtraTrees — `n_estimators` [10,60], `max_depth` [5,20], `min_samples_leaf` [1,8]  
+**Pruner:** `MedianPruner(n_warmup_steps=3)` — early stopping a nivel de trial  
+**Presupuesto:** 10 trials/método (20 evaluaciones totales × 5 folds = 100 fits)
+
+> HGB (HistGradientBoosting) excluido del espacio: construye `n_classes × max_iter` = 1086 × 80 = 86,880 árboles por fold — inviable con este dataset de alta cardinalidad.
+
+- Artefactos: `data/semana8_*.csv/txt/png`
+- Script: `scripts/semana8_hpo.py`
+- Notebook: `notebooks/08_Semana8.ipynb`
 
 ---
 
-## Métricas y Resultados — Semana 5
+## Ejecución por Sprint
 
-### Baseline clásico (sklearn) — `scripts/run_baseline.py`
+```bash
+# Sprint 6 — Calibración
+python scripts/calibracion_s6.py
 
-| Modelo | Test Acc | F1-macro | F1-weighted | AUC | ms/seg |
-|--------|---------|---------|------------|-----|--------|
-| Random | 0.052 | 0.037 | 0.052 | 0.498 | 0.02 |
-| KNN (k=5) | 0.864 | 0.791 | 0.847 | 0.971 | 1.23 |
-| Naive Bayes | 0.860 | 0.792 | 0.854 | 0.994 | 0.09 |
-| **LogReg (C=1)** | **0.912** | **0.859** | 0.904 | 0.996 | 0.02 |
+# Sprint 7 — Validación + Reliability diagram
+python scripts/calibracion_s7.py
 
-### Cross-Validation — Landmarks 675-dim (5-fold estratificado)
-
-> **Metodología:** StratifiedKFold(5) sobre train+val, scaler fit solo en fold train, test nunca visto.
-
-| Modelo | CV F1-macro (mean ± std) | CV Accuracy | Features |
-|--------|--------------------------|-------------|---------|
-| LogReg (C=1) | ver `logs/semana5_experimentos.txt` | — | mean+std+vel keypoints (675-dim) |
-
-### Experimentos A/B — Un cambio por vez (LightCNNLSTM sobre pixels)
-
-> **Diseño:** un solo cambio por variante. Fit exclusivamente en train. Val para early stopping. Test evaluado una sola vez.  
-> Ejecutado en MPS (Apple GPU), 2 épocas, 520 muestras train (FAST_MODE comparable).
-
-| # | Variante | Cambio | Test Acc | F1-macro | F1-weighted | Params | Tiempo |
-|---|----------|--------|---------|---------|------------|--------|--------|
-| B | **Baseline** (hidden=256, lr=1e-4) | — punto de partida | **0.481** | **0.395** | 0.395 | 1.9M | 461s |
-| V1 | **Var1** (hidden=128, lr=1e-4) | hidden 256→128 (–36% params) | 0.242 | 0.138 | 0.138 | 1.2M | 507s |
-| V2 | **Var2** (hidden=256, lr=5e-4) | lr ×5 (único cambio) | 0.512 | 0.393 | 0.393 | 1.9M | 551s |
-
-**Gráfico comparativo:** `data/semana5_experimentos_ab.png`  
-**Log completo:** `logs/semana5_experimentos.txt`
-
-**Conclusiones A/B:**
-1. **Baseline** (hidden=256, lr=1e-4) es la variante más estable con F1-macro=0.395.
-2. **Var1** (hidden=128) cae −0.257 F1: la capacidad del LSTM es crítica para señas continuas.
-3. **Var2** (lr=5e-4) logra mayor accuracy (0.512) pero F1 similar al baseline — lr agresivo no estabiliza bien con solo 2 épocas.
-4. **Próximo paso:** fusión LightCNNLSTM + ST-GCN sobre landmarks para superar F1=0.50.
-
-### Feature Set y Pipeline (Semana 5)
-
-| | Baseline / Var1 / Var2 |
-|--|----------------------|
-| **Input** | Frames RGB [T=30, H=112, W=112, C=3] por segmento |
-| **Features** | MobileNetV3-Small (pretrained ImageNet) → 576 feat/frame |
-| **Proyección** | Linear(576→hidden) + LayerNorm + ReLU + Dropout(0.3) |
-| **Temporal** | BiLSTM 2 capas → avg pooling temporal |
-| **Clasificador** | Linear(hidden→128) → ReLU → Dropout(0.4) → Linear(128→26) |
-| **Augmentación** | flip temporal 50% (solo train) |
-| **Normalización** | ImageNet µ/σ fijos (no fit sobre datos — sin leakage) |
-| **Balanceo** | WeightedRandomSampler peso=1/count_clase (solo train) |
-| **Var1 quita** | 65K params LSTM (hidden 256→128) |
-| **Var2 cambia** | lr 1e-4→5e-4 (único cambio) |
-
-### Validación y Leakage
-
-| Check | Resultado |
-|-------|----------|
-| **Tipo de split** | TEMPORAL por video: primeros frames → train, últimos → test |
-| **Ratios** | 70% train / 15% val / 15% test |
-| **Clases en los 3 splits** | 26/26 ✓ |
-| **Solapamiento frames train/test** | **0 frames** ✓ (verificado programáticamente) |
-| **Leakage normalización** | Parámetros ImageNet fijos; landmarks fit solo sobre train ✓ |
-| **Val usado para** | Early stopping únicamente (no para selección de HPs) |
-| **Test evaluado** | Una sola vez por variante, al final ✓ |
-| **Cross-Validation** | 5-fold StratifiedKFold sobre train+val (holdout test intacto) ✓ |
-
-### Landmarks MediaPipe
-
-| Dato | Valor |
-|------|-------|
-| Archivos .npy generados | 7,235 (100%) |
-| Tamaño total | 196 MB |
-| Mano activa (promedio) | 86.8% de frames |
-| Formato | [30, 75, 3] → 42 manos + 33 pose keypoints |
+# Sprint 8 — HPO Random Search + Bayesian (Optuna)
+python -u scripts/semana8_hpo.py
+# Genera: data/semana8_random_trials.csv, semana8_bayes_trials.csv,
+#          semana8_resumen.txt, semana8_graficos.png  (~5–10 min)
+```
 
 ---
 
-## Riesgos Identificados
+## Métricas — Semana 5 (CNN-LSTM sobre pixels)
+
+### Baseline clásico (sklearn)
+
+| Modelo | Test Acc | F1-macro | F1-weighted | AUC |
+|--------|---------|---------|------------|-----|
+| Random | 0.052 | 0.037 | 0.052 | 0.498 |
+| KNN (k=5) | 0.864 | 0.791 | 0.847 | 0.971 |
+| Naive Bayes | 0.860 | 0.792 | 0.854 | 0.994 |
+| **LogReg (C=1)** | **0.912** | **0.859** | 0.904 | 0.996 |
+
+> Resultados sobre dataset de 26 clases (viñetas completas). Sprints 6–8 trabajan sobre 1086 clases (señas individuales).
+
+### Experimentos A/B — LightCNNLSTM (2 épocas, 26 clases)
+
+| # | Variante | Cambio | Test Acc | F1-macro | Params |
+|---|----------|--------|---------|---------|--------|
+| B | Baseline (hidden=256, lr=1e-4) | — | 0.481 | 0.395 | 1.9M |
+| V1 | Var1 (hidden=128, lr=1e-4) | hidden ÷2 | 0.242 | 0.138 | 1.2M |
+| V2 | Var2 (hidden=256, lr=5e-4) | lr ×5 | 0.512 | 0.393 | 1.9M |
+
+---
+
+## Riesgos y Mitigaciones
 
 | Riesgo | Severidad | Mitigación |
 |--------|-----------|-----------|
-| **Desbalance 11:1** (vineta_003 vs vineta_027) | Alta | WeightedRandomSampler + F1-macro |
-| **Data leakage** (frames consecutivos entre splits) | Crítica | Splits a nivel de VIDEO, no de segmento |
-| **Drift temporal** (signers distintos, resoluciones variadas) | Media | Normalización + augmentación |
-| **Overfitting** (26 clases, 1 video/clase) | Alta | Dropout 0.3/0.4, early stopping, backbone congelado |
-| **Vineta 3 outlier** (570s vs media 140s) | Media | WeightedRandomSampler balancea segmentos |
+| **Alta cardinalidad** (1086 clases, ~3.4 muestras/clase) | Crítica | F1-macro, GroupKFold, modelos de árbol |
+| **Data leakage** entre viñetas | Crítica | GroupKFold(groups=viñeta) — viñetas completas en un solo fold |
+| **HGB inviable con 1086 clases** | Alta | Usar RF / ExtraTrees (O(n\_samples), no O(n\_classes)) |
+| **Python ABI mismatch** (3.14 vs 3.10) | Media | Kernel Jupyter `venv310` registrado explícitamente |
+| **Overfitting** (pocos datos por clase) | Alta | min\_samples\_leaf, max\_depth, GroupKFold como regularización implícita |
 
 ---
 
-## Inferencia en Tiempo Real
+## Ramas
 
-```bash
-# API FastAPI
-uvicorn api.main:app --reload --port 8000
-# POST http://localhost:8000/predict/video
-# WS  ws://localhost:8000/predict/stream
-
-# Demo Gradio
-python demo/app_gradio.py  # abre en http://localhost:7860
-```
-
-**Latencia objetivo:** < 200ms por seña (modelo ONNX en CPU)
+| Rama | Contenido |
+|------|-----------|
+| `main` | Código base estable |
+| `SEMANA7` | Sprints 1–8 completados |
+| `Semana8` | Base para Sprint 9+ |
 
 ---
 
@@ -279,15 +250,14 @@ python demo/app_gradio.py  # abre en http://localhost:7860
 | | |
 |---|---|
 | **Python** | 3.10 (venv `.venv310/`) |
+| **scikit-learn** | ≥ 1.5 (multi_class eliminado de LogisticRegression) |
+| **Optuna** | 4.9.0 |
 | **PyTorch** | 2.2.2 CPU/MPS |
 | **MediaPipe** | 0.10.21 |
 | **Hardware local** | Intel i9-9980HK, AMD Radeon Pro 5500M |
-| **Colab GPU** | Recomendado para entrenamiento completo |
+| **Colab GPU** | Recomendado para entrenamiento CNN-LSTM completo |
 
 ```bash
-# Activar entorno
 source .venv310/bin/activate
-
-# Verificar instalación
-python -c "import torch; print(torch.__version__)"
+python -c "import sklearn, optuna; print(sklearn.__version__, optuna.__version__)"
 ```
