@@ -1,7 +1,7 @@
 === Sprint 8 — Búsqueda de Hiperparámetros ===
-Timestamp  : 2026-06-03T23:22:19
+Timestamp  : 2026-06-04T01:01:05
 Dataset    : data/Keypoints/pkl  (3684 muestras, 1086 clases)
-MD5        : 3681f1c51ba15efb645f780815beadb1
+MD5        : 473828a489f4797b839218c8169a05e1
 Features   : pose(33×2) + right_hand(21×2) = 108 dims
 Split      : GroupKFold(n_splits=5, groups=vineta)
 Seed       : 42
