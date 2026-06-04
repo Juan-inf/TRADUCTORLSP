@@ -1,0 +1,64 @@
+=== Sprint 8 — Búsqueda de Hiperparámetros ===
+Timestamp  : 2026-06-03T23:22:19
+Dataset    : data/Keypoints/pkl  (3684 muestras, 1086 clases)
+MD5        : 3681f1c51ba15efb645f780815beadb1
+Features   : pose(33×2) + right_hand(21×2) = 108 dims
+Split      : GroupKFold(n_splits=5, groups=vineta)
+Seed       : 42
+
+--- Espacio de búsqueda ---
+  Modelos      : ['rf', 'et']
+  rf__n_est    : int (10, 60)
+  rf__depth    : int (5, 20)
+  rf__leaf     : int (1, 8)
+  et__n_est    : int (10, 60)
+  et__depth    : int (5, 20)
+  et__leaf     : int (1, 8)
+
+--- Presupuesto ---
+  Random Search : 10 trials
+  Bayes (TPE)   : 10 trials  (MedianPruner n_warmup=3 — early stopping a nivel trial) | Podados: 1
+
+--- Random Search — best F1: 0.0040 ---
+    trial: 6
+    model: rf
+    f1_macro_mean: 0.003996
+    f1_macro_std: 0.001394
+    rf__n_estimators: 53
+    rf__max_depth: 18
+    rf__min_samples_leaf: 3
+    et__n_estimators: 42
+    et__max_depth: 7
+    et__min_samples_leaf: 7
+
+--- Bayesian (Optuna TPE) — best F1: 0.0045 ---
+    trial: 7
+    model: rf
+    f1_macro_mean: 0.004463
+    f1_macro_std: 0.0
+    rf__n_estimators: 59
+    rf__max_depth: 17
+    rf__min_samples_leaf: 8
+    et__n_estimators: 55
+    et__max_depth: 14
+    et__min_samples_leaf: 8
+
+--- Top-5 global ---
+  #1  [bayes ] model=rf  | F1=0.0045 ± 0.0000
+  #2  [bayes ] model=et  | F1=0.0042 ± 0.0000
+  #3  [bayes ] model=et  | F1=0.0041 ± 0.0000
+  #4  [random] model=rf  | F1=0.0040 ± 0.0014
+  #5  [bayes ] model=et  | F1=0.0039 ± 0.0000
+
+--- CONFIG GANADORA ---
+  trial: 7
+  method: bayes
+  model: rf
+  f1_macro_mean: 0.004463
+  f1_macro_std: 0.0
+  rf__n_estimators: 59
+  rf__max_depth: 17
+  rf__min_samples_leaf: 8
+  et__n_estimators: 55
+  et__max_depth: 14
+  et__min_samples_leaf: 8
