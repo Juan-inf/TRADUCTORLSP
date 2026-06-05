@@ -448,5 +448,8 @@ LSTM Bidireccional + Attention  [30 frames × 150 dims]
             """)
 
 if __name__ == "__main__":
+    import sys
+    share = "--share" in sys.argv
     demo.launch(server_name="0.0.0.0", server_port=7860,
-                show_error=True, theme=gr.themes.Soft(), css=CSS)
+                show_error=True, theme=gr.themes.Soft(), css=CSS,
+                share=share)

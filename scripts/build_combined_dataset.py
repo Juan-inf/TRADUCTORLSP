@@ -16,8 +16,9 @@ N_FRAMES  = 30
 N_DIMS    = 150  # pose(66) + left_hand(42) + right_hand(42)
 
 PKL_SOURCES = [
-    ROOT / "data" / "Keypoints" / "pkl",          # 3684 muestras, 1086 clases
-    ROOT / "data" / "Keypoints" / "glosas_pkl",   # ~263 muestras, ~143 clases
+    ROOT / "data" / "Keypoints" / "pkl",            # 3684 muestras, 1086 clases
+    ROOT / "data" / "Keypoints" / "glosas_pkl",     #  252 muestras,  143 clases
+    ROOT / "data" / "Keypoints" / "abecedario_pkl", # 3600 muestras,   24 clases
 ]
 
 
@@ -65,17 +66,20 @@ def pkl_to_sequence(pkl_path):
 print("Cargando PKL de todas las fuentes...")
 X_list, y_list = [], []
 
+FOLDER_AS_LABEL = {"abecedario_pkl"}   # usar nombre de carpeta como etiqueta
+
 for src_dir in PKL_SOURCES:
     if not src_dir.exists():
         print(f"  ⚠️  {src_dir} no existe, saltando")
         continue
+    use_folder = src_dir.name in FOLDER_AS_LABEL
     pkls = sorted(src_dir.rglob("*.pkl"))
     loaded = 0
     for p in pkls:
         seq = pkl_to_sequence(p)
         if seq is None:
             continue
-        label = label_from_filename(p.name)
+        label = p.parent.name.upper() if use_folder else label_from_filename(p.name)
         X_list.append(seq)
         y_list.append(label)
         loaded += 1
