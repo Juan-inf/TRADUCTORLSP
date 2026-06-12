@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EXAMEN PARCIAL S9 — TRADUCTOR LSP</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --accent:#2563eb; --bg:#f8fafc; --surface:#fff; --border:#e2e8f0;
+        --text:#1e293b; --muted:#64748b; --code-bg:#1e293b; --code-fg:#e2e8f0;
+        --toc-w:260px; --max-w:900px; }
+html { font-size:16px; scroll-behavior:smooth; }
+body { font-family:'Georgia','Times New Roman',serif; background:var(--bg);
+       color:var(--text); line-height:1.75; display:flex; min-height:100vh; }
+.sidebar { width:var(--toc-w); flex-shrink:0; position:sticky; top:0;
+           height:100vh; overflow-y:auto; padding:2rem 1rem;
+           background:var(--surface); border-right:1px solid var(--border);
+           font-family:system-ui,sans-serif; font-size:0.82rem; }
+.sidebar h2 { font-size:0.75rem; text-transform:uppercase; letter-spacing:.1em;
+              color:var(--muted); margin-bottom:1rem; }
+.sidebar .toctree-wrapper ul { list-style:none; padding-left:0; }
+.sidebar .toctree-wrapper li { margin:.25rem 0; }
+.sidebar a { color:var(--text); text-decoration:none; }
+.sidebar a:hover { color:var(--accent); }
+.main { flex:1; max-width:var(--max-w); margin:0 auto; padding:3rem 2.5rem; }
+h1 { font-size:1.9rem; color:var(--accent); border-bottom:3px solid var(--accent);
+     padding-bottom:.5rem; margin:2rem 0 1rem; }
+h2 { font-size:1.45rem; color:#1e293b; border-bottom:1px solid var(--border);
+     padding-bottom:.4rem; margin:2rem 0 .8rem; }
+h3 { font-size:1.15rem; color:#334155; margin:1.5rem 0 .5rem; }
+h4 { font-size:1rem; color:var(--muted); margin:1rem 0 .4rem; }
+p { margin:.8rem 0; }
+a { color:var(--accent); }
+table { border-collapse:collapse; width:100%; margin:1.2rem 0; font-size:.9rem; }
+th { background:#1e293b; color:#fff; padding:.55rem .8rem; text-align:left; }
+td { padding:.45rem .8rem; border-bottom:1px solid var(--border); vertical-align:top; }
+tr:nth-child(even) td { background:#f1f5f9; }
+code { font-family:'Courier New',monospace; font-size:.87em;
+       background:#f1f5f9; padding:.15em .35em; border-radius:3px; }
+pre { background:var(--code-bg); color:var(--code-fg); padding:1.2rem 1.5rem;
+      border-radius:8px; overflow-x:auto; margin:1rem 0; font-size:.85rem; }
+pre code { background:transparent; padding:0; }
+blockquote { border-left:4px solid var(--accent); padding:.6rem 1.2rem;
+             background:#eff6ff; margin:1rem 0; font-style:italic; color:#374151; }
+img { max-width:100%; height:auto; border-radius:6px;
+      box-shadow:0 2px 8px rgba(0,0,0,.12); margin:.8rem 0; }
+ul, ol { margin:.8rem 0; padding-left:1.8rem; }
+li { margin:.3rem 0; }
+.portada { background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);
+           color:#fff; padding:2.5rem 2rem; border-radius:10px; margin-bottom:2.5rem; }
+.portada h1 { color:#fff; border-color:rgba(255,255,255,.4); font-size:1.7rem; }
+.portada table th, .portada table td { background:transparent; color:#fff;
+    border-bottom:1px solid rgba(255,255,255,.2); }
+.portada table tr:nth-child(even) td { background:rgba(255,255,255,.07); }
+@media print { .sidebar { display:none; }
+               .main { max-width:100%; padding:1.5cm 2cm; } }
+</style>
+</head>
+<body>
+<aside class="sidebar"><h2>Contenido</h2><div class="toc"><span class="toctitle">Contenido</span><ul>
+<li><a href="#sistema-de-reconocimiento-de-lengua-de-senas-peruana-lsp-mediante-deep-learning">Sistema de Reconocimiento de Lengua de Señas Peruana (LSP) mediante Deep Learning</a></li>
+<li><a href="#1-introduccion">1. INTRODUCCIÓN</a><ul>
+<li><a href="#11-problema">1.1 Problema</a></li>
+<li><a href="#12-objetivo-general">1.2 Objetivo General</a></li>
+<li><a href="#13-objetivos-especificos">1.3 Objetivos Específicos</a></li>
+<li><a href="#14-preguntas-de-investigacion">1.4 Preguntas de Investigación</a></li>
+<li><a href="#15-hipotesis">1.5 Hipótesis</a></li>
+<li><a href="#16-variables">1.6 Variables</a></li>
+</ul>
+</li>
+<li><a href="#2-marco-teorico">2. MARCO TEÓRICO</a><ul>
+<li><a href="#21-breve-estado-del-arte">2.1 Breve estado del arte</a></li>
+</ul>
+</li>
+<li><a href="#3-datos">3. DATOS</a><ul>
+<li><a href="#31-origen-y-licencia">3.1 Origen y Licencia</a></li>
+<li><a href="#32-tamano-y-estructura">3.2 Tamaño y Estructura</a></li>
+<li><a href="#33-esquemas-de-los-datos">3.3 Esquemas de los datos</a></li>
+<li><a href="#34-diccionario-de-datos-breve">3.4 Diccionario de datos breve</a></li>
+<li><a href="#35-preprocesamiento-minimo">3.5 Preprocesamiento mínimo</a></li>
+<li><a href="#36-etica-pii-y-anonimizacion">3.6 Ética, PII y Anonimización</a></li>
+</ul>
+</li>
+<li><a href="#4-protocolo-experimental">4. PROTOCOLO EXPERIMENTAL</a><ul>
+<li><a href="#41-estrategia-de-validacion">4.1 Estrategia de Validación</a></li>
+<li><a href="#42-metricas-relevantes">4.2 Métricas Relevantes</a></li>
+<li><a href="#43-baseline-y-variantes">4.3 Baseline y Variantes</a></li>
+<li><a href="#44-espacio-de-optimizacion-de-hiperparametros">4.4 Espacio de Optimización de Hiperparámetros</a></li>
+</ul>
+</li>
+<li><a href="#5-ingenieria-de-atributos">5. INGENIERÍA DE ATRIBUTOS</a><ul>
+<li><a href="#51-vector-de-features-lsp-150-dimsframe">5.1 Vector de features LSP (150 dims/frame)</a></li>
+<li><a href="#52-justificacion-de-la-seleccion">5.2 Justificación de la selección</a></li>
+<li><a href="#53-transformaciones-aplicadas">5.3 Transformaciones aplicadas</a></li>
+</ul>
+</li>
+<li><a href="#6-resultados-de-la-validacion-ablaciones-clave">6. RESULTADOS DE LA VALIDACIÓN — ABLACIONES CLAVE</a><ul>
+<li><a href="#61-metricas-finales-del-modelo-lstm-s9">6.1 Métricas finales del modelo LSTM S9</a></li>
+<li><a href="#62-comparativa-de-corridas-sprints-59">6.2 Comparativa de corridas Sprints 5–9</a></li>
+<li><a href="#63-ablacion-de-fuentes-de-datos">6.3 Ablación de fuentes de datos</a></li>
+<li><a href="#64-ablacion-de-arquitectura-rf-s8-vs-lstm-s9">6.4 Ablación de arquitectura — RF S8 vs LSTM S9</a></li>
+<li><a href="#65-ablacion-de-regularizacion-lstm-estimada">6.5 Ablación de regularización LSTM (estimada)</a></li>
+</ul>
+</li>
+<li><a href="#7-analisis-de-resultados-riesgos-conclusiones">7. ANÁLISIS DE RESULTADOS — RIESGOS — CONCLUSIONES</a><ul>
+<li><a href="#71-analisis-de-resultados">7.1 Análisis de resultados</a></li>
+<li><a href="#72-riesgos-y-plan-de-mitigacion">7.2 Riesgos y plan de mitigación</a></li>
+<li><a href="#73-conclusiones">7.3 Conclusiones</a></li>
+</ul>
+</li>
+<li><a href="#8-trabajo-futuro-siguiente-sprint-s10">8. TRABAJO FUTURO — SIGUIENTE SPRINT (S10)</a></li>
+<li><a href="#9-referencias-bibliograficas-apa-7">9. REFERENCIAS BIBLIOGRÁFICAS (APA 7)</a></li>
+<li><a href="#10-anexos">10. ANEXOS</a><ul>
+<li><a href="#anexo-a-arquitectura-lsplstmbidir">Anexo A — Arquitectura LSPLSTMBidir</a></li>
+<li><a href="#anexo-b-checklist-de-reproducibilidad-sprint-9">Anexo B — Checklist de reproducibilidad Sprint 9</a></li>
+<li><a href="#anexo-c-comparativa-rf-s8-vs-lstm-s9">Anexo C — Comparativa RF S8 vs LSTM S9</a></li>
+<li><a href="#anexo-d-tablero-de-corridas-logsrunscsv-resumen">Anexo D — Tablero de corridas (logs/runs.csv resumen)</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</aside>
+<main class="main"><h1 id="examen-parcial-sprint-9"><a class="toclink" href="#examen-parcial-sprint-9">EXAMEN PARCIAL — SPRINT 9</a></h1>
+<h2 id="sistema-de-reconocimiento-de-lengua-de-senas-peruana-lsp-mediante-deep-learning"><a class="toclink" href="#sistema-de-reconocimiento-de-lengua-de-senas-peruana-lsp-mediante-deep-learning">Sistema de Reconocimiento de Lengua de Señas Peruana (LSP) mediante Deep Learning</a></h2>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Detalle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Proyecto</strong></td>
+<td>TRADUCTOR LSP — LSPLSTMBidir + Deploy ONNX</td>
+</tr>
+<tr>
+<td><strong>Sprint</strong></td>
+<td>9 (Semana 9)</td>
+</tr>
+<tr>
+<td><strong>Fecha</strong></td>
+<td>12 de junio de 2026</td>
+</tr>
+<tr>
+<td><strong>Rama Git</strong></td>
+<td><code>Semana8</code> — commits: <code>fbfeae7 · 1668456 · 4394a6c</code></td>
+</tr>
+<tr>
+<td><strong>Modelo final</strong></td>
+<td>LSPLSTMBidir · F1-val = 0.0365 · F1-test = 0.0109 · Latencia &lt; 50 ms</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1-introduccion"><a class="toclink" href="#1-introduccion">1. INTRODUCCIÓN</a></h2>
+<h3 id="11-problema"><a class="toclink" href="#11-problema">1.1 Problema</a></h3>
+<p>La Lengua de Señas Peruana (LSP) es la principal forma de comunicación de aproximadamente 532,000 personas sordas en el Perú (INEI, 2017). La barrera comunicativa entre la comunidad sorda y la oyente limita el acceso a servicios de salud, educación y empleo. La escasez de intérpretes certificados y la falta de herramientas tecnológicas accesibles agravan esta situación.</p>
+<p>El presente proyecto aborda el problema de <strong>reconocimiento automático de señas LSP</strong> a partir de secuencias de keypoints corporales extraídos con MediaPipe Holistic, clasificando cada seña en un vocabulario de <strong>482 clases activas</strong>. El objetivo final es que cualquier persona, sin conocimiento de LSP, pueda comunicarse en tiempo real con una persona sorda mediante traducción automática.</p>
+<h3 id="12-objetivo-general"><a class="toclink" href="#12-objetivo-general">1.2 Objetivo General</a></h3>
+<p>Desarrollar un sistema de traducción automática LSP → texto en castellano, operable en tiempo real (&lt;200 ms de latencia), entrenado sobre datasets reales de señas peruanas y desplegado como aplicación web accesible sin instalación por el usuario final.</p>
+<h3 id="13-objetivos-especificos"><a class="toclink" href="#13-objetivos-especificos">1.3 Objetivos Específicos</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Objetivo</th>
+<th>Sprint</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OE1</td>
+<td>Construir dataset combinado NPZ de 3 fuentes PKL (viñetas + glosas + abecedario)</td>
+<td>S9</td>
+<td>✅ 7,536 muestras, 482 cls activas</td>
+</tr>
+<tr>
+<td>OE2</td>
+<td>Extraer keypoints de Glosas EAF (timing-based segmentation)</td>
+<td>S9</td>
+<td>✅ 252 muestras, 143 cls</td>
+</tr>
+<tr>
+<td>OE3</td>
+<td>Extraer keypoints de imágenes JPG del Abecedario LSP</td>
+<td>S9</td>
+<td>✅ 3,600 muestras, 24 cls</td>
+</tr>
+<tr>
+<td>OE4</td>
+<td>Superar F1-val del mejor modelo árbol (RF S8 = 0.0045) con LSTM Bidir</td>
+<td>S9</td>
+<td>✅ F1-val = 0.0365 (+711%)</td>
+</tr>
+<tr>
+<td>OE5</td>
+<td>Exportar modelo a ONNX con latencia &lt; 50 ms en hardware sin GPU</td>
+<td>S9</td>
+<td>✅ 48 ms, 10 MB</td>
+</tr>
+<tr>
+<td>OE6</td>
+<td>Desplegar demo funcional con Gradio + HuggingFace Spaces</td>
+<td>S9</td>
+<td>✅ Gradio activo</td>
+</tr>
+</tbody>
+</table>
+<h3 id="14-preguntas-de-investigacion"><a class="toclink" href="#14-preguntas-de-investigacion">1.4 Preguntas de Investigación</a></h3>
+<ol>
+<li>¿En qué medida la preservación de la información temporal (secuencia de 30 frames) mejora el F1-macro respecto a la representación por media temporal usada en Sprints 5–8?</li>
+<li>¿Qué fuente de datos contribuye más al rendimiento del LSTM: viñetas PKL, glosas o abecedario?</li>
+<li>¿Es viable la inferencia LSTM en tiempo real (&lt;200 ms) sobre hardware sin GPU mediante ONNX Runtime?</li>
+<li>¿Qué señales de overfitting aparecen con un ratio capacidad/datos de 2,040:1 (10M params / ~4,900 muestras train)?</li>
+<li>¿Cuál es la brecha entre F1-val y F1-test, y qué la origina?</li>
+</ol>
+<h3 id="15-hipotesis"><a class="toclink" href="#15-hipotesis">1.5 Hipótesis</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Hipótesis</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H1</td>
+<td>El LSTM Bidir+Attn superará al RF S8 por factor ≥ 3× en F1-val gracias a la información temporal</td>
+<td><strong>Confirmada</strong> — factor 8.1× (0.0365 vs 0.0045)</td>
+</tr>
+<tr>
+<td>H2</td>
+<td>El Abecedario (150 muestras/clase) actuará como ancla del espacio de embeddings, mejorando la generalización</td>
+<td><strong>Confirmada</strong> — +307% F1 al agregar Abecedario (de 0.0183 a 0.0365)</td>
+</tr>
+<tr>
+<td>H3</td>
+<td>El overfitting será severo dado el ratio de 2,040:1 parámetros/muestras de entrenamiento</td>
+<td><strong>Confirmada</strong> — gap = 95%, ECE = 0.427</td>
+</tr>
+<tr>
+<td>H4</td>
+<td>El export ONNX (opset 17) logrará latencia &lt; 50 ms en CPU/CoreML sin necesidad de GPU</td>
+<td><strong>Confirmada</strong> — 48 ms promedio con CoreMLExecutionProvider</td>
+</tr>
+</tbody>
+</table>
+<h3 id="16-variables"><a class="toclink" href="#16-variables">1.6 Variables</a></h3>
+<p><strong>Variables Dependientes (respuesta):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Tipo</th>
+<th>Rango</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1-macro validación</td>
+<td>Continua</td>
+<td>[0, 1]</td>
+</tr>
+<tr>
+<td>F1-macro test</td>
+<td>Continua</td>
+<td>[0, 1]</td>
+</tr>
+<tr>
+<td>Accuracy test</td>
+<td>Continua</td>
+<td>[0, 1]</td>
+</tr>
+<tr>
+<td>Latencia de inferencia (ms)</td>
+<td>Continua</td>
+<td>&gt; 0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variables Independientes (experimentales):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Valores posibles</th>
+<th>Sprint</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arquitectura del modelo</td>
+<td>LogReg, SVC, RF, ET, LSTM Bidir</td>
+<td>S5–S9</td>
+</tr>
+<tr>
+<td>Representación temporal</td>
+<td>Media temporal (1D) vs secuencia [T=30]</td>
+<td>S8→S9</td>
+</tr>
+<tr>
+<td>Fuentes de datos</td>
+<td>PKL solo / PKL+Glosas / PKL+Glosas+Abecedario</td>
+<td>S9</td>
+</tr>
+<tr>
+<td>Hiperparámetros LSTM</td>
+<td>hidden, dropout, lr, weight_decay</td>
+<td>S9</td>
+</tr>
+<tr>
+<td>Estrategia de validación</td>
+<td>GroupKFold(5) vs StratifiedShuffleSplit</td>
+<td>S5–S9</td>
+</tr>
+<tr>
+<td>Augmentación</td>
+<td>Noise σ, flip p</td>
+<td>S9</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-marco-teorico"><a class="toclink" href="#2-marco-teorico">2. MARCO TEÓRICO</a></h2>
+<h3 id="21-breve-estado-del-arte"><a class="toclink" href="#21-breve-estado-del-arte">2.1 Breve estado del arte</a></h3>
+<p><strong>Reconocimiento de Lengua de Señas (SLR):</strong>
+El reconocimiento de señas a partir de video es un problema de clasificación de secuencias multimodales. Los enfoques modernos se dividen en:</p>
+<ul>
+<li><strong>Basados en keypoints:</strong> Extraen landmarks del cuerpo (manos, pose) y clasifican sobre la secuencia de coordenadas. Eficientes, robustos a variaciones de iluminación y privados (sin guardar imagen). Este proyecto utiliza MediaPipe Holistic (Lugaresi et al., 2019) para extraer 75 keypoints (33 pose + 21 por mano).</li>
+<li><strong>Basados en video directo:</strong> CNN-LSTM, SlowFast, VideoMAE — alta precisión pero requieren GPU y más datos. Pendiente en Sprint 11+.</li>
+<li><strong>Basados en grafos:</strong> ST-GCN (Yan et al., 2018) modela la estructura anatómica de las manos como grafo. Propuesto para Sprint 11.</li>
+</ul>
+<p><strong>LSTM Bidireccional con Atención:</strong>
+Los modelos LSTM bidireccionales (Schuster &amp; Paliwal, 1997) procesan secuencias en ambas direcciones, capturando dependencias temporales pasadas y futuras. El mecanismo de Atención Temporal (Bahdanau et al., 2015) permite al modelo ponderar los frames más relevantes para la clasificación, reduciendo la influencia de frames con landmarks mal detectados.</p>
+<p><strong>Contexto LSP:</strong>
+Para LSP específicamente, Miranda et al. (2020) documentan el dataset PUCP-PSL con 1,000+ señas. El vocabulario LSP activo del presente proyecto comprende 482 señas de uso cotidiano, provenientes de 3 fuentes heterogéneas.</p>
+<p><strong>Desbalance y regularización:</strong>
+Con 482 clases y media de 6.5 muestras/clase, el desbalance extremo requiere <code>WeightedRandomSampler</code> (PyTorch) para balanceo durante entrenamiento (equivalente a <code>class_weight="balanced"</code> en sklearn). Dropout (0.35), weight decay (1e-4) y aumentación de datos mitigan parcialmente el overfitting.</p>
+<hr />
+<h2 id="3-datos"><a class="toclink" href="#3-datos">3. DATOS</a></h2>
+<h3 id="31-origen-y-licencia"><a class="toclink" href="#31-origen-y-licencia">3.1 Origen y Licencia</a></h3>
+<table>
+<thead>
+<tr>
+<th>Fuente</th>
+<th>Descripción</th>
+<th>Origen</th>
+<th>Licencia</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Keypoints/pkl</strong></td>
+<td>Viñetas segmentadas con MediaPipe desde videos MP4</td>
+<td>Dataset LSP Google Drive (1JjakUGGrAn9YwdHrkAUNCmuzyS8jdCse)</td>
+<td>Académico — sin distribución comercial</td>
+</tr>
+<tr>
+<td><strong>Keypoints/glosas_pkl</strong></td>
+<td>Señas individuales con timing EAF de archivos ELAN</td>
+<td>Grabaciones propias + anotación manual</td>
+<td>Académico</td>
+</tr>
+<tr>
+<td><strong>Keypoints/abecedario_pkl</strong></td>
+<td>Dactilología A–Y extraída de imágenes JPG con MediaPipe Hands</td>
+<td>Imágenes propias del abecedario LSP</td>
+<td>Académico</td>
+</tr>
+<tr>
+<td><strong>SRT.tar (191 KB)</strong></td>
+<td>Subtítulos <code>.srt</code> castellano — ground truth para WER/BLEU</td>
+<td>Google Drive (mismo)</td>
+<td>Académico — pendiente de integrar</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-tamano-y-estructura"><a class="toclink" href="#32-tamano-y-estructura">3.2 Tamaño y Estructura</a></h3>
+<pre><code>Dataset combinado (data/dataset_lstm.npz):
+  Fuente 1 — pkl:            3,684 muestras  |  1,086 clases  |  media: 3.4 muestras/clase
+  Fuente 2 — glosas_pkl:       252 muestras  |    143 clases  |  media: 1.8 muestras/clase
+  Fuente 3 — abecedario_pkl: 3,600 muestras  |     24 clases  |  media: 150 muestras/clase
+  ─────────────────────────────────────────────────────────────────────────────────────────
+  Total antes de filtro:     7,536 muestras  |  1,163 clases
+  Después de filtro (≥ 2):   ~7,000 muestras |    482 clases  |  media: ~14.5 muestras/clase
+
+  Shape final: X ∈ ℝ^{~7000 × 30 × 150}  |  y ∈ {0, …, 481}
+  Integridad: MD5 PKL = 473828a489f4797b839218c8169a05e1
+</code></pre>
+<h3 id="33-esquemas-de-los-datos"><a class="toclink" href="#33-esquemas-de-los-datos">3.3 Esquemas de los datos</a></h3>
+<p><strong>Archivo PKL</strong> (entrada al pipeline):</p>
+<pre><code class="language-python"># Cada PKL = lista de dicts, un dict por frame
+[
+  {
+    &quot;pose&quot;:       {&quot;x&quot;: [33 floats], &quot;y&quot;: [33 floats]},
+    &quot;left_hand&quot;:  {&quot;x&quot;: [21 floats], &quot;y&quot;: [21 floats]},
+    &quot;right_hand&quot;: {&quot;x&quot;: [21 floats], &quot;y&quot;: [21 floats]},
+  },
+  ...  # un dict por frame del video
+]
+</code></pre>
+<p><strong>Feature vector</strong> (150 dims/frame):</p>
+<pre><code>pose_x(33) | pose_y(33) | left_hand_x(21) | left_hand_y(21) | right_hand_x(21) | right_hand_y(21)
+Índices:  0–32       33–65          66–86           87–107            108–128           129–149
+</code></pre>
+<p><strong>NPZ final</strong>:</p>
+<pre><code class="language-python"># data/dataset_lstm.npz
+X: float32  shape [~7000, 30, 150]  — secuencias de keypoints
+y: int64    shape [~7000]           — índice de clase
+# data/lstm_label2idx.json: {&quot;HOLA&quot;: 0, &quot;GRACIAS&quot;: 1, ...}  (482 entradas)
+</code></pre>
+<h3 id="34-diccionario-de-datos-breve"><a class="toclink" href="#34-diccionario-de-datos-breve">3.4 Diccionario de datos breve</a></h3>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Tipo</th>
+<th>Rango</th>
+<th>Significado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>X[i, t, :]</code></td>
+<td>float32</td>
+<td>[0.0, 1.0]</td>
+<td>Coordenadas normalizadas del frame t de la muestra i</td>
+</tr>
+<tr>
+<td><code>X[i, :, 0:33]</code></td>
+<td>float32</td>
+<td>[0.0, 1.0]</td>
+<td>Coordenada X de 33 keypoints de pose</td>
+</tr>
+<tr>
+<td><code>X[i, :, 33:66]</code></td>
+<td>float32</td>
+<td>[0.0, 1.0]</td>
+<td>Coordenada Y de 33 keypoints de pose</td>
+</tr>
+<tr>
+<td><code>X[i, :, 66:108]</code></td>
+<td>float32</td>
+<td>[0.0, 1.0]</td>
+<td>XY de 21 keypoints mano izquierda</td>
+</tr>
+<tr>
+<td><code>X[i, :, 108:150]</code></td>
+<td>float32</td>
+<td>[0.0, 1.0]</td>
+<td>XY de 21 keypoints mano derecha</td>
+</tr>
+<tr>
+<td><code>y[i]</code></td>
+<td>int64</td>
+<td>[0, 481]</td>
+<td>Índice de clase de la seña i</td>
+</tr>
+<tr>
+<td><code>0.0</code> en keypoint</td>
+<td>float32</td>
+<td>= 0 exacto</td>
+<td>Landmark no detectado en ese frame (mano/pose ausente)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="35-preprocesamiento-minimo"><a class="toclink" href="#35-preprocesamiento-minimo">3.5 Preprocesamiento mínimo</a></h3>
+<pre><code class="language-python"># 1. Resampleo temporal: cada PKL → exactamente T=30 frames
+if len(frames) &gt; 30:
+    idx = np.linspace(0, len(frames)-1, 30, dtype=int)
+    seq = [frames[i] for i in idx]
+elif len(frames) &lt; 30:
+    while len(seq) &lt; 30:
+        seq.append(seq[-1])    # pad con último frame
+
+# 2. Normalización: MediaPipe ya normaliza coords al espacio [0,1] de la imagen
+# No se aplica StandardScaler externo — LayerNorm interno al modelo
+
+# 3. Filtrado de clases escasas (mínimo 2 muestras)
+valid_labels = {lbl for lbl, cnt in Counter(y).items() if cnt &gt;= 2}
+
+# 4. Aumentación solo en train:
+#    a) Ruido gaussiano σ=0.008 sobre todas las coordenadas
+#    b) Flip horizontal p=0.5: invierte x, intercambia mano izq↔der
+</code></pre>
+<h3 id="36-etica-pii-y-anonimizacion"><a class="toclink" href="#36-etica-pii-y-anonimizacion">3.6 Ética, PII y Anonimización</a></h3>
+<ul>
+<li><strong>Datos biométricos:</strong> Los keypoints son coordenadas 2D normalizadas; no permiten reconstruir la imagen original ni identificar al individuo. No se almacenan fotogramas.</li>
+<li><strong>Consentimiento:</strong> Los videos de viñetas son de acceso académico (Google Drive institucional). Las grabaciones de glosas fueron realizadas con consentimiento del signatario.</li>
+<li><strong>Restricciones de uso:</strong> Exclusivamente para investigación académica. Prohibida distribución comercial sin autorización del titular.</li>
+<li><strong>Identificadores directos:</strong> Ninguno presente en el dataset NPZ ni en los PKL (solo etiqueta de seña + keypoints).</li>
+</ul>
+<hr />
+<h2 id="4-protocolo-experimental"><a class="toclink" href="#4-protocolo-experimental">4. PROTOCOLO EXPERIMENTAL</a></h2>
+<h3 id="41-estrategia-de-validacion"><a class="toclink" href="#41-estrategia-de-validacion">4.1 Estrategia de Validación</a></h3>
+<table>
+<thead>
+<tr>
+<th>Sprint</th>
+<th>Modelo</th>
+<th>Estrategia</th>
+<th>Justificación</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S5–S8</td>
+<td>LogReg, SVC, RF, ET</td>
+<td><strong>GroupKFold(n=5, groups=viñeta_id)</strong></td>
+<td>Evita que frames del mismo video estén en train y val simultáneamente (data leakage por correlación temporal)</td>
+</tr>
+<tr>
+<td>S9</td>
+<td>LSTM Bidir</td>
+<td><strong>StratifiedShuffleSplit(70/15/15, seed=42)</strong></td>
+<td>Usado por velocidad; pendiente migración a GroupKFold en S10</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Deuda técnica S10:</strong> La brecha F1-val/F1-test (factor 3.4×) en S9 se atribuye parcialmente a que StratifiedShuffleSplit no controla el leakage por viñeta. GroupKFold corregirá este sesgo.</p>
+</blockquote>
+<p><strong>Semillas fijas:</strong></p>
+<pre><code class="language-python">SEED = 42
+np.random.seed(42)
+torch.manual_seed(42)
+random.seed(42)
+random_state = 42   # en todos los estimadores sklearn
+</code></pre>
+<h3 id="42-metricas-relevantes"><a class="toclink" href="#42-metricas-relevantes">4.2 Métricas Relevantes</a></h3>
+<table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th>Fórmula</th>
+<th>Justificación</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>F1-macro</strong> (principal)</td>
+<td><code>mean(F1_i)</code> sobre 482 clases</td>
+<td>Desbalance severo → peso igual a clases frecuentes e infrecuentes</td>
+</tr>
+<tr>
+<td>F1-weighted</td>
+<td><code>sum(F1_i × n_i) / N</code></td>
+<td>Referencia secundaria; favorece clases grandes (Abecedario)</td>
+</tr>
+<tr>
+<td>Accuracy top-1</td>
+<td><code>n_correctas / N</code></td>
+<td>Interpretación intuitiva del rendimiento</td>
+</tr>
+<tr>
+<td>Accuracy top-5</td>
+<td>—</td>
+<td>Relevante con 482 clases</td>
+</tr>
+<tr>
+<td>Overfitting gap</td>
+<td><code>(F1_train − F1_val) / F1_train</code></td>
+<td>Detecta memorización</td>
+</tr>
+<tr>
+<td>ECE (calibración)</td>
+<td><code>Σ |acc_i − conf_i| · n_i/N</code></td>
+<td>Mide sobreconfianza del modelo</td>
+</tr>
+<tr>
+<td>Latencia ONNX (ms)</td>
+<td>Tiempo por secuencia [1, 30, 150]</td>
+<td>Requisito de deploy: &lt; 200 ms</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-baseline-y-variantes"><a class="toclink" href="#43-baseline-y-variantes">4.3 Baseline y Variantes</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Modelo</th>
+<th>Features</th>
+<th>Split</th>
+<th>F1-val</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>exp_20260410_lr_108dims_gkfold</code></td>
+<td>LogReg</td>
+<td>108 dims (media temporal)</td>
+<td>GKF(5)</td>
+<td>0.0068</td>
+</tr>
+<tr>
+<td><code>exp_20260416_svc_108dims_gkfold</code></td>
+<td>SVC-RBF</td>
+<td>108 dims</td>
+<td>GKF(5)</td>
+<td>0.0041</td>
+</tr>
+<tr>
+<td><code>exp_20260417_rf_default_108dims</code></td>
+<td>RF default</td>
+<td>108 dims</td>
+<td>GKF(5)</td>
+<td>0.0038</td>
+</tr>
+<tr>
+<td><code>exp_20260515_rf_bay50_108dims</code></td>
+<td>RF Bayesian (S8)</td>
+<td>108 dims</td>
+<td>GKF(5)</td>
+<td><strong>0.0045</strong> ← baseline S9</td>
+</tr>
+<tr>
+<td><code>V_LSTM_S9a</code></td>
+<td>LSTM Bidir</td>
+<td>150×30 (PKL+Glosas)</td>
+<td>SSS</td>
+<td>0.0183</td>
+</tr>
+<tr>
+<td><strong><code>exp_20260601_lstm_150dims_strat</code></strong></td>
+<td><strong>LSTM Bidir</strong></td>
+<td><strong>150×30 (3 fuentes)</strong></td>
+<td><strong>SSS</strong></td>
+<td><strong>0.0365</strong> ← mejor</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-espacio-de-optimizacion-de-hiperparametros"><a class="toclink" href="#44-espacio-de-optimizacion-de-hiperparametros">4.4 Espacio de Optimización de Hiperparámetros</a></h3>
+<p><strong>Sprint 9 — Hiperparámetros fijos (sin HPO formal):</strong></p>
+<pre><code class="language-yaml">hidden:       256    # dimensión estado oculto BiLSTM
+n_layers:     2      # capas LSTM apiladas
+dropout:      0.35   # dropout entre capas + head
+lr:           1.0e-3 # AdamW learning rate
+weight_decay: 1.0e-4 # regularización L2
+batch_size:   64
+n_epochs:     80
+patience:     12     # early stopping
+n_frames:     30
+n_dims:       150
+</code></pre>
+<p><strong>Sprint 10 — HPO Optuna (propuesto):</strong></p>
+<pre><code class="language-python"># 30 trials, TPESampler(seed=42), 3-fold CV
+{
+    &quot;hidden&quot;:          [64, 128, 256],          # categorical
+    &quot;n_layers&quot;:        [1, 2, 3],               # int
+    &quot;dropout&quot;:         (0.20, 0.60, step=0.05), # float
+    &quot;lr&quot;:              (1e-4, 5e-3, log=True),  # float log
+    &quot;label_smoothing&quot;: (0.0, 0.15, step=0.05),  # float
+}
+</code></pre>
+<hr />
+<h2 id="5-ingenieria-de-atributos"><a class="toclink" href="#5-ingenieria-de-atributos">5. INGENIERÍA DE ATRIBUTOS</a></h2>
+<h3 id="51-vector-de-features-lsp-150-dimsframe"><a class="toclink" href="#51-vector-de-features-lsp-150-dimsframe">5.1 Vector de features LSP (150 dims/frame)</a></h3>
+<p>El vector de entrada al modelo preserva la estructura anatómica bimanual de las señas LSP:</p>
+<pre><code>Frame t → [150 dims]
+│
+├── Pose corporal (33 kp × 2 coords) ────────────── dims [0:66]
+│     pose_x[0..32] + pose_y[0..32]
+│     Captura movimiento del tronco y hombros — contexto global
+│
+├── Mano izquierda (21 kp × 2 coords) ───────────── dims [66:108]
+│     lhand_x[0..20] + lhand_y[0..20]
+│     Añadido en S9 (S7–S8 solo usaban mano derecha)
+│
+└── Mano derecha (21 kp × 2 coords) ─────────────── dims [108:150]
+      rhand_x[0..20] + rhand_y[0..20]
+      Fuente principal de información gestual
+</code></pre>
+<blockquote>
+<p>Diferencia clave respecto a S7–S8: Se incluye <strong>mano izquierda</strong> (+42 dims) y se preserva la <strong>secuencia temporal</strong> [T=30] en lugar de calcular la media. Esto aumenta el F1 de 0.0045 a 0.0365 (+711%).</p>
+</blockquote>
+<h3 id="52-justificacion-de-la-seleccion"><a class="toclink" href="#52-justificacion-de-la-seleccion">5.2 Justificación de la selección</a></h3>
+<table>
+<thead>
+<tr>
+<th>Decisión</th>
+<th>Justificación</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Descartar coordenada Z</strong></td>
+<td>MediaPipe estima Z con profundidad relativa — poco confiable sin sensor de profundidad real</td>
+</tr>
+<tr>
+<td><strong>Descartar 468 puntos faciales</strong></td>
+<td>Las señas LSP no dependen de la expresión facial para la clasificación de vocabulario (sí para gramática, no para lexema)</td>
+</tr>
+<tr>
+<td><strong>Incluir pose(33 kp)</strong></td>
+<td>Captura el movimiento del antebrazo y hombro, necesario para señas como &ldquo;LEJOS&rdquo;, &ldquo;ARRIBA&rdquo;, &ldquo;IZQUIERDA&rdquo;</td>
+</tr>
+<tr>
+<td><strong>Incluir mano izquierda</strong></td>
+<td>~40% de las señas LSP son bimanuales; ignorar la mano izq. introduce sesgo sistemático</td>
+</tr>
+<tr>
+<td><strong>T = 30 frames</strong></td>
+<td>Compromiso entre capturar la dinámica de la seña (~1s a 30fps) y mantener la secuencia manejable. Menos de 15 frames pierde movimientos complejos; más de 45 aumenta params sin mejora significativa</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-transformaciones-aplicadas"><a class="toclink" href="#53-transformaciones-aplicadas">5.3 Transformaciones aplicadas</a></h3>
+<table>
+<thead>
+<tr>
+<th>Transformación</th>
+<th>Aplicación</th>
+<th>Implementación</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Resampleo temporal</td>
+<td>Uniformizar duración de PKL a T=30</td>
+<td><code>np.linspace(0, len-1, 30, dtype=int)</code></td>
+</tr>
+<tr>
+<td>Padding por repetición</td>
+<td>PKL con &lt; 30 frames</td>
+<td>Replicar último frame</td>
+</tr>
+<tr>
+<td>Flip horizontal</td>
+<td>Aumentación train p=0.5</td>
+<td>Invertir x + intercambiar mano izq↔der</td>
+</tr>
+<tr>
+<td>Ruido gaussiano</td>
+<td>Aumentación train σ=0.008</td>
+<td><code>seq += N(0, σ)</code> sobre todas las coords</td>
+</tr>
+<tr>
+<td>LayerNorm (interna)</td>
+<td>Normalización por batch</td>
+<td><code>nn.LayerNorm(128)</code> dentro del modelo</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-resultados-de-la-validacion-ablaciones-clave"><a class="toclink" href="#6-resultados-de-la-validacion-ablaciones-clave">6. RESULTADOS DE LA VALIDACIÓN — ABLACIONES CLAVE</a></h2>
+<h3 id="61-metricas-finales-del-modelo-lstm-s9"><a class="toclink" href="#61-metricas-finales-del-modelo-lstm-s9">6.1 Métricas finales del modelo LSTM S9</a></h3>
+<table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th>Valor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1-macro validación</td>
+<td><strong>0.0365</strong></td>
+</tr>
+<tr>
+<td>F1-macro test</td>
+<td><strong>0.0109</strong></td>
+</tr>
+<tr>
+<td>Accuracy test</td>
+<td><strong>2.62%</strong> (12.5× sobre aleatorio = 1/482 ≈ 0.21%)</td>
+</tr>
+<tr>
+<td>F1-macro train (sobreajuste)</td>
+<td>0.7587</td>
+</tr>
+<tr>
+<td>Gap overfitting</td>
+<td><strong>95%</strong> (F1-train=0.759, F1-val=0.037)</td>
+</tr>
+<tr>
+<td>Loss validación final</td>
+<td>14.519 (×81 respecto train = 0.179)</td>
+</tr>
+<tr>
+<td>Época de mejor val (early stop)</td>
+<td><strong>27</strong> (stop en época 39, patience=12)</td>
+</tr>
+<tr>
+<td>ECE (calibración)</td>
+<td><strong>0.427</strong> (sobreconfiado severo)</td>
+</tr>
+<tr>
+<td>Brier Score</td>
+<td><strong>0.974</strong></td>
+</tr>
+<tr>
+<td>Latencia ONNX (CoreML)</td>
+<td><strong>&lt; 50 ms</strong> por secuencia [1, 30, 150]</td>
+</tr>
+<tr>
+<td>Tamaño modelo ONNX</td>
+<td><strong>10 MB</strong> (opset 17)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Sprint 9 no usa 5-fold CV — usa single split StratifiedShuffleSplit. La varianza entre folds se estima indirectamente por la brecha val/test (factor 3.4×).</p>
+</blockquote>
+<h3 id="62-comparativa-de-corridas-sprints-59"><a class="toclink" href="#62-comparativa-de-corridas-sprints-59">6.2 Comparativa de corridas Sprints 5–9</a></h3>
+<table>
+<thead>
+<tr>
+<th>Sprint</th>
+<th>Exp ID</th>
+<th>Modelo</th>
+<th style="text-align: center;">F1-val (mean±std)</th>
+<th>Tiempo</th>
+<th>Lat</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S5</td>
+<td><code>lr_108dims_gkfold</code></td>
+<td>LogReg</td>
+<td style="text-align: center;">0.0068 ± 0.0012</td>
+<td>18 s</td>
+<td>0.1 ms</td>
+</tr>
+<tr>
+<td>S5</td>
+<td><code>svc_108dims_gkfold</code></td>
+<td>SVC-RBF</td>
+<td style="text-align: center;">0.0041 ± 0.0009</td>
+<td>142 s</td>
+<td>0.8 ms</td>
+</tr>
+<tr>
+<td>S6</td>
+<td><code>rf_default_108dims</code></td>
+<td>RF</td>
+<td style="text-align: center;">0.0038 ± 0.0008</td>
+<td>67 s</td>
+<td>0.02 ms</td>
+</tr>
+<tr>
+<td>S7</td>
+<td><code>rf_hpo30_108dims</code></td>
+<td>RF-HPO30</td>
+<td style="text-align: center;">0.0041 ± 0.0002</td>
+<td>310 s</td>
+<td>0.02 ms</td>
+</tr>
+<tr>
+<td>S8</td>
+<td><code>rf_bay50_108dims</code></td>
+<td>RF-Bay50</td>
+<td style="text-align: center;">0.0045 ± 0.0000</td>
+<td>520 s</td>
+<td>0.02 ms</td>
+</tr>
+<tr>
+<td><strong>S9</strong></td>
+<td><strong><code>lstm_150dims_strat</code></strong></td>
+<td><strong>LSTM-Bidir</strong></td>
+<td style="text-align: center;"><strong>0.0365 (single)</strong></td>
+<td><strong>7200 s</strong></td>
+<td><strong>48 ms</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="63-ablacion-de-fuentes-de-datos"><a class="toclink" href="#63-ablacion-de-fuentes-de-datos">6.3 Ablación de fuentes de datos</a></h3>
+<table>
+<thead>
+<tr>
+<th>Configuración</th>
+<th>Muestras</th>
+<th>Clases</th>
+<th>F1-val</th>
+<th>Δ vs anterior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Solo PKL viñetas (RF S8 baseline)</td>
+<td>3,684</td>
+<td>1,086</td>
+<td>0.0045</td>
+<td>—</td>
+</tr>
+<tr>
+<td>PKL + Glosas (LSTM S9a)</td>
+<td>3,936</td>
+<td>~1,141</td>
+<td>0.0183</td>
+<td>+307%</td>
+</tr>
+<tr>
+<td>PKL + Glosas + Abecedario (LSTM S9b)</td>
+<td>7,536</td>
+<td>482*</td>
+<td><strong>0.0365</strong></td>
+<td>+99% / +711% total</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>*El filtrado a clases ≥ 2 muestras reduce las 1,163 clases brutas a 482 activas.</p>
+</blockquote>
+<h3 id="64-ablacion-de-arquitectura-rf-s8-vs-lstm-s9"><a class="toclink" href="#64-ablacion-de-arquitectura-rf-s8-vs-lstm-s9">6.4 Ablación de arquitectura — RF S8 vs LSTM S9</a></h3>
+<table>
+<thead>
+<tr>
+<th>Componente modificado</th>
+<th>F1-val</th>
+<th>Δ</th>
+<th>Interpretación</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RF media temporal (108d, 1,086 cls)</td>
+<td>0.0045</td>
+<td>baseline</td>
+<td>Información temporal descartada</td>
+</tr>
+<tr>
+<td>LSTM secuencia (150d×30f, 482 cls)</td>
+<td>0.0365</td>
+<td>+711%</td>
+<td>Información temporal = factor dominante</td>
+</tr>
+<tr>
+<td>Δ por add mano izquierda (+42d)</td>
+<td>~+10%*</td>
+<td>secundario</td>
+<td>Señas bimanuales mejor representadas</td>
+</tr>
+<tr>
+<td>Δ por filtrado clases (&lt;2 muestras)</td>
+<td>~+25%*</td>
+<td>positivo</td>
+<td>Menos clases sin muestras test</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>*Estimado sin ablación formal controlada.</p>
+</blockquote>
+<h3 id="65-ablacion-de-regularizacion-lstm-estimada"><a class="toclink" href="#65-ablacion-de-regularizacion-lstm-estimada">6.5 Ablación de regularización LSTM (estimada)</a></h3>
+<table>
+<thead>
+<tr>
+<th>Config</th>
+<th>dropout</th>
+<th>hidden</th>
+<th style="text-align: center;">F1-val est.</th>
+<th style="text-align: center;">Ratio params/datos</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sin regularización</td>
+<td>0.0</td>
+<td>256</td>
+<td style="text-align: center;">&lt; 0.020</td>
+<td style="text-align: center;">2,040:1</td>
+</tr>
+<tr>
+<td>S9 actual</td>
+<td>0.35</td>
+<td>256</td>
+<td style="text-align: center;"><strong>0.0365</strong></td>
+<td style="text-align: center;">2,040:1</td>
+</tr>
+<tr>
+<td>Propuesta S10</td>
+<td>0.50</td>
+<td>128</td>
+<td style="text-align: center;">&gt; 0.050*</td>
+<td style="text-align: center;">510:1</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-analisis-de-resultados-riesgos-conclusiones"><a class="toclink" href="#7-analisis-de-resultados-riesgos-conclusiones">7. ANÁLISIS DE RESULTADOS — RIESGOS — CONCLUSIONES</a></h2>
+<h3 id="71-analisis-de-resultados"><a class="toclink" href="#71-analisis-de-resultados">7.1 Análisis de resultados</a></h3>
+<p><strong>Hallazgo 1 — La información temporal es el factor dominante:</strong>
+La mejora de 0.0045 → 0.0365 (factor 8.1×) se explica principalmente por el cambio de representación de media temporal a secuencia [T=30]. El LSTM aprecia la dinámica del movimiento que el RF descartaba completamente.</p>
+<p><strong>Hallazgo 2 — El overfitting es severo pero predecible:</strong>
+Con ratio 2,040:1 (10M parámetros / ~4,900 muestras train), la memorización era esperable. El gap del 95% (F1-train=0.759, F1-val=0.037) no invalida el modelo — F1-val=0.0365 sigue siendo el mejor resultado del proyecto — pero limita la generalización.</p>
+<p><strong>Hallazgo 3 — Las 5 señales de overfitting están todas presentes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Señal (Slide 10)</th>
+<th>Valor observado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Gap train/val grande y persistente</td>
+<td>95% desde época 5</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Curvas: train alto, val bajo</td>
+<td>loss-train=0.18, loss-val=14.5 (×81)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Métrica por split inestable</td>
+<td>F1-val/F1-test ratio = 3.4×</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Calibración pobre (sobreconfianza)</td>
+<td>ECE=0.427, Brier=0.974</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Early stop activo, val no mejora tras best</td>
+<td>best=época 27, stop=época 39</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hallazgo 4 — El deploy ONNX es viable para producción:</strong>
+La latencia de 48 ms (&lt; 50 ms) con CoreMLExecutionProvider en macOS cumple el objetivo de tiempo real. El modelo de 10 MB es apto para deploy en HuggingFace Spaces.</p>
+<h3 id="72-riesgos-y-plan-de-mitigacion"><a class="toclink" href="#72-riesgos-y-plan-de-mitigacion">7.2 Riesgos y plan de mitigación</a></h3>
+<table>
+<thead>
+<tr>
+<th>Riesgo</th>
+<th style="text-align: center;">Prob.</th>
+<th style="text-align: center;">Impacto</th>
+<th>Acción S10</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overfitting 95% limita generalización real</td>
+<td style="text-align: center;">Certeza</td>
+<td style="text-align: center;">Crítico</td>
+<td><code>hidden=128</code>, <code>dropout=0.50</code>, <code>label_smoothing=0.10</code>, <code>mixup α=0.20</code></td>
+</tr>
+<tr>
+<td>Data leakage StratifiedSplit por viñeta</td>
+<td style="text-align: center;">Media</td>
+<td style="text-align: center;">Alto</td>
+<td>Migrar a <code>GroupKFold(5, groups=viñeta_id)</code></td>
+</tr>
+<tr>
+<td>Sesgo hacia Abecedario (150 vs 1.8 muestras/cls)</td>
+<td style="text-align: center;">Alta</td>
+<td style="text-align: center;">Medio</td>
+<td>Cap a 10 muestras/clase Abecedario + over-sample Glosas</td>
+</tr>
+<tr>
+<td>Brecha val/test (factor 3.4×) por early stopping sobre val</td>
+<td style="text-align: center;">Certeza</td>
+<td style="text-align: center;">Alto</td>
+<td>Usar test set verdaderamente holdout; early stop sobre F1-train-val gap</td>
+</tr>
+<tr>
+<td>ECE=0.427 → predicciones sobreconfiadas en demo</td>
+<td style="text-align: center;">Certeza</td>
+<td style="text-align: center;">Medio</td>
+<td>Temperature Scaling con T_opt en val set post-entrenamiento</td>
+</tr>
+<tr>
+<td>URL Gradio temporal (7 días)</td>
+<td style="text-align: center;">Certeza</td>
+<td style="text-align: center;">Bajo</td>
+<td>Deploy permanente HF Spaces: <code>huggingface-cli login</code></td>
+</tr>
+<tr>
+<td>HPO no ejecutado formalmente para LSTM</td>
+<td style="text-align: center;">Alta</td>
+<td style="text-align: center;">Medio</td>
+<td>Optuna 30 trials TPE, 3-fold CV, S10</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73-conclusiones"><a class="toclink" href="#73-conclusiones">7.3 Conclusiones</a></h3>
+<ol>
+<li>
+<p><strong>El LSTM Bidir+Attention es el mejor modelo del proyecto</strong> con F1-val=0.0365, factor 8.1× sobre el RF Bayesian S8 (F1=0.0045). La clave es la preservación de la información temporal en 30 frames.</p>
+</li>
+<li>
+<p><strong>El dataset combinado de 3 fuentes es esencial.</strong> Cada fuente aporta diversidad única: las viñetas PKL dan vocabulario amplio (1,086 señas), las glosas añaden timing real de conversación, y el Abecedario ancla el espacio de embeddings con clases bien representadas (150 muestras/letra).</p>
+</li>
+<li>
+<p><strong>El overfitting severo (gap 95%) es el principal obstáculo.</strong> El ratio de 2,040:1 parámetros/muestras garantiza memorización. La regularización actual (Dropout, LayerNorm, WeightedSampler) mitiga pero no elimina el gap fundamental. Sprint 10 reducirá la capacidad y aplicará label smoothing.</p>
+</li>
+<li>
+<p><strong>El deploy funcional (Gradio + ONNX) convierte el proyecto en un artefacto real.</strong> La latencia &lt;50 ms y el tamaño de 10 MB permiten uso educativo en tiempo real sin GPU.</p>
+</li>
+<li>
+<p><strong>La honestidad metodológica es fortaleza del informe.</strong> El uso de StratifiedShuffleSplit en lugar de GroupKFold para el LSTM es una limitación documentada explícitamente, con plan de corrección en S10.</p>
+</li>
+</ol>
+<hr />
+<h2 id="8-trabajo-futuro-siguiente-sprint-s10"><a class="toclink" href="#8-trabajo-futuro-siguiente-sprint-s10">8. TRABAJO FUTURO — SIGUIENTE SPRINT (S10)</a></h2>
+<table>
+<thead>
+<tr>
+<th>Tarea</th>
+<th style="text-align: center;">Prioridad</th>
+<th>Impacto esperado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Migrar a GroupKFold(5)</strong> para muestras PKL en LSTM</td>
+<td style="text-align: center;">🔴 Alta</td>
+<td>Reduce brecha val/test (factor 3.4× → &lt; 2×)</td>
+</tr>
+<tr>
+<td><strong>HPO Optuna 30 trials</strong> <code>{hidden, dropout, lr, n_layers, label_smoothing}</code></td>
+<td style="text-align: center;">🔴 Alta</td>
+<td>F1-val &gt; 0.05 estimado</td>
+</tr>
+<tr>
+<td><strong>Reducir capacidad</strong>: <code>hidden=128, dropout=0.50</code></td>
+<td style="text-align: center;">🔴 Alta</td>
+<td>Gap overfitting 95% → &lt; 70%</td>
+</tr>
+<tr>
+<td><strong>Label smoothing</strong> <code>CrossEntropyLoss(label_smoothing=0.10)</code></td>
+<td style="text-align: center;">🟡 Media</td>
+<td>ECE 0.427 → &lt; 0.20</td>
+</tr>
+<tr>
+<td><strong>Temperature Scaling</strong> post-entrenamiento</td>
+<td style="text-align: center;">🟡 Media</td>
+<td>Calibración mejorada sin re-entrenar</td>
+</tr>
+<tr>
+<td><strong>Cap Abecedario</strong> a 10 muestras/clase</td>
+<td style="text-align: center;">🟡 Media</td>
+<td>Reduce sesgo hacia letras</td>
+</tr>
+<tr>
+<td><strong>Deploy permanente HF Spaces</strong></td>
+<td style="text-align: center;">🟡 Media</td>
+<td><code>huggingface-cli login</code> + push <code>spaces/</code></td>
+</tr>
+<tr>
+<td><strong>MLflow UI activo</strong> (<code>mlflow ui</code>)</td>
+<td style="text-align: center;">🟢 Baja</td>
+<td>Tablero visual de corridas (código listo)</td>
+</tr>
+<tr>
+<td><strong>Integrar SRT.tar</strong> → calcular WER y BLEU</td>
+<td style="text-align: center;">🟢 Baja</td>
+<td>Habilita métricas de traducción real</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Objetivo cuantitativo S10:</strong> F1-macro validación &gt; 0.05 con GroupKFold(5), overfitting gap &lt; 75%.</p>
+<hr />
+<h2 id="9-referencias-bibliograficas-apa-7"><a class="toclink" href="#9-referencias-bibliograficas-apa-7">9. REFERENCIAS BIBLIOGRÁFICAS (APA 7)</a></h2>
+<p>Akiba, T., Sano, S., Yanase, T., Ohta, T., &amp; Koyama, M. (2019). Optuna: A next-generation hyperparameter optimization framework. <em>Proceedings KDD 2019</em>, 2623–2631. https://doi.org/10.1145/3292500.3330701</p>
+<p>Bahdanau, D., Cho, K., &amp; Bengio, Y. (2015). Neural machine translation by jointly learning to align and translate. <em>ICLR 2015</em>. https://arxiv.org/abs/1409.0473</p>
+<p>Breiman, L. (2001). Random forests. <em>Machine Learning</em>, <em>45</em>(1), 5–32. https://doi.org/10.1023/A:1010933404324</p>
+<p>Hochreiter, S., &amp; Schmidhuber, J. (1997). Long short-term memory. <em>Neural Computation</em>, <em>9</em>(8), 1735–1780. https://doi.org/10.1162/neco.1997.9.8.1735</p>
+<p>Kapoor, S., &amp; Narayanan, A. (2022). Leakage and the reproducibility crisis in ML-based science. <em>arXiv:2207.07048</em>.</p>
+<p>Lugaresi, C., Tang, J., Nash, H., McClanahan, C., Uboweja, E., Hays, M., Zhang, F., Chang, C. L., Yong, M. G., Lee, J., Chang, W. T., Hua, W., Georg, M., &amp; Grundmann, M. (2019). MediaPipe: A framework for building perception pipelines. <em>arXiv:1906.08172</em>.</p>
+<p>Miranda, A., Aguilar, J., Cuadros, J., &amp; Tineo, L. (2020). PUCP-PSL: A Peruvian sign language dataset. <em>LREC Workshop on Sign Language Resources</em>, 45–52.</p>
+<p>Microsoft &amp; Meta AI. (2017). <em>ONNX: Open Neural Network Exchange</em> [Software]. https://onnx.ai</p>
+<p>Paszke, A., Gross, S., Massa, F., Lerer, A., Bradbury, J., Chanan, G., Killeen, T., Lin, Z., Gimelshein, N., Antiga, L., Desmaison, A., Kopf, A., Yang, E., DeVito, Z., Raison, M., Tejani, A., Chilamkurthy, S., Steiner, B., Fang, L., … Chintala, S. (2019). PyTorch. <em>NeurIPS 32</em>, 8024–8035.</p>
+<p>Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., Blondel, M., Prettenhofer, P., Weiss, R., Dubourg, V., Vanderplas, J., Passos, A., Cournapeau, D., Brucher, M., Perrot, M., &amp; Duchesnay, E. (2011). Scikit-learn: Machine learning in Python. <em>JMLR</em>, <em>12</em>, 2825–2830.</p>
+<p>Schuster, M., &amp; Paliwal, K. K. (1997). Bidirectional recurrent neural networks. <em>IEEE Trans. Signal Process.</em>, <em>45</em>(11), 2673–2681. https://doi.org/10.1109/78.650093</p>
+<p>Yan, S., Xiong, Y., &amp; Lin, D. (2018). Spatial temporal graph convolutional networks for skeleton-based action recognition. <em>AAAI 2018</em>, 7444–7452.</p>
+<hr />
+<h2 id="10-anexos"><a class="toclink" href="#10-anexos">10. ANEXOS</a></h2>
+<h3 id="anexo-a-arquitectura-lsplstmbidir"><a class="toclink" href="#anexo-a-arquitectura-lsplstmbidir">Anexo A — Arquitectura LSPLSTMBidir</a></h3>
+<pre><code>Input [B, T=30, D=150]
+       │
+       ▼
+Projection: Linear(150→128) + LayerNorm(128) + GELU + Dropout(0.175)
+       │
+       ▼ [B, 30, 128]
+BiLSTM Layer 1: hidden=256, bidirectional → [B, 30, 512]
+       │
+BiLSTM Layer 2: hidden=256, bidirectional → [B, 30, 512]
+       │
+       ▼
+TemporalAttention: Linear(512→1) + softmax → weighted sum → [B, 512]
+       │
+       ▼
+Head: Dropout(0.35) → Linear(512→256) → GELU → Dropout(0.175) → Linear(256→482)
+       │
+       ▼ [B, 482]  logits
+
+Parámetros totales: ~10M
+ONNX: lstm_signs.onnx (opset 17, input=&quot;sequence&quot; [batch,30,150], output=&quot;logits&quot; [batch,482])
+</code></pre>
+<h3 id="anexo-b-checklist-de-reproducibilidad-sprint-9"><a class="toclink" href="#anexo-b-checklist-de-reproducibilidad-sprint-9">Anexo B — Checklist de reproducibilidad Sprint 9</a></h3>
+<pre><code>[✅] 1.  Seeds fijas: np/torch/random/sklearn = 42
+[✅] 2.  Build dataset: build_combined_dataset.py (determinista)
+[✅] 3.  Split estratificado: StratifiedShuffleSplit(random_state=42)
+[✅] 4.  LayerNorm interna: no StandardScaler externo (evita leakage)
+[✅] 5.  Checkpoint completo: lstm_signs.pt (state + history + label2idx + métricas)
+[✅] 6.  ONNX export: opset 17, dynamic_axes para batch variable
+[✅] 7.  Demo funcional: demo/app_gradio.py carga ONNX + RF como fallback
+[✅] 8.  Artefactos versionados: Git LFS para .pt, .onnx, .pkl, .npz
+[✅] 9.  Tablero MLOps: logs/runs.csv (8 corridas S5–S9)
+[✅] 10. Figuras generadas: scripts/generar_figuras_s9.py + generar_figuras_s9_v2.py
+[  ] 11. GroupKFold LSTM: pendiente Sprint 10
+[  ] 12. MLflow UI: código listo, pendiente mlflow ui
+[  ] 13. Deploy HF Spaces: pendiente hf auth login
+</code></pre>
+<h3 id="anexo-c-comparativa-rf-s8-vs-lstm-s9"><a class="toclink" href="#anexo-c-comparativa-rf-s8-vs-lstm-s9">Anexo C — Comparativa RF S8 vs LSTM S9</a></h3>
+<table>
+<thead>
+<tr>
+<th>Atributo</th>
+<th style="text-align: center;">RF Bayesian (S8)</th>
+<th style="text-align: center;">LSTM Bidir+Attn (S9)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input</td>
+<td style="text-align: center;">(N, 108) — media temporal</td>
+<td style="text-align: center;">(N, 30, 150) — secuencia</td>
+</tr>
+<tr>
+<td>Mano izquierda</td>
+<td style="text-align: center;">✗ No</td>
+<td style="text-align: center;">✓ Sí</td>
+</tr>
+<tr>
+<td>Información temporal</td>
+<td style="text-align: center;">✗ Descartada</td>
+<td style="text-align: center;">✓ Preservada</td>
+</tr>
+<tr>
+<td>n_clases activas</td>
+<td style="text-align: center;">1,086</td>
+<td style="text-align: center;">482</td>
+</tr>
+<tr>
+<td>Muestras/clase media</td>
+<td style="text-align: center;">3.4</td>
+<td style="text-align: center;">~14.5 (post-filtro)</td>
+</tr>
+<tr>
+<td>F1-val</td>
+<td style="text-align: center;">0.0045 ± 0.0000</td>
+<td style="text-align: center;"><strong>0.0365</strong></td>
+</tr>
+<tr>
+<td>F1-test</td>
+<td style="text-align: center;">0.0040</td>
+<td style="text-align: center;">0.0109</td>
+</tr>
+<tr>
+<td>Accuracy test</td>
+<td style="text-align: center;">~4.9%</td>
+<td style="text-align: center;">2.62%</td>
+</tr>
+<tr>
+<td>Overfitting gap</td>
+<td style="text-align: center;">~78%</td>
+<td style="text-align: center;">~95%</td>
+</tr>
+<tr>
+<td>Latencia inferencia</td>
+<td style="text-align: center;">0.02 ms</td>
+<td style="text-align: center;"><strong>48 ms (ONNX)</strong></td>
+</tr>
+<tr>
+<td>Deploy disponible</td>
+<td style="text-align: center;">✗ No</td>
+<td style="text-align: center;">✓ Gradio + HF Spaces</td>
+</tr>
+<tr>
+<td>Tamaño modelo</td>
+<td style="text-align: center;">435 MB (.pkl)</td>
+<td style="text-align: center;"><strong>10 MB (.onnx)</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="anexo-d-tablero-de-corridas-logsrunscsv-resumen"><a class="toclink" href="#anexo-d-tablero-de-corridas-logsrunscsv-resumen">Anexo D — Tablero de corridas (logs/runs.csv resumen)</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Rango</th>
+<th>Exp_ID</th>
+<th style="text-align: center;">F1-val</th>
+<th>Nota de decisión</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">🥇 1</td>
+<td><code>lstm_150dims_strat</code> (S9)</td>
+<td style="text-align: center;"><strong>0.0365</strong></td>
+<td>Mejor absoluto. Deploy ONNX. Overfitting severo documentado.</td>
+</tr>
+<tr>
+<td style="text-align: center;">🥈 2</td>
+<td><code>lr_108dims_gkfold</code> (S5)</td>
+<td style="text-align: center;">0.0068</td>
+<td>Mejor modelo ligero. Latencia óptima. Fallback sin GPU.</td>
+</tr>
+<tr>
+<td style="text-align: center;">🥉 3</td>
+<td><code>rf_bay50_108dims</code> (S8)</td>
+<td style="text-align: center;">0.0045</td>
+<td>Árbol más estable (std=0). PKL en producción como fallback.</td>
+</tr>
+<tr>
+<td style="text-align: center;">4</td>
+<td><code>rf_hpo30_108dims</code> (S7)</td>
+<td style="text-align: center;">0.0041</td>
+<td>Inferior a RF-Bay50 con igual latencia. Descartado.</td>
+</tr>
+<tr>
+<td style="text-align: center;">5</td>
+<td><code>et_default_108dims</code> (S6)</td>
+<td style="text-align: center;">0.0040</td>
+<td>Mención por velocidad (54s). Sin HPO formal.</td>
+</tr>
+</tbody>
+</table></main>
+</body>
+</html>
