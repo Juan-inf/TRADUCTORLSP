@@ -309,6 +309,14 @@ def process_video_file(video_path):
     total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     idx_s = np.linspace(0, total - 1, N_FRAMES, dtype=int)
 
+    # static_image_mode=True para frames no consecutivos (sin tracking entre saltos)
+    holistic_vid = mp_holistic.Holistic(
+        static_image_mode=True,
+        model_complexity=1,
+        min_detection_confidence=0.3,
+        min_tracking_confidence=0.3,
+    )
+
     kp_frames, detected_any = [], {k: False for k in ["mano_izq","mano_der","cuerpo","rostro"]}
     for idx in idx_s:
         cap.set(cv2.CAP_PROP_POS_FRAMES, int(idx))
@@ -316,11 +324,29 @@ def process_video_file(video_path):
         if not ret:
             continue
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        _, kp, det = extract_and_draw(frame_rgb)
+        results = holistic_vid.process(frame_rgb)
+        detected = {
+            "mano_izq": results.left_hand_landmarks  is not None,
+            "mano_der": results.right_hand_landmarks is not None,
+            "cuerpo":   results.pose_landmarks       is not None,
+            "rostro":   results.face_landmarks       is not None,
+        }
+        kp = np.zeros((N_KP, 3), dtype=np.float32)
+        if results.left_hand_landmarks:
+            for i, lm in enumerate(results.left_hand_landmarks.landmark):
+                kp[i] = [lm.x, lm.y, lm.z]
+        if results.right_hand_landmarks:
+            for i, lm in enumerate(results.right_hand_landmarks.landmark):
+                kp[21 + i] = [lm.x, lm.y, lm.z]
+        if results.pose_landmarks:
+            for i, lm in enumerate(results.pose_landmarks.landmark):
+                kp[42 + i] = [lm.x, lm.y, lm.z]
         kp_frames.append(kp)
         for k in detected_any:
-            if det[k]:
+            if detected[k]:
                 detected_any[k] = True
+
+    holistic_vid.close()
     cap.release()
 
     if len(kp_frames) < 5:
@@ -351,6 +377,114 @@ def process_video_file(video_path):
         f"{'🟢' if detected_any['rostro']   else '🔴'} Rostro"
     )
     return video_path, result_md, top3_md, estado_md
+
+
+def process_image(image):
+    """Imagen estática → landmarks + inferencia (keypoints replicados N_FRAMES veces)."""
+    if image is None:
+        return None, "No se subió ninguna imagen.", "", ""
+
+    if image.ndim == 2:
+        image = np.stack([image] * 3, axis=-1)
+    elif image.shape[2] == 4:
+        image = image[:, :, :3]
+
+    # Gradio puede entregar float32 en [0,1] o uint8 en [0,255]
+    if image.dtype != np.uint8:
+        if image.max() <= 1.0:
+            image = (image * 255).clip(0, 255)
+        image = image.astype(np.uint8)
+
+    # MediaPipe requiere array contiguo en memoria y tamaño mínimo razonable
+    h, w = image.shape[:2]
+    if h < 64 or w < 64:
+        return None, "Imagen demasiado pequeña.", "", ""
+    if max(h, w) > 1920:
+        scale = 1920 / max(h, w)
+        image = cv2.resize(image, (int(w * scale), int(h * scale)))
+    frame_rgb = np.ascontiguousarray(image)
+
+    holistic_img = mp_holistic.Holistic(
+        static_image_mode=True,
+        model_complexity=2,
+        min_detection_confidence=0.1,
+        min_tracking_confidence=0.1,
+    )
+    results = holistic_img.process(frame_rgb)
+    holistic_img.close()
+
+    detected = {
+        "mano_izq": results.left_hand_landmarks  is not None,
+        "mano_der": results.right_hand_landmarks is not None,
+        "cuerpo":   results.pose_landmarks       is not None,
+        "rostro":   results.face_landmarks       is not None,
+    }
+
+    vis = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+    if results.face_landmarks:
+        mp_drawing.draw_landmarks(
+            vis, results.face_landmarks, mp_holistic.FACEMESH_CONTOURS,
+            landmark_drawing_spec=None,
+            connection_drawing_spec=mp_drawing.DrawingSpec(
+                color=COLOR_FACE, thickness=1, circle_radius=1))
+    if results.pose_landmarks:
+        mp_drawing.draw_landmarks(
+            vis, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
+            mp_drawing.DrawingSpec(color=COLOR_POSE, thickness=2, circle_radius=4),
+            mp_drawing.DrawingSpec(color=COLOR_POSE, thickness=2))
+    if results.left_hand_landmarks:
+        mp_drawing.draw_landmarks(
+            vis, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
+            mp_drawing.DrawingSpec(color=COLOR_LHAND, thickness=2, circle_radius=4),
+            mp_drawing.DrawingSpec(color=COLOR_LHAND, thickness=2))
+    if results.right_hand_landmarks:
+        mp_drawing.draw_landmarks(
+            vis, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
+            mp_drawing.DrawingSpec(color=COLOR_RHAND, thickness=2, circle_radius=4),
+            mp_drawing.DrawingSpec(color=COLOR_RHAND, thickness=2))
+
+    kp = np.zeros((N_KP, 3), dtype=np.float32)
+    if results.left_hand_landmarks:
+        for i, lm in enumerate(results.left_hand_landmarks.landmark):
+            kp[i] = [lm.x, lm.y, lm.z]
+    if results.right_hand_landmarks:
+        for i, lm in enumerate(results.right_hand_landmarks.landmark):
+            kp[21 + i] = [lm.x, lm.y, lm.z]
+    if results.pose_landmarks:
+        for i, lm in enumerate(results.pose_landmarks.landmark):
+            kp[42 + i] = [lm.x, lm.y, lm.z]
+
+    if not any(detected.values()):
+        vis_rgb = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
+        estado_md = "🔴 Mano izq. &nbsp;&nbsp;🔴 Mano der. &nbsp;&nbsp;🔴 Cuerpo &nbsp;&nbsp;🔴 Rostro"
+        return vis_rgb, "**No se detectó ninguna persona en la imagen.**", "", estado_md
+
+    # Replica el único frame N_FRAMES veces para alimentar el LSTM
+    kp_seq = np.stack([kp] * N_FRAMES)
+    result = run_inference(kp_seq)
+
+    vis_rgb = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
+    estado_md = (
+        f"{'🟢' if detected['mano_izq'] else '🔴'} Mano izq. &nbsp;&nbsp;"
+        f"{'🟢' if detected['mano_der'] else '🔴'} Mano der. &nbsp;&nbsp;"
+        f"{'🟢' if detected['cuerpo']   else '🔴'} Cuerpo &nbsp;&nbsp;"
+        f"{'🟢' if detected['rostro']   else '🔴'} Rostro"
+    )
+
+    if result is None:
+        return vis_rgb, "Modelo no disponible.", "", estado_md
+
+    conf = result["confidence"] * 100
+    result_md = (
+        f"## {result['seña']}\n\n"
+        f"**Confianza:** {conf:.1f}%  |  **Modelo:** {result['modelo']}  |  "
+        f"**Latencia:** {result['latency_ms']:.0f} ms"
+    )
+    top3_md = "**Top 3:**\n" + "\n".join(
+        f"{i+1}. {t['clase']} — {t['prob']*100:.1f}%"
+        for i, t in enumerate(result.get("top3", []))
+    )
+    return vis_rgb, result_md, top3_md, estado_md
 
 
 # ── Interfaz Gradio ───────────────────────────────────────────────────────────
@@ -406,6 +540,24 @@ with gr.Blocks(title="Traductor LSP → Castellano", css=CSS) as demo:
                 fn=process_video_file,
                 inputs=[video_in],
                 outputs=[video_in, result_vid, top3_vid, estado_vid],
+            )
+
+        with gr.TabItem("🖼️ Subir imagen"):
+            with gr.Row():
+                with gr.Column():
+                    image_in  = gr.Image(label="Imagen JPG/PNG con seña LSP",
+                                         type="numpy", height=360)
+                    btn_img   = gr.Button("🔍 Detectar y traducir", variant="primary", size="lg")
+                with gr.Column():
+                    estado_img = gr.Markdown("", elem_classes=["estado"])
+                    result_img = gr.Markdown("", elem_classes=["traduccion"])
+                    top3_img   = gr.Markdown("")
+            image_out = gr.Image(label="Landmarks detectados", height=360)
+
+            btn_img.click(
+                fn=process_image,
+                inputs=[image_in],
+                outputs=[image_out, result_img, top3_img, estado_img],
             )
 
         with gr.TabItem("ℹ️ Pipeline"):
