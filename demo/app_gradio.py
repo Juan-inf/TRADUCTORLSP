@@ -1,10 +1,17 @@
 """
 Traductor LSP → Castellano
-MediaPipe Holistic + LSTM Bidireccional (1141 señas LSP)
+MediaPipe Holistic + LSTM Bidireccional (482 señas LSP)
 Tiempo real desde cámara web o video pregrabado.
+
+Correcciones S9.1:
+- Video: ventana deslizante frame a frame (no muestreo de 30 frames)
+- Traducción progresiva en tiempo real
+- Panel de transcripción dinámico con confianza por seña
+- Detección continua de cuerpo completo
+- Exportación a TXT
 """
 
-import json, time, pickle, warnings
+import json, time, pickle, warnings, tempfile
 import numpy as np
 import cv2
 from pathlib import Path
@@ -23,19 +30,20 @@ import onnxruntime as ort
 
 # ── Configuración ─────────────────────────────────────────────────────────────
 
-LSTM_ONNX = "checkpoints/lstm_signs.onnx"   # modelo principal (LSTM Bidir)
-RF_CKPT   = "checkpoints/rf_signs.pkl"       # fallback RF
+LSTM_ONNX  = "checkpoints/lstm_signs.onnx"
+RF_CKPT    = "checkpoints/rf_signs.pkl"
 LABEL_PATH = "data/lstm_label2idx.json"
 
-N_FRAMES   = 30
-N_DIMS     = 150   # pose(33×2) + left_hand(21×2) + right_hand(21×2)
-N_KP       = 75    # layout: [0:21]=left_hand, [21:42]=right_hand, [42:75]=pose
-CONF_UMBRAL = 0.30  # mostrar resultado solo si confianza ≥ este valor
+N_FRAMES    = 30
+N_DIMS      = 150   # pose(33×2) + left_hand(21×2) + right_hand(21×2)
+N_KP        = 75    # [0:21]=left_hand, [21:42]=right_hand, [42:75]=pose
+CONF_UMBRAL = 0.30
+STRIDE      = N_FRAMES // 2   # ventana deslizante 50% overlap
 
-# ── Buffers globales ──────────────────────────────────────────────────────────
+# ── Buffers globales (webcam) ─────────────────────────────────────────────────
 
-kp_buffer = deque(maxlen=N_FRAMES)   # cada elemento: (75, 3)
-historial  = deque(maxlen=10)        # últimas 10 traducciones
+kp_buffer = deque(maxlen=N_FRAMES)
+historial  = deque(maxlen=10)
 
 # ── MediaPipe ─────────────────────────────────────────────────────────────────
 
@@ -71,24 +79,22 @@ def load_models():
         idx2label = {int(v): k for k, v in l2i.items()}
         print(f"Etiquetas cargadas: {len(idx2label)} señas LSP")
 
-    # LSTM ONNX (principal)
     if Path(LSTM_ONNX).exists():
         try:
             avail = ort.get_available_providers()
             provs = [p for p in ("CoreMLExecutionProvider", "CPUExecutionProvider")
                      if p in avail]
             lstm_session = ort.InferenceSession(LSTM_ONNX, providers=provs)
-            print(f"LSTM ONNX listo — {len(idx2label)} clases")
+            inp = lstm_session.get_inputs()[0]
+            print(f"LSTM ONNX listo — input={inp.name} {inp.shape} — {len(idx2label)} etiquetas")
         except Exception as e:
             print(f"LSTM error: {e}")
 
-    # RF (fallback)
     if Path(RF_CKPT).exists() and lstm_session is None:
         try:
             with open(RF_CKPT, "rb") as f:
                 data = pickle.load(f)
-            rf_model  = data["pipeline"]
-            # RF usa idx2label propio — sobreescribir solo si LSTM no cargó
+            rf_model = data["pipeline"]
             if not idx2label:
                 idx2label.update(data["idx2label"])
             print(f"RF fallback listo — {data['n_classes']} clases")
@@ -98,42 +104,35 @@ def load_models():
 
 load_models()
 
-# ── Extracción de landmarks ───────────────────────────────────────────────────
+# ── Helpers MediaPipe ─────────────────────────────────────────────────────────
 
-def extract_and_draw(frame_rgb: np.ndarray):
-    """Ejecuta MediaPipe, dibuja landmarks y devuelve (vis_bgr, kp[75,3], detected)."""
-    results = holistic.process(frame_rgb)
-    vis = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
-
-    detected = {
-        "mano_izq": results.left_hand_landmarks  is not None,
-        "mano_der": results.right_hand_landmarks is not None,
-        "cuerpo":   results.pose_landmarks       is not None,
-        "rostro":   results.face_landmarks       is not None,
-    }
-
+def _draw_landmarks(vis_bgr: np.ndarray, results) -> None:
+    """Dibuja todos los landmarks detectados sobre el frame BGR (in-place)."""
     if results.face_landmarks:
         mp_drawing.draw_landmarks(
-            vis, results.face_landmarks, mp_holistic.FACEMESH_CONTOURS,
+            vis_bgr, results.face_landmarks, mp_holistic.FACEMESH_CONTOURS,
             landmark_drawing_spec=None,
             connection_drawing_spec=mp_drawing.DrawingSpec(
                 color=COLOR_FACE, thickness=1, circle_radius=1))
     if results.pose_landmarks:
         mp_drawing.draw_landmarks(
-            vis, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
+            vis_bgr, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
             mp_drawing.DrawingSpec(color=COLOR_POSE, thickness=2, circle_radius=4),
             mp_drawing.DrawingSpec(color=COLOR_POSE, thickness=2))
     if results.left_hand_landmarks:
         mp_drawing.draw_landmarks(
-            vis, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
+            vis_bgr, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
             mp_drawing.DrawingSpec(color=COLOR_LHAND, thickness=2, circle_radius=4),
             mp_drawing.DrawingSpec(color=COLOR_LHAND, thickness=2))
     if results.right_hand_landmarks:
         mp_drawing.draw_landmarks(
-            vis, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
+            vis_bgr, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
             mp_drawing.DrawingSpec(color=COLOR_RHAND, thickness=2, circle_radius=4),
             mp_drawing.DrawingSpec(color=COLOR_RHAND, thickness=2))
 
+
+def _results_to_kp(results) -> np.ndarray:
+    """MediaPipe results → array kp [75, 3]: [left(21), right(21), pose(33)]."""
     kp = np.zeros((N_KP, 3), dtype=np.float32)
     if results.left_hand_landmarks:
         for i, lm in enumerate(results.left_hand_landmarks.landmark):
@@ -144,31 +143,47 @@ def extract_and_draw(frame_rgb: np.ndarray):
     if results.pose_landmarks:
         for i, lm in enumerate(results.pose_landmarks.landmark):
             kp[42 + i] = [lm.x, lm.y, lm.z]
+    return kp
 
-    return vis, kp, detected
+
+def _make_detected(results) -> dict:
+    return {
+        "mano_izq": results.left_hand_landmarks  is not None,
+        "mano_der": results.right_hand_landmarks is not None,
+        "cuerpo":   results.pose_landmarks       is not None,
+        "rostro":   results.face_landmarks       is not None,
+    }
 
 
-# ── Conversión kp_buffer → features ──────────────────────────────────────────
+# ── Extracción + dibujo (webcam) ──────────────────────────────────────────────
+
+def extract_and_draw(frame_rgb: np.ndarray):
+    """Ejecuta MediaPipe, dibuja landmarks y devuelve (vis_bgr, kp[75,3], detected)."""
+    results = holistic.process(frame_rgb)
+    vis = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+    _draw_landmarks(vis, results)
+    kp = _results_to_kp(results)
+    return vis, kp, _make_detected(results)
+
+
+# ── Feature extraction ────────────────────────────────────────────────────────
 
 def kp_seq_to_lstm_features(kp_seq: np.ndarray) -> np.ndarray:
-    """
-    kp_seq: [T, 75, 3]  →  features: [T, 150]
-    Orden: pose_x(33) pose_y(33) left_x(21) left_y(21) right_x(21) right_y(21)
-    """
-    pose  = kp_seq[:, 42:75, :2]   # (T, 33, 2)
-    left  = kp_seq[:,  0:21, :2]   # (T, 21, 2)
-    right = kp_seq[:, 21:42, :2]   # (T, 21, 2)
+    """kp_seq [T, 75, 3] → [T, 150]: pose_x/y(33) + left_x/y(21) + right_x/y(21)."""
+    pose  = kp_seq[:, 42:75, :2]
+    left  = kp_seq[:,  0:21, :2]
+    right = kp_seq[:, 21:42, :2]
     return np.concatenate([
-        pose[:,  :, 0], pose[:,  :, 1],
-        left[:,  :, 0], left[:,  :, 1],
+        pose[:, :, 0], pose[:, :, 1],
+        left[:, :, 0], left[:, :, 1],
         right[:, :, 0], right[:, :, 1],
-    ], axis=1).astype(np.float32)  # (T, 150)
+    ], axis=1).astype(np.float32)
 
 
 def kp_seq_to_rf_features(kp_seq: np.ndarray) -> np.ndarray:
-    """kp_seq [T,75,3] → [108] (media temporal pose+right_hand para RF fallback)."""
-    pose  = kp_seq[:, 42:75, :2].mean(0)  # (33, 2)
-    right = kp_seq[:, 21:42, :2].mean(0)  # (21, 2)
+    """kp_seq [T,75,3] → [108] para RF fallback."""
+    pose  = kp_seq[:, 42:75, :2].mean(0)
+    right = kp_seq[:, 21:42, :2].mean(0)
     return np.concatenate([pose[:, 0], pose[:, 1],
                             right[:, 0], right[:, 1]]).astype(np.float32)
 
@@ -180,8 +195,8 @@ def run_inference(kp_seq: np.ndarray) -> dict | None:
     t0 = time.perf_counter()
 
     if lstm_session is not None:
-        feat  = kp_seq_to_lstm_features(kp_seq)[np.newaxis]  # (1, 30, 150)
-        logits = lstm_session.run(None, {"sequence": feat})[0][0]  # (n_classes,)
+        feat   = kp_seq_to_lstm_features(kp_seq)[np.newaxis]   # (1, 30, 150)
+        logits = lstm_session.run(None, {"sequence": feat})[0][0]
         probs  = np.exp(logits - logits.max())
         probs /= probs.sum()
         idx    = int(probs.argmax())
@@ -210,7 +225,85 @@ def run_inference(kp_seq: np.ndarray) -> dict | None:
     }
 
 
-# ── Panel de estado visual ────────────────────────────────────────────────────
+# ── Construcción de texto ─────────────────────────────────────────────────────
+
+def build_translation_text(parts: list) -> str:
+    """Construye texto desde señas acumuladas.
+
+    Letras individuales se concatenan (deletreo manual LSP).
+    Palabras/frases completas se separan con espacios.
+    """
+    if not parts:
+        return ""
+    words = []
+    letter_group = []
+    for part in parts:
+        seña = part["seña"]
+        if len(seña) == 1 and seña.isalpha():
+            letter_group.append(seña.upper())
+        else:
+            if letter_group:
+                words.append("".join(letter_group))
+                letter_group = []
+            words.append(seña.capitalize())
+    if letter_group:
+        words.append("".join(letter_group))
+    return " ".join(words)
+
+
+def build_confidence_display(parts: list) -> str:
+    """Panel de confianza por seña reconocida."""
+    if not parts:
+        return ""
+    lines = ["### Señas reconocidas\n"]
+    for p in parts[-20:]:
+        conf = p["confidence"] * 100
+        filled = int(conf / 10)
+        bar = "█" * filled + "░" * (10 - filled)
+        lines.append(f"**{p['seña']}** — {conf:.0f}% `{bar}`")
+    return "\n\n".join(lines)
+
+
+def build_estado_md(detected: dict) -> str:
+    """Estado de detección de partes del cuerpo."""
+    has_body  = detected.get("cuerpo",   False)
+    has_face  = detected.get("rostro",   False)
+    has_lhand = detected.get("mano_izq", False)
+    has_rhand = detected.get("mano_der", False)
+    has_hands = has_lhand or has_rhand
+    items = [
+        ("Persona",       has_body or has_hands),
+        ("Rostro/Cabeza", has_face),
+        ("Tronco/Hombros",has_body),
+        ("Brazos/Codos",  has_body),
+        ("Mano izq.",     has_lhand),
+        ("Mano der.",     has_rhand),
+        ("Dedos",         has_hands),
+    ]
+    return " &nbsp;&nbsp; ".join(
+        f"{'🟢' if ok else '🔴'} {label}" for label, ok in items
+    )
+
+
+def _build_result_md(translation_text: str, parts: list) -> str:
+    """Markdown del resultado principal de traducción."""
+    if not parts:
+        return "**Esperando señas…**"
+    last = parts[-1]
+    conf = last["confidence"] * 100
+    col  = "green" if conf >= 60 else "orange" if conf >= 35 else "gray"
+    md   = []
+    if translation_text:
+        md.append(f"## TRADUCCIÓN EN TIEMPO REAL\n\n### {translation_text}")
+    md.append(
+        f"\n**Última seña:** `{last['seña']}` "
+        f"<span style='color:{col}'>**{conf:.0f}%**</span>  |  "
+        f"**Modelo:** {last.get('modelo','N/A')}"
+    )
+    return "\n\n".join(md)
+
+
+# ── Panel de estado visual (webcam overlay) ───────────────────────────────────
 
 def draw_status_bar(vis, detected, result):
     h, w = vis.shape[:2]
@@ -223,7 +316,7 @@ def draw_status_bar(vis, detected, result):
     ]
     x_off = 10
     for label, ok, color in parts:
-        sym = "✓" if ok else "✗"
+        sym = "+" if ok else "-"
         col = color if ok else (80, 80, 80)
         cv2.putText(bar, f"{sym} {label}", (x_off, 28),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, col, 2)
@@ -239,13 +332,13 @@ def draw_status_bar(vis, detected, result):
     else:
         n_buf = len(kp_buffer)
         pct   = int(n_buf / N_FRAMES * w)
-        cv2.putText(bar, f"Acumulando señas… {n_buf}/{N_FRAMES} frames",
+        cv2.putText(bar, f"Acumulando... {n_buf}/{N_FRAMES} frames",
                     (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (120, 120, 120), 1)
         cv2.rectangle(bar, (0, 102), (pct, 110), (0, 180, 255), -1)
     return np.vstack([vis, bar])
 
 
-# ── Handlers Gradio ───────────────────────────────────────────────────────────
+# ── Handler: cámara web ───────────────────────────────────────────────────────
 
 last_result = None
 
@@ -263,8 +356,9 @@ def process_webcam_frame(frame):
     vis, kp, detected = extract_and_draw(frame)
     kp_buffer.append(kp)
 
-    if len(kp_buffer) >= N_FRAMES and len(kp_buffer) % (N_FRAMES // 2) == 0:
-        kp_seq = np.stack(list(kp_buffer))  # (30, 75, 3)
+    frames_in = len(kp_buffer)
+    if frames_in >= N_FRAMES and frames_in % (N_FRAMES // 2) == 0:
+        kp_seq = np.stack(list(kp_buffer))
         r = run_inference(kp_seq)
         if r is not None and r["confidence"] >= CONF_UMBRAL:
             last_result = r
@@ -292,92 +386,170 @@ def process_webcam_frame(frame):
         top3_md   = ""
         hist_md   = ""
 
-    estado_md = (
-        f"{'🟢' if detected['mano_izq'] else '🔴'} Mano izq. &nbsp;&nbsp;"
-        f"{'🟢' if detected['mano_der'] else '🔴'} Mano der. &nbsp;&nbsp;"
-        f"{'🟢' if detected['cuerpo']   else '🔴'} Cuerpo &nbsp;&nbsp;"
-        f"{'🟢' if detected['rostro']   else '🔴'} Rostro"
-    )
+    estado_md = build_estado_md(detected)
     return vis_out, result_md, top3_md + "\n\n" + hist_md, estado_md
 
 
-def process_video_file(video_path):
+# ── Handler: video (streaming con ventana deslizante) ────────────────────────
+
+def process_video_streaming(video_path):
+    """
+    Generator: procesa el video frame a frame con ventana deslizante de N_FRAMES.
+    Hace yield de resultados progresivos mientras avanza el video.
+
+    Outputs: (frame_rgb, result_md, confidence_md, estado_md, progress_md, full_text)
+    """
     if video_path is None:
-        return None, "No se subió ningún video.", "", ""
+        yield None, "No se subió ningún video.", "", "", "", ""
+        return
 
-    cap   = cv2.VideoCapture(video_path)
-    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    idx_s = np.linspace(0, total - 1, N_FRAMES, dtype=int)
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        yield None, "⚠️ Error: no se pudo abrir el video. Verificar formato MP4/AVI/MOV.", "", "", "", ""
+        return
 
-    # static_image_mode=True para frames no consecutivos (sin tracking entre saltos)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+
+    if total_frames == 0:
+        yield None, "⚠️ Error: video sin frames detectados.", "", "", "", ""
+        cap.release()
+        return
+
+    # Modo tracking para frames consecutivos (mejor que static_image_mode=True)
     holistic_vid = mp_holistic.Holistic(
-        static_image_mode=True,
+        static_image_mode=False,
         model_complexity=1,
-        min_detection_confidence=0.3,
-        min_tracking_confidence=0.3,
+        min_detection_confidence=0.4,
+        min_tracking_confidence=0.4,
     )
 
-    kp_frames, detected_any = [], {k: False for k in ["mano_izq","mano_der","cuerpo","rostro"]}
-    for idx in idx_s:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, int(idx))
+    local_buffer      = deque(maxlen=N_FRAMES)
+    translation_parts = []   # [{seña, confidence, modelo}]
+    last_seña         = None
+    frame_count       = 0    # frames leídos del video
+    frames_added      = 0    # frames añadidos al buffer
+    # Submuestreo para procesar ~15 fps efectivos
+    frame_stride      = max(1, int(fps / 15))
+    detected_any      = {k: False for k in ["mano_izq", "mano_der", "cuerpo", "rostro"]}
+    last_vis_rgb      = None
+
+    yield None, "⏳ Iniciando procesamiento del video...", "", "", "0%", ""
+
+    while True:
         ret, frame = cap.read()
         if not ret:
+            break
+        frame_count += 1
+
+        # Saltar frames para velocidad (mantiene sincronía temporal)
+        if frame_count % frame_stride != 0:
             continue
+
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = holistic_vid.process(frame_rgb)
-        detected = {
-            "mano_izq": results.left_hand_landmarks  is not None,
-            "mano_der": results.right_hand_landmarks is not None,
-            "cuerpo":   results.pose_landmarks       is not None,
-            "rostro":   results.face_landmarks       is not None,
-        }
-        kp = np.zeros((N_KP, 3), dtype=np.float32)
-        if results.left_hand_landmarks:
-            for i, lm in enumerate(results.left_hand_landmarks.landmark):
-                kp[i] = [lm.x, lm.y, lm.z]
-        if results.right_hand_landmarks:
-            for i, lm in enumerate(results.right_hand_landmarks.landmark):
-                kp[21 + i] = [lm.x, lm.y, lm.z]
-        if results.pose_landmarks:
-            for i, lm in enumerate(results.pose_landmarks.landmark):
-                kp[42 + i] = [lm.x, lm.y, lm.z]
-        kp_frames.append(kp)
+        results   = holistic_vid.process(frame_rgb)
+
+        # Actualizar detecciones acumuladas
+        detected = _make_detected(results)
         for k in detected_any:
             if detected[k]:
                 detected_any[k] = True
 
+        # Dibujar landmarks sobre frame original (BGR)
+        vis = frame.copy()
+        _draw_landmarks(vis, results)
+
+        # Añadir barra de progreso sobre el frame
+        h, w = vis.shape[:2]
+        pct_bar = int(frame_count / max(total_frames, 1) * w)
+        cv2.rectangle(vis, (0, h - 6), (pct_bar, h), (0, 200, 255), -1)
+
+        last_vis_rgb = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
+
+        # Extraer keypoints y acumular buffer
+        kp = _results_to_kp(results)
+        local_buffer.append(kp)
+        frames_added += 1
+
+        # Ventana deslizante: inferencia cada STRIDE frames, una vez lleno el buffer
+        new_sign = False
+        if frames_added >= N_FRAMES and (frames_added - N_FRAMES) % STRIDE == 0:
+            kp_seq = np.stack(list(local_buffer))
+            r = run_inference(kp_seq)
+            if r and r["confidence"] >= CONF_UMBRAL:
+                seña = r["seña"]
+                if seña != last_seña:
+                    translation_parts.append({
+                        "seña":       seña,
+                        "confidence": r["confidence"],
+                        "modelo":     r.get("modelo", "LSTM"),
+                    })
+                    last_seña = seña
+                    new_sign  = True
+
+        # Yield al detectar seña nueva o cada STRIDE frames (actualización de progreso)
+        if new_sign or (frames_added % STRIDE == 0):
+            progress_pct      = min(frame_count / max(total_frames, 1) * 100, 99)
+            translation_text  = build_translation_text(translation_parts)
+            result_md         = _build_result_md(translation_text, translation_parts)
+            confidence_md     = build_confidence_display(translation_parts)
+            estado_md         = build_estado_md(detected_any)
+            progress_md       = (
+                f"⏳ {progress_pct:.0f}% — frame {frame_count}/{total_frames} "
+                f"| Señas detectadas: {len(translation_parts)}"
+            )
+            yield (last_vis_rgb, result_md, confidence_md, estado_md, progress_md, translation_text)
+
     holistic_vid.close()
     cap.release()
 
-    if len(kp_frames) < 5:
-        return None, "Video demasiado corto.", "", ""
-    while len(kp_frames) < N_FRAMES:
-        kp_frames.append(kp_frames[-1])
+    # Resultado final
+    translation_text = build_translation_text(translation_parts)
+    n_señas = len(translation_parts)
 
-    t0     = time.perf_counter()
-    result = run_inference(np.stack(kp_frames))
-    if result is None:
-        return None, "Modelo no disponible.", "", ""
+    if n_señas == 0:
+        result_md = (
+            "⚠️ No se reconocieron señas LSP en este video.\n\n"
+            "**Posibles causas:**\n"
+            "- El video no contiene señas visibles o la persona no aparece claramente\n"
+            "- La confianza del modelo no superó el umbral del 30%\n"
+            "- El video es muy corto (necesita al menos 2 segundos)\n\n"
+            f"**Umbral de confianza:** {CONF_UMBRAL*100:.0f}%  |  "
+            f"**Frames procesados:** {frame_count}"
+        )
+    else:
+        result_md = _build_result_md(translation_text, translation_parts)
 
-    result["latency_ms"] = (time.perf_counter() - t0) * 1000
-    conf = result["confidence"] * 100
-    result_md = (
-        f"## {result['seña']}\n\n"
-        f"**Confianza:** {conf:.1f}%  |  **Modelo:** {result['modelo']}  |  "
-        f"**Latencia:** {result['latency_ms']:.0f} ms"
+    confidence_md = build_confidence_display(translation_parts)
+    estado_md     = build_estado_md(detected_any)
+    progress_md   = (
+        f"✅ Procesamiento completado — "
+        f"{n_señas} señas detectadas en {frame_count} frames"
     )
-    top3_md = "**Top 3:**\n" + "\n".join(
-        f"{i+1}. {t['clase']} — {t['prob']*100:.1f}%"
-        for i, t in enumerate(result.get("top3", []))
-    )
-    estado_md = (
-        f"{'🟢' if detected_any['mano_izq'] else '🔴'} Mano izq. &nbsp;&nbsp;"
-        f"{'🟢' if detected_any['mano_der'] else '🔴'} Mano der. &nbsp;&nbsp;"
-        f"{'🟢' if detected_any['cuerpo']   else '🔴'} Cuerpo &nbsp;&nbsp;"
-        f"{'🟢' if detected_any['rostro']   else '🔴'} Rostro"
-    )
-    return video_path, result_md, top3_md, estado_md
 
+    yield (last_vis_rgb, result_md, confidence_md, estado_md, progress_md, translation_text)
+
+
+# ── Handler: exportar TXT ─────────────────────────────────────────────────────
+
+def export_translation_txt(text: str):
+    """Genera archivo TXT con la traducción para descarga."""
+    if not text or not text.strip():
+        return None
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".txt", prefix="traduccion_lsp_",
+        delete=False, encoding="utf-8"
+    )
+    tmp.write("TRADUCCION LSP → CASTELLANO\n")
+    tmp.write("=" * 40 + "\n\n")
+    tmp.write(text.strip())
+    tmp.write("\n\n" + "=" * 40 + "\n")
+    tmp.write(f"Generado por: Traductor LSP  |  {time.strftime('%Y-%m-%d %H:%M')}\n")
+    tmp.close()
+    return tmp.name
+
+
+# ── Handler: imagen estática ──────────────────────────────────────────────────
 
 def process_image(image):
     """Imagen estática → landmarks + inferencia (keypoints replicados N_FRAMES veces)."""
@@ -389,13 +561,11 @@ def process_image(image):
     elif image.shape[2] == 4:
         image = image[:, :, :3]
 
-    # Gradio puede entregar float32 en [0,1] o uint8 en [0,255]
     if image.dtype != np.uint8:
         if image.max() <= 1.0:
             image = (image * 255).clip(0, 255)
         image = image.astype(np.uint8)
 
-    # MediaPipe requiere array contiguo en memoria y tamaño mínimo razonable
     h, w = image.shape[:2]
     if h < 64 or w < 64:
         return None, "Imagen demasiado pequeña.", "", ""
@@ -413,63 +583,21 @@ def process_image(image):
     results = holistic_img.process(frame_rgb)
     holistic_img.close()
 
-    detected = {
-        "mano_izq": results.left_hand_landmarks  is not None,
-        "mano_der": results.right_hand_landmarks is not None,
-        "cuerpo":   results.pose_landmarks       is not None,
-        "rostro":   results.face_landmarks       is not None,
-    }
-
+    detected = _make_detected(results)
     vis = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
-    if results.face_landmarks:
-        mp_drawing.draw_landmarks(
-            vis, results.face_landmarks, mp_holistic.FACEMESH_CONTOURS,
-            landmark_drawing_spec=None,
-            connection_drawing_spec=mp_drawing.DrawingSpec(
-                color=COLOR_FACE, thickness=1, circle_radius=1))
-    if results.pose_landmarks:
-        mp_drawing.draw_landmarks(
-            vis, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
-            mp_drawing.DrawingSpec(color=COLOR_POSE, thickness=2, circle_radius=4),
-            mp_drawing.DrawingSpec(color=COLOR_POSE, thickness=2))
-    if results.left_hand_landmarks:
-        mp_drawing.draw_landmarks(
-            vis, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
-            mp_drawing.DrawingSpec(color=COLOR_LHAND, thickness=2, circle_radius=4),
-            mp_drawing.DrawingSpec(color=COLOR_LHAND, thickness=2))
-    if results.right_hand_landmarks:
-        mp_drawing.draw_landmarks(
-            vis, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
-            mp_drawing.DrawingSpec(color=COLOR_RHAND, thickness=2, circle_radius=4),
-            mp_drawing.DrawingSpec(color=COLOR_RHAND, thickness=2))
-
-    kp = np.zeros((N_KP, 3), dtype=np.float32)
-    if results.left_hand_landmarks:
-        for i, lm in enumerate(results.left_hand_landmarks.landmark):
-            kp[i] = [lm.x, lm.y, lm.z]
-    if results.right_hand_landmarks:
-        for i, lm in enumerate(results.right_hand_landmarks.landmark):
-            kp[21 + i] = [lm.x, lm.y, lm.z]
-    if results.pose_landmarks:
-        for i, lm in enumerate(results.pose_landmarks.landmark):
-            kp[42 + i] = [lm.x, lm.y, lm.z]
+    _draw_landmarks(vis, results)
+    kp = _results_to_kp(results)
 
     if not any(detected.values()):
-        vis_rgb = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
-        estado_md = "🔴 Mano izq. &nbsp;&nbsp;🔴 Mano der. &nbsp;&nbsp;🔴 Cuerpo &nbsp;&nbsp;🔴 Rostro"
+        vis_rgb   = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
+        estado_md = build_estado_md(detected)
         return vis_rgb, "**No se detectó ninguna persona en la imagen.**", "", estado_md
 
-    # Replica el único frame N_FRAMES veces para alimentar el LSTM
     kp_seq = np.stack([kp] * N_FRAMES)
     result = run_inference(kp_seq)
 
-    vis_rgb = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
-    estado_md = (
-        f"{'🟢' if detected['mano_izq'] else '🔴'} Mano izq. &nbsp;&nbsp;"
-        f"{'🟢' if detected['mano_der'] else '🔴'} Mano der. &nbsp;&nbsp;"
-        f"{'🟢' if detected['cuerpo']   else '🔴'} Cuerpo &nbsp;&nbsp;"
-        f"{'🟢' if detected['rostro']   else '🔴'} Rostro"
-    )
+    vis_rgb   = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
+    estado_md = build_estado_md(detected)
 
     if result is None:
         return vis_rgb, "Modelo no disponible.", "", estado_md
@@ -490,22 +618,26 @@ def process_image(image):
 # ── Interfaz Gradio ───────────────────────────────────────────────────────────
 
 CSS = """
-.traduccion { font-size: 1.6em !important; padding: 16px 20px;
-              border-left: 5px solid #2196F3; background: #f0f7ff; }
-.estado     { font-size: 1.05em; padding: 8px 12px; }
+.traduccion    { font-size: 1.6em !important; padding: 16px 20px;
+                 border-left: 5px solid #2196F3; background: #f0f7ff; }
+.estado        { font-size: 1.0em; padding: 8px 12px; }
+.transcripcion { font-size: 1.2em; padding: 12px 16px;
+                 border: 2px solid #4CAF50; background: #f0fff0;
+                 font-family: monospace; min-height: 80px; }
 """
 
 with gr.Blocks(title="Traductor LSP → Castellano", css=CSS) as demo:
 
-    gr.Markdown("""
-    # 🤟 Traductor LSP → Castellano
-    **Sistema integral de comunicación inclusiva** — Lengua de Señas Peruana a texto en tiempo real.
-    MediaPipe Holistic detecta pose + ambas manos (150 dims/frame).
-    LSTM Bidireccional clasifica la seña en **{}** clases LSP.
-    """.format(len(idx2label)))
+    gr.Markdown(f"""
+# 🤟 Traductor LSP → Castellano
+**Sistema integral de comunicación inclusiva** — Lengua de Señas Peruana a texto en tiempo real.
+MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
+LSTM Bidireccional clasifica la seña en **{len(idx2label)}** clases LSP.
+    """)
 
     with gr.Tabs():
 
+        # ── Tab 1: Cámara en vivo ─────────────────────────────────────────
         with gr.TabItem("📷 Cámara en vivo"):
             with gr.Row():
                 with gr.Column(scale=3):
@@ -513,10 +645,10 @@ with gr.Blocks(title="Traductor LSP → Castellano", css=CSS) as demo:
                                           label="Cámara", height=360)
                     webcam_out = gr.Image(label="Landmarks detectados", height=420)
                 with gr.Column(scale=2):
-                    estado_cam  = gr.Markdown("", elem_classes=["estado"])
-                    result_cam  = gr.Markdown("**Esperando señas…**",
-                                              elem_classes=["traduccion"])
-                    top3_cam    = gr.Markdown("")
+                    estado_cam = gr.Markdown("", elem_classes=["estado"])
+                    result_cam = gr.Markdown("**Esperando señas…**",
+                                             elem_classes=["traduccion"])
+                    top3_cam   = gr.Markdown("")
 
             webcam_in.stream(
                 fn=process_webcam_frame,
@@ -526,28 +658,65 @@ with gr.Blocks(title="Traductor LSP → Castellano", css=CSS) as demo:
                 stream_every=0.10,
             )
 
+        # ── Tab 2: Subir video ────────────────────────────────────────────
         with gr.TabItem("🎬 Subir video"):
+            gr.Markdown(
+                "> El sistema procesa el video **frame a frame** con ventana deslizante "
+                f"({N_FRAMES} frames, overlap 50%). Cada seña reconocida se añade a la "
+                "transcripción en tiempo real."
+            )
             with gr.Row():
-                with gr.Column():
-                    video_in = gr.Video(label="Video MP4/AVI/MOV con señas LSP")
-                    btn      = gr.Button("▶ Traducir señas", variant="primary", size="lg")
-                with gr.Column():
-                    estado_vid = gr.Markdown("", elem_classes=["estado"])
-                    result_vid = gr.Markdown("", elem_classes=["traduccion"])
-                    top3_vid   = gr.Markdown("")
+                with gr.Column(scale=2):
+                    video_in = gr.Video(label="Video MP4 / AVI / MOV con señas LSP")
+                    btn_vid  = gr.Button("▶ Traducir señas en tiempo real",
+                                         variant="primary", size="lg")
 
-            btn.click(
-                fn=process_video_file,
+                with gr.Column(scale=3):
+                    vid_frame_out = gr.Image(label="Frame actual con landmarks detectados",
+                                             height=280)
+                    estado_vid    = gr.Markdown("", elem_classes=["estado"])
+                    progress_vid  = gr.Markdown("")
+                    result_vid    = gr.Markdown("", elem_classes=["traduccion"])
+
+            with gr.Row():
+                confidence_vid = gr.Markdown("")
+
+            gr.Markdown("### 📋 Transcripción completa en tiempo real")
+            with gr.Row():
+                export_text_vid = gr.Textbox(
+                    label="TRADUCCIÓN EN TIEMPO REAL",
+                    placeholder="La traducción aparecerá aquí mientras se procesa el video…",
+                    lines=4,
+                    max_lines=12,
+                    elem_classes=["transcripcion"],
+                    interactive=False,
+                )
+            with gr.Row():
+                btn_export = gr.Button("💾 Exportar a TXT", variant="secondary", size="sm")
+                btn_copy   = gr.Button("📋 Copiar texto", variant="secondary", size="sm")
+                file_out   = gr.File(label="Descargar traduccion_lsp.txt")
+
+            btn_vid.click(
+                fn=process_video_streaming,
                 inputs=[video_in],
-                outputs=[video_in, result_vid, top3_vid, estado_vid],
+                outputs=[vid_frame_out, result_vid, confidence_vid,
+                         estado_vid, progress_vid, export_text_vid],
             )
 
+            btn_export.click(
+                fn=export_translation_txt,
+                inputs=[export_text_vid],
+                outputs=[file_out],
+            )
+
+        # ── Tab 3: Imagen estática ────────────────────────────────────────
         with gr.TabItem("🖼️ Subir imagen"):
             with gr.Row():
                 with gr.Column():
-                    image_in  = gr.Image(label="Imagen JPG/PNG con seña LSP",
-                                         type="numpy", height=360)
-                    btn_img   = gr.Button("🔍 Detectar y traducir", variant="primary", size="lg")
+                    image_in = gr.Image(label="Imagen JPG/PNG con seña LSP",
+                                        type="numpy", height=360)
+                    btn_img  = gr.Button("🔍 Detectar y traducir",
+                                         variant="primary", size="lg")
                 with gr.Column():
                     estado_img = gr.Markdown("", elem_classes=["estado"])
                     result_img = gr.Markdown("", elem_classes=["traduccion"])
@@ -560,6 +729,7 @@ with gr.Blocks(title="Traductor LSP → Castellano", css=CSS) as demo:
                 outputs=[image_out, result_img, top3_img, estado_img],
             )
 
+        # ── Tab 4: Pipeline ───────────────────────────────────────────────
         with gr.TabItem("ℹ️ Pipeline"):
             gr.Markdown(f"""
 ## Pipeline técnico
@@ -567,19 +737,34 @@ with gr.Blocks(title="Traductor LSP → Castellano", css=CSS) as demo:
 ```
 Cámara / Video MP4·AVI·MOV
      ↓
-MediaPipe Holistic
-     ├── 33 keypoints pose/cuerpo    (azul)
-     ├── 21 keypoints mano izquierda (rojo)
-     ├── 21 keypoints mano derecha   (verde)
-     └── 468 keypoints rostro        (gris)
+MediaPipe Holistic (frame a frame, modo tracking)
+     ├── 33 keypoints pose/cuerpo    (azul)   → hombros, brazos, codos, muñecas, tronco
+     ├── 21 keypoints mano izquierda (rojo)   → mano + 5 dedos
+     ├── 21 keypoints mano derecha   (verde)  → mano + 5 dedos
+     └── 468 keypoints rostro        (gris)   → cabeza, expresión facial
      ↓
 Feature extraction: 150 dims/frame
      pose_x(33) + pose_y(33) + left_x(21) + left_y(21) + right_x(21) + right_y(21)
      ↓
-LSTM Bidireccional + Attention  [30 frames × 150 dims]
+Buffer deslizante [{N_FRAMES} frames × 150 dims], stride={STRIDE} frames (overlap 50%)
      ↓
-{len(idx2label)} señas LSP → texto en castellano
+LSTM Bidireccional + Attention → {len(idx2label)} señas LSP
+     ↓
+Construcción de texto:
+     Letras individuales → se concatenan (H+O+L+A → "HOLA")
+     Palabras/frases → se unen con espacios
+     ↓
+Transcripción en tiempo real + Confianza por seña + Exportar TXT
 ```
+
+## Ventana deslizante
+
+| Parámetro | Valor |
+|-----------|-------|
+| Tamaño ventana | {N_FRAMES} frames |
+| Stride (overlap 50%) | {STRIDE} frames |
+| FPS efectivos procesados | ~15 fps |
+| Umbral de confianza | {CONF_UMBRAL*100:.0f}% |
 
 ## Dataset de entrenamiento
 
@@ -589,19 +774,26 @@ LSTM Bidireccional + Attention  [30 frames × 150 dims]
 | Glosas/MP4 (grabaciones individuales) | 252 | 143 |
 | **Total** | **3,936** | **1,141** |
 
-## Modelo
+## Modelo LSTM Bidireccional S9
 
-| | Valor |
-|--|--|
-| Arquitectura | LSTM Bidireccional 2 capas + Temporal Attention |
+| Parámetro | Valor |
+|-----------|-------|
+| Arquitectura | LSTM Bidir 2 capas + Temporal Attention |
 | Parámetros | 2.6M |
-| F1-macro test | 0.0126 |
-| Latencia ONNX | <50ms |
+| hidden=256, dropout=0.35 | |
+| F1-macro val | 0.0365 |
+| Latencia ONNX | <50 ms |
             """)
+
 
 if __name__ == "__main__":
     import sys
     share = "--share" in sys.argv
-    demo.launch(server_name="0.0.0.0", server_port=7860,
-                show_error=True, theme=gr.themes.Soft(), css=CSS,
-                share=share)
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=7860,
+        show_error=True,
+        theme=gr.themes.Soft(),
+        css=CSS,
+        share=share,
+    )

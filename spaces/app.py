@@ -180,30 +180,79 @@ def webcam_frame(frame):
     return vis_out, f"**Acumulando… {len(kp_buffer)}/{N_FRAMES}**", ""
 
 
+STRIDE = N_FRAMES // 2
+
+
+def _build_text(parts):
+    """Letras individuales → concatenar; palabras → separar con espacio."""
+    words, letters = [], []
+    for p in parts:
+        s = p["seña"]
+        if len(s) == 1 and s.isalpha():
+            letters.append(s.upper())
+        else:
+            if letters:
+                words.append("".join(letters)); letters = []
+            words.append(s.capitalize())
+    if letters:
+        words.append("".join(letters))
+    return " ".join(words)
+
+
 def video_file(video_path):
+    """Ventana deslizante frame a frame: genera traducción progresiva."""
     if not video_path:
-        return None, "Sin video", ""
+        yield None, "Sin video", ""
+        return
+
     cap = cv2.VideoCapture(video_path)
-    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    idx_s = np.linspace(0, total - 1, N_FRAMES, dtype=int)
-    frames_kp = []
-    for idx in idx_s:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, int(idx))
+    if not cap.isOpened():
+        yield None, "Error al abrir el video.", ""
+        return
+
+    total  = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps    = cap.get(cv2.CAP_PROP_FPS) or 25.0
+    stride = max(1, int(fps / 15))
+
+    buf        = deque(maxlen=N_FRAMES)
+    parts      = []
+    last_seña  = None
+    f_count    = 0
+    f_added    = 0
+    last_frame = None
+
+    while True:
         ret, fr = cap.read()
         if not ret:
+            break
+        f_count += 1
+        if f_count % stride != 0:
             continue
+
         _, kp, _ = extract_and_draw(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
-        frames_kp.append(kp)
+        buf.append(kp)
+        f_added += 1
+        last_frame = fr
+
+        if f_added >= N_FRAMES and (f_added - N_FRAMES) % STRIDE == 0:
+            r = run_inference(np.stack(list(buf)))
+            if r["confidence"] >= CONF_UMBRAL and r["seña"] != last_seña:
+                parts.append(r)
+                last_seña = r["seña"]
+                txt  = f"## {_build_text(parts)}\n\n**Última:** {r['seña']} ({r['confidence']*100:.0f}%)"
+                top3 = "\n".join(f"{i+1}. {t['clase']} {t['prob']*100:.1f}%"
+                                  for i, t in enumerate(r["top3"]))
+                yield last_frame, txt, top3
+
     cap.release()
-    if len(frames_kp) < 5:
-        return None, "Video demasiado corto", ""
-    while len(frames_kp) < N_FRAMES:
-        frames_kp.append(frames_kp[-1])
-    r = run_inference(np.stack(frames_kp))
-    txt  = f"## {r['seña']}\n\nConfianza: **{r['confidence']*100:.0f}%**"
-    top3 = "\n".join(f"{i+1}. {t['clase']} {t['prob']*100:.1f}%"
-                      for i, t in enumerate(r["top3"]))
-    return video_path, txt, top3
+    text = _build_text(parts)
+    if not parts:
+        yield last_frame, "No se reconocieron señas en el video.", ""
+    else:
+        txt  = f"## {text}\n\n**Total señas:** {len(parts)}"
+        top3 = "\n".join(f"{i+1}. {p['seña']} ({p['confidence']*100:.0f}%)"
+                          for i, p in enumerate(parts[:5]))
+        yield last_frame, txt, top3
 
 
 # ── UI ────────────────────────────────────────────────────────────────────────
@@ -238,6 +287,7 @@ with gr.Blocks(title="Traductor LSP", css=CSS) as demo:
                     vid_top3 = gr.Markdown("")
             btn.click(fn=video_file, inputs=[vid_in],
                       outputs=[vid_in, vid_txt, vid_top3])
+            # video_file es un generator → Gradio 4.x lo transmite automáticamente
 
 if __name__ == "__main__":
     demo.launch()
