@@ -29,7 +29,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
-from sklearn.model_selection import StratifiedKFold, StratifiedShuffleSplit, GroupShuffleSplit
+from sklearn.model_selection import (StratifiedKFold, StratifiedShuffleSplit,
+                                     GroupShuffleSplit, ShuffleSplit, KFold)
 from sklearn.metrics import f1_score, top_k_accuracy_score
 from scipy.optimize import minimize_scalar
 from collections import Counter
@@ -309,7 +310,7 @@ print(f"\n{'='*68}")
 print(f"FASE 1 — HPO Optuna warm-start ({N_TRIALS} trials, espacio estrecho)")
 print(f"{'='*68}")
 
-sss_hpo = StratifiedShuffleSplit(n_splits=1, test_size=0.30, random_state=SEED)
+sss_hpo = ShuffleSplit(n_splits=1, test_size=0.30, random_state=SEED)
 hpo_tr, hpo_val = next(sss_hpo.split(X_core, y_core))
 X_hpo_tr, y_hpo_tr   = X_core[hpo_tr],  y_core[hpo_tr]
 X_hpo_val, y_hpo_val = X_core[hpo_val], y_core[hpo_val]
@@ -329,7 +330,7 @@ def objective(trial: optuna.Trial) -> float:
         hidden=hidden, n_layers=n_layers, dropout=dropout,
         lr=lr, wd=wd, label_smoothing=ls,
         n_epochs=N_EPOCHS_HPO, patience=PATIENCE_HPO,
-        finetune_weights=S10_WEIGHTS, trial=trial,
+        finetune_weights=None, trial=trial,
     )
     return f1
 
@@ -368,14 +369,14 @@ print(f"\n{'='*68}")
 print(f"FASE 2 — Fine-tune final con KFold(5) + mejores HPs")
 print(f"{'='*68}")
 
-skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
+skf = KFold(n_splits=5, shuffle=True, random_state=SEED)
 fold_f1s        = []
 best_fold_f1    = 0.0
 best_fold_model = None
 best_fold_idx   = 0
 
 t_final_start = time.time()
-for fold_i, (tr_idx, val_idx) in enumerate(skf.split(X_core, y_core), start=1):
+for fold_i, (tr_idx, val_idx) in enumerate(skf.split(X_core), start=1):
     print(f"\n  Fold {fold_i}/5 — train={len(tr_idx)}  val={len(val_idx)}")
     X_tr_f, y_tr_f   = X_core[tr_idx],  y_core[tr_idx]
     X_val_f, y_val_f = X_core[val_idx], y_core[val_idx]
@@ -391,7 +392,7 @@ for fold_i, (tr_idx, val_idx) in enumerate(skf.split(X_core, y_core), start=1):
         label_smoothing=best_params["label_smoothing"],
         n_epochs=N_EPOCHS_FINAL,
         patience=PATIENCE_FINAL,
-        finetune_weights=S10_WEIGHTS,
+        finetune_weights=None,
     )
     elapsed_fold = (time.time() - t_fold) / 60
     print(f"    F1-val fold {fold_i}: {f1_fold:.4f}  [{elapsed_fold:.1f} min]")
@@ -450,11 +451,13 @@ print(f"  Top-3 Acc test : {top3:.4f}")
 print(f"  Top-5 Acc test : {top5:.4f}")
 print(f"  F1-val (5-fold): {mean_f1:.4f} ± {std_f1:.4f}")
 
-# Per-class analysis
+# Per-class analysis — labels=range(n_classes) garantiza índices válidos
 from sklearn.metrics import f1_score as f1_per
-f1_per_class = f1_score(te_true_np, te_preds_np, average=None, zero_division=0)
+all_labels   = list(range(n_classes))
+f1_per_class = f1_score(te_true_np, te_preds_np, average=None,
+                        zero_division=0, labels=all_labels)
 cls_present  = sorted(set(te_true_np.tolist()))
-f1_present   = [(idx2label.get(c, str(c)), f1_per_class[c]) for c in cls_present]
+f1_present   = [(idx2label.get(c, str(c)), float(f1_per_class[c])) for c in cls_present]
 f1_sorted    = sorted(f1_present, key=lambda x: x[1], reverse=True)
 
 print(f"\n  Top-5 clases (mejor F1 en test):")
@@ -526,7 +529,7 @@ print(f"\n{'='*68}")
 print("FASE 3 — Temperature Scaling")
 print(f"{'='*68}")
 
-last_val_idx = list(skf.split(X_core, y_core))[best_fold_idx - 1][1]
+last_val_idx = list(skf.split(X_core))[best_fold_idx - 1][1]
 X_cal  = X_core[last_val_idx]
 y_cal  = y_core[last_val_idx]
 dl_cal = DataLoader(SignDataset(X_cal, y_cal, augment=False),
@@ -608,7 +611,7 @@ ckpt = {
     "ks_stat":       ks_stat,
     "ks_pval":       ks_pval,
     "sprint":        "S10v2",
-    "finetuned_from": "lstm_s10.pt",
+    "finetuned_from": "HPO warm-start desde S10 best HPs (entrenado desde cero)",
 }
 pt_path = CKPT_DIR / "lstm_s10v2.pt"
 torch.save(ckpt, pt_path)
