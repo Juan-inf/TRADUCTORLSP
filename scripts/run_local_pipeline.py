@@ -119,7 +119,7 @@ conteo = Counter(df["clase"])
 fig, axes = plt.subplots(1, 2, figsize=(14, 4))
 fig.suptitle("EDA — Dataset LSP (Landmarks locales)", fontweight="bold")
 
-# Distribución de clases
+# Distribución de LSP - Vocabulario-palabras
 sorted_clases = sorted(conteo.items(), key=lambda x: -x[1])
 axes[0].barh([x[0] for x in sorted_clases], [x[1] for x in sorted_clases], color="steelblue")
 axes[0].set_title("Segmentos por viñeta")

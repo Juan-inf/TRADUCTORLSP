@@ -78,7 +78,7 @@ def main():
     print(f"Sin kp_path: {(~already_done).sum()}")
 
     videos = df['video_path'].unique()
-    print(f"Videos a procesar: {len(videos)}")
+    print(f"LSP - Palabras a procesar: {len(videos)}")
 
     kp_path_updates = {}
 

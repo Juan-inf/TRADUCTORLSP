@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI):
                 n_frames=CONFIG["n_frames"],
                 img_size=CONFIG["img_size"],
             )
-            print(f"Modelo ONNX listo — {len(idx2label)} clases")
+            print(f"Modelo ONNX listo — {len(idx2label)} LSP - Vocabulario-palabras")
         else:
             print(f"ONNX no encontrado: {CONFIG['onnx_path']}")
     yield

@@ -22,9 +22,9 @@ print("═" * 60)
 
 videos = sorted(VIDEO_DIR.glob("*.mp4")) + sorted(VIDEO_DIR.glob("*.MP4"))
 if not videos:
-    print(f"ERROR: No se encontraron videos en {VIDEO_DIR}")
+    print(f"ERROR: No se encontraron LSP - Palabras en {VIDEO_DIR}")
     exit(1)
-print(f"  Videos encontrados: {len(videos)}")
+print(f"  LSP - Palabras encontrados: {len(videos)}")
 
 # ── 2. Extracción de metadatos ────────────────────────────────────────────
 print("\n2. EXTRACCIÓN DE METADATOS")
@@ -98,7 +98,7 @@ with open(DATA_DIR / "label2idx.json", "w") as f:
     json.dump(label2idx, f, indent=2, ensure_ascii=False)
 with open(DATA_DIR / "idx2label.json", "w") as f:
     json.dump(idx2label, f, indent=2, ensure_ascii=False)
-print(f"   label2idx.json: {len(label2idx)} clases guardadas")
+print(f"   label2idx.json: {len(label2idx)} LSP - Vocabulario-palabras guardadas")
 
 # class_weights uniformes (1 video/clase → dataset muy pequeño)
 class_weights = {lbl: 1.0 for lbl in labels}
@@ -108,7 +108,7 @@ with open(DATA_DIR / "class_weights.json", "w") as f:
 # ── 5. Visualizaciones ────────────────────────────────────────────────────
 print("\n5. GENERANDO VISUALIZACIONES...")
 fig = plt.figure(figsize=(18, 12))
-fig.suptitle("EDA Dataset LSP — Historias Vinetas", fontsize=16, fontweight='bold', y=0.98)
+fig.suptitle("EDA Dataset LSP — LSP-Palabras", fontsize=16, fontweight='bold', y=0.98)
 
 # 5.1 Duración por vineta
 ax1 = fig.add_subplot(2, 3, 1)
@@ -245,7 +245,7 @@ print("╠" + "═"*60 + "╣")
 print("║  OPCIONES PARA EL PIPELINE:                                ║")
 print("║  A) Sliding Window (sin anotaciones):                       ║")
 print("║     - Ventanas de 30f (1s) con stride de 15f (50% overlap)  ║")
-print("║     - Clase = número de vineta (27 clases)                  ║")
+print("║     - Clase = número de vineta (27 LSP - Vocabulario-palabras)                  ║")
 print(f"║     - Genera ~{int(df_valid['n_frames'].sum()/(15)):,} segmentos para entrenamiento     ║")
 print("║  B) Segmentación manual/automática:                         ║")
 print("║     - Anotar tiempos inicio/fin de cada seña                ║")
@@ -262,7 +262,7 @@ print("╚" + "═"*60 + "╝")
 print("\n✓ EDA COMPLETO")
 print(f"  Archivos generados en data/:")
 print(f"  - manifest.csv ({len(df)} filas)")
-print(f"  - label2idx.json ({len(label2idx)} clases)")
+print(f"  - label2idx.json ({len(label2idx)} LSP - Vocabulario-palabras)")
 print(f"  - idx2label.json")
 print(f"  - class_weights.json")
 print(f"  - eda_visualizaciones.png")

@@ -64,7 +64,7 @@ def fig01_comparativa_global():
                 f"{f1:.4f}  [{sprint}]", va="center", ha="left", fontsize=8)
 
     ax.set_xlabel("F1-macro")
-    ax.set_title("Comparativa global de modelos — Sprints 5–8\n(26 clases: S5–S6 | 1,086 clases: S7–S8)")
+    ax.set_title("Comparativa global de modelos — Sprints 5–8\n(26 LSP - Vocabulario-palabras: S5–S6 | 1,086 LSP - Vocabulario-palabras: S7–S8)")
     ax.axvline(0.0009, ls=":", color="red", lw=1, label="Cota aleatoria 1/1086")
     patches = [
         mpatches.Patch(color="#5bc0de", label="S5 — sklearn 26 clases"),
@@ -115,7 +115,7 @@ def fig02_folds_s7():
     ax1.set_xticks(folds)
     ax1.set_xlabel("Fold")
     ax1.set_ylabel("F1-macro")
-    ax1.set_title("F1-macro por fold — Sprint 7\nLogReg | GroupKFold(5) | 1,086 clases")
+    ax1.set_title("F1-macro por fold — Sprint 7\nLogReg | GroupKFold(5) | 1,086 LSP - Vocabulario-palabras")
     ax1.legend(fontsize=8)
     ax1.set_ylim(0, max(f1_vals) * 1.3)
 
@@ -126,7 +126,7 @@ def fig02_folds_s7():
     ax2.set_xticks(folds)
     ax2.set_xlabel("Fold")
     ax2.set_ylabel("Accuracy")
-    ax2.set_title("Accuracy por fold — Sprint 7\nLogReg | GroupKFold(5) | 1,086 clases")
+    ax2.set_title("Accuracy por fold — Sprint 7\nLogReg | GroupKFold(5) | 1,086 LSP - Vocabulario-palabras")
     ax2.set_ylim(0, max(acc_vals) * 1.3)
 
     plt.suptitle("Sprint 7 — Validación Cruzada Agrupada (seed=42)", fontsize=11, y=1.02)
@@ -294,7 +294,7 @@ def fig04_reliability_diagram():
     for x, y in zip(bin_centers, n_frac):
         ax2.text(x, y + 0.003, f"{y:.2f}", ha="center", va="bottom", fontsize=8)
 
-    plt.suptitle("Calibración de Probabilidades — LogReg 1,086 clases (Sprint 7)",
+    plt.suptitle("Calibración de Probabilidades — LogReg 1,086 LSP - Vocabulario-palabras (Sprint 7)",
                  fontsize=11, y=1.01)
     plt.tight_layout()
     out = os.path.join(FIGS, "fig_04_reliability_diagram.png")
@@ -304,13 +304,13 @@ def fig04_reliability_diagram():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# FIG 05 — Distribución del dataset (clases, muestras/clase, viñetas)
+# FIG 05 — Distribución del dataset (LSP - Vocabulario-palabras, muestras/clase, viñetas)
 # ─────────────────────────────────────────────────────────────────────────────
 def fig05_dataset_distribucion():
     np.random.seed(SEED)
     n_classes = 1086
     total_samples = 3684
-    # Simular distribución realista: muchas clases con 1-3 muestras
+    # Simular distribución realista: muchas LSP - Vocabulario-palabras con 1-3 muestras
     counts = np.ones(n_classes, dtype=int)
     remaining = total_samples - n_classes
     # Distribuir el resto con power-law suave
@@ -328,13 +328,13 @@ def fig05_dataset_distribucion():
     unique, freq = np.unique(counts, return_counts=True)
     ax.bar(unique, freq, color="#3498db", edgecolor="white", width=0.8)
     ax.set_xlabel("N.° de muestras por clase")
-    ax.set_ylabel("N.° de clases")
-    ax.set_title(f"Distribución de muestras por clase\n{n_classes} clases | {total_samples} muestras totales")
+    ax.set_ylabel("N.° de LSP - Vocabulario-palabras")
+    ax.set_title(f"Distribución de muestras por clase\n{n_classes} LSP - Vocabulario-palabras | {total_samples} muestras totales")
     ax.text(0.98, 0.95, f"Media: {total_samples/n_classes:.1f}\nMediana: {np.median(counts):.0f}",
             transform=ax.transAxes, ha="right", va="top", fontsize=9,
             bbox=dict(boxstyle="round", facecolor="lightyellow", alpha=0.8))
 
-    # Panel 2 — Distribución acumulada (¿qué % de clases tiene ≤ k muestras?)
+    # Panel 2 — Distribución acumulada (¿qué % de LSP - Vocabulario-palabras tiene ≤ k muestras?)
     ax2 = axes[1]
     sorted_counts = np.sort(counts)
     pct_classes = np.arange(1, n_classes+1) / n_classes * 100
@@ -342,9 +342,9 @@ def fig05_dataset_distribucion():
     ax2.axvline(3, ls="--", color="#3498db", lw=1.5, label="k=3 muestras")
     pct_at_3 = np.searchsorted(sorted_counts, 3.5) / n_classes * 100
     ax2.axhline(pct_at_3, ls=":", color="#3498db", lw=1)
-    ax2.text(3.2, pct_at_3+2, f"{pct_at_3:.0f}% de clases\ntienen ≤3 muestras", fontsize=8, color="#3498db")
+    ax2.text(3.2, pct_at_3+2, f"{pct_at_3:.0f}% de LSP - Vocabulario-palabras\ntienen ≤3 muestras", fontsize=8, color="#3498db")
     ax2.set_xlabel("Muestras por clase (k)")
-    ax2.set_ylabel("% de clases con ≤ k muestras")
+    ax2.set_ylabel("% de LSP - Vocabulario-palabras con ≤ k muestras")
     ax2.set_title("CDF — Desbalance del dataset\n(alta cardinalidad, escasez de datos)")
     ax2.legend(fontsize=8)
     ax2.grid(alpha=0.3)
@@ -366,8 +366,8 @@ def fig05_dataset_distribucion():
     ax3.set_xticks(x)
     ax3.set_xticklabels(sprints, fontsize=8)
     ax3.set_ylabel("N.° de muestras")
-    ax3b.set_ylabel("N.° de clases")
-    ax3.set_title("Datasets por sprint\n(muestras vs clases)")
+    ax3b.set_ylabel("N.° de LSP - Vocabulario-palabras")
+    ax3.set_title("Datasets por sprint\n(muestras vs LSP - Vocabulario-palabras)")
     lines1 = mpatches.Patch(color="gray", alpha=0.7, label="Muestras (eje izq.)")
     lines2 = mpatches.Patch(color="gray", alpha=0.4, hatch="//", label="Clases (eje der.)")
     ax3.legend(handles=[lines1, lines2], fontsize=8)
@@ -401,7 +401,7 @@ def fig06_ablacion_features():
     colors_var = ["#3498db", "#e74c3c", "#9b59b6"]
     bars = ax.bar(variantes, f1_macro, color=colors_var, edgecolor="white", width=0.5)
     ax.set_ylabel("F1-macro (media 5-fold)")
-    ax.set_title("Ablación de Features — Sprint 6\n(1,086 clases, GroupKFold/5)")
+    ax.set_title("Ablación de Features — Sprint 6\n(1,086 LSP - Vocabulario-palabras, GroupKFold/5)")
     ax.set_ylim(0, 0.003)
     for bar, val in zip(bars, f1_macro):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.0001,
@@ -427,7 +427,7 @@ def fig06_ablacion_features():
         ax3.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.00005,
                  f"{val:.4f}", ha="center", fontsize=9)
     ax3.set_ylabel("F1-macro (media 5-fold)")
-    ax3.set_title("Comparativa modelos S7–S8\n(1,086 clases, GroupKFold/5)")
+    ax3.set_title("Comparativa modelos S7–S8\n(1,086 LSP - Vocabulario-palabras, GroupKFold/5)")
     # Cota teórica aleatoria
     ax3.axhline(1/1086, ls=":", color="red", lw=1.5,
                 label=f"Cota aleatoria = {1/1086:.4f}")
@@ -553,7 +553,7 @@ def fig08_dl_comparativa():
     ax.set_xticks(x)
     ax.set_xticklabels(modelos)
     ax.set_ylabel("Métrica")
-    ax.set_title("Sprint 6 — Comparativa Deep Learning: 26 clases (Historias Viñetas)\n"
+    ax.set_title("Sprint 6 — Comparativa Deep Learning: 26 LSP - Vocabulario-palabras (Historias Viñetas)\n"
                  "Mejor modelo: Fusión Concat F1-macro=0.507")
     ax.set_ylim(0, 0.72)
 

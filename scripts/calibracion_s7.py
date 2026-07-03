@@ -96,7 +96,7 @@ y = np.array([label2id[l] for l in y_list])
 n_classes = len(classes)
 n_samples = len(X)
 n_groups = len(set(groups_list))
-print(f"  Muestras: {n_samples} | Clases: {n_classes} | Viñetas (grupos): {n_groups}")
+print(f"  Muestras: {n_samples} | LSP - Vocabulario-palabras: {n_classes} | Viñetas (grupos): {n_groups}")
 print(f"  Features por muestra: {X.shape[1]}")
 
 # ── Integridad del dataset (ítem 4) ──────────────────────────────────────────
@@ -352,7 +352,7 @@ ax5.set_xticks(x_pos)
 ax5.set_xticklabels([f"F{f}" for f in folds])
 ax5.legend(fontsize=8)
 
-# ── Plot 6: Distribución top-30 clases ────────────────────────────────────────
+# ── Plot 6: Distribución top-30 LSP - Vocabulario-palabras ────────────────────────────────────────
 ax6 = fig.add_subplot(gs[2, :2])
 label_counts = Counter(y_list)
 top30 = label_counts.most_common(30)
@@ -366,7 +366,7 @@ ax6.set_yticks(range(len(top30)))
 ax6.set_yticklabels(top_labels, fontsize=7)
 ax6.invert_yaxis()
 ax6.set_xlabel("Número de muestras")
-ax6.set_title(f"Top 30 clases más frecuentes\n({n_classes} clases totales, ítem 4 — sin cambios de data)")
+ax6.set_title(f"Top 30 LSP - Vocabulario-palabras más frecuentes\n({n_classes} LSP - Vocabulario-palabras totales, ítem 4 — sin cambios de data)")
 for i, v in enumerate(top_counts):
     ax6.text(v + 0.1, i, str(v), va="center", fontsize=7)
 

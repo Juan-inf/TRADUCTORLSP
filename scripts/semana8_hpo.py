@@ -96,12 +96,12 @@ pkl_paths_sorted = sorted(
 )
 dataset_md5 = hashlib.md5("\n".join(pkl_paths_sorted).encode()).hexdigest()
 
-print(f"  Muestras: {n_samples} | Clases: {n_classes} | Features: {X.shape[1]}")
+print(f"  Muestras: {n_samples} | LSP - Vocabulario-palabras: {n_classes} | Features: {X.shape[1]}")
 print(f"  Dataset MD5: {dataset_md5}")
 
 # ── Espacio de búsqueda ───────────────────────────────────────────────────────
 #
-# Dos modelos de árbol (escalan bien con 1086 clases — O(n_samples), no O(n_classes)):
+# Dos modelos de árbol (escalan bien con 1086 LSP - Vocabulario-palabras — O(n_samples), no O(n_classes)):
 #   rf — RandomForestClassifier (best splits, baja varianza, mayor sesgo)
 #   et — ExtraTreesClassifier   (splits aleatorios, mayor varianza, más rápido que RF)
 

@@ -124,7 +124,7 @@ def main(args):
 
     if args.max_videos:
         df_valid = df_valid.head(args.max_videos)
-        print(f"Modo debug: {args.max_videos} videos")
+        print(f"Modo debug: {args.max_videos} LSP - Palabras")
 
     # ── 1. Construir manifest de segmentos (solo metadata) ────────────────
     print("\n1. Construyendo manifest de segmentos...")

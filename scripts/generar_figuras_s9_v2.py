@@ -120,7 +120,7 @@ print(f"  → {out}")
 # ─── FIGURA 11 — CURVAS PR / ROC APROXIMADAS ─────────────────────────────────
 print("Generando s9_fig11_pr_roc.png...")
 fig, axes = plt.subplots(1, 2, figsize=(12, 5), facecolor=BG)
-fig.suptitle("Curvas PR y ROC Aproximadas — LSTM Bidir S9 (482 clases)",
+fig.suptitle("Curvas PR y ROC Aproximadas — LSTM Bidir S9 (482 LSP - Vocabulario-palabras)",
              fontsize=12, fontweight="bold")
 
 # Parámetros reales del LSTM S9
@@ -129,12 +129,12 @@ acc_test = 0.0262
 f1_test = 0.0109
 
 # Aproximar curva ROC usando distribución de confianzas
-# Con 482 clases sobreajustadas, la distribución de scores es bimodal:
+# Con 482 LSP - Vocabulario-palabras sobreajustadas, la distribución de scores es bimodal:
 # - Para la clase correcta: score alto en ~2.62% de los casos
-# - Para las demás clases: score bajo pero variable
+# - Para las demás LSP - Vocabulario-palabras: score bajo pero variable
 
 fpr_vals = np.linspace(0, 1, 200)
-# Modelo con AUC ≈ 0.68 (significativamente mejor que azar=0.5 para 482 clases)
+# Modelo con AUC ≈ 0.68 (significativamente mejor que azar=0.5 para 482 LSP - Vocabulario-palabras)
 auc_approx = 0.68
 tpr_vals = fpr_vals ** (1 / (auc_approx / (1 - auc_approx) + 0.5))
 tpr_vals = np.clip(1.2 * fpr_vals**0.45, 0, 1)
@@ -149,7 +149,7 @@ ax.set_title("A. Curva ROC — macro-promedio")
 ax.legend(fontsize=9)
 ax.set_aspect("equal")
 
-# Curva PR — con 482 clases, precision baseline = 1/482 ≈ 0.002
+# Curva PR — con 482 LSP - Vocabulario-palabras, precision baseline = 1/482 ≈ 0.002
 recall_vals = np.linspace(0, 1, 200)
 precision_base = 1.0 / n_classes
 # Área bajo PR ≈ AP ≈ 0.035 (cercano al F1)
@@ -229,7 +229,7 @@ print(f"  → {out}")
 # ─── FIGURA 13 — RELIABILITY DIAGRAM (CALIBRACIÓN) ──────────────────────────
 print("Generando s9_fig13_calibracion.png...")
 fig, axes = plt.subplots(1, 2, figsize=(12, 5), facecolor=BG)
-fig.suptitle("Calibración de Confianza — LSTM Bidir S9 (482 clases) vs RF S8",
+fig.suptitle("Calibración de Confianza — LSTM Bidir S9 (482 LSP - Vocabulario-palabras) vs RF S8",
              fontsize=11, fontweight="bold")
 
 # LSTM S9: modelo sobreconfiado (typical of overfit LSTM)

@@ -52,9 +52,9 @@ with open(DATA_DIR / "lstm_label2idx.json", encoding="utf-8") as f:
     label2idx = json.load(f)
 idx2label = {int(v): k for k, v in label2idx.items()}
 
-print(f"  X: {X_all.shape}  |  clases: {n_classes}")
+print(f"  X: {X_all.shape}  |  LSP - Vocabulario-palabras: {n_classes}")
 
-# ── Filtrar clases con < 2 muestras y re-mapear ───────────────────────────────
+# ── Filtrar LSP - Vocabulario-palabras con < 2 muestras y re-mapear ───────────────────────────────
 
 counts    = Counter(y_all.tolist())
 keep_mask = np.array([counts[int(y)] >= 2 for y in y_all])
@@ -68,14 +68,14 @@ y_all     = np.array([remap[int(v)] for v in y_raw], dtype=np.int64)
 n_classes = len(old_ids)
 idx2label = {remap[old]: idx2label[old] for old in old_ids}
 label2idx = {v: k for k, v in idx2label.items()}
-print(f"  Muestras filtradas: {len(X_all)}  |  Clases ≥2: {n_classes}")
+print(f"  Muestras filtradas: {len(X_all)}  |  LSP - Vocabulario-palabras ≥2: {n_classes}")
 
 # ── Splits estratificados 70/15/15 ───────────────────────────────────────────
 
 sss1 = StratifiedShuffleSplit(n_splits=1, test_size=0.30, random_state=SEED)
 tr_idx, tmp_idx = next(sss1.split(X_all, y_all))
 
-# Segundo split: no estratificado (evita clases con 1 muestra en tmp)
+# Segundo split: no estratificado (evita LSP - Vocabulario-palabras con 1 muestra en tmp)
 rng     = np.random.default_rng(SEED)
 perm    = rng.permutation(len(tmp_idx))
 half    = len(tmp_idx) // 2
@@ -111,7 +111,7 @@ class SignDataset(Dataset):
                 x[:, 108:129] = 1.0 - x[:, 108:129]
         return x, self.y[i]
 
-# WeightedRandomSampler para balancear clases en train
+# WeightedRandomSampler para balancear LSP - Vocabulario-palabras en train
 class_counts = Counter(y_tr.tolist())
 weights = [1.0 / class_counts[int(c)] for c in y_tr]
 sampler = WeightedRandomSampler(weights, num_samples=len(weights), replacement=True)

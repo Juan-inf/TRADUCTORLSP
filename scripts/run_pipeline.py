@@ -76,13 +76,13 @@ def stage_eda(args):
         json.dump({str(k): v for k, v in weights.items()}, f, indent=2)
 
     print(f"  Videos válidos: {df['valido'].sum()}")
-    print(f"  Clases: {n_cls}")
+    print(f"  LSP - Vocabulario-palabras: {n_cls}")
     print(f"  Manifest: data/manifest.csv")
     return df
 
 
 def stage_preprocess(args):
-    print("\n[2/5] Preprocesamiento de videos y landmarks...")
+    print("\n[2/5] Preprocesamiento de LSP - Palabras y landmarks...")
     from src.preprocessing.video_preprocessor import VideoPreprocessor
     from src.preprocessing.landmark_extractor import LandmarkExtractor
     from src.dataset.lsp_dataset import create_splits

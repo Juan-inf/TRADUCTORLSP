@@ -111,7 +111,7 @@ def load_dataset():
     label2idx = {v: k for k, v in idx2label.items()}
 
     print(f"\nDataset S10v2 (mismo dataset, mejor entrenamiento):")
-    print(f"  Muestras: {len(X)}  |  Clases ≥2: {n_classes}  |  Grupos: {len(set(groups.tolist()))}")
+    print(f"  Muestras: {len(X)}  |  LSP - Vocabulario-palabras ≥2: {n_classes}  |  Grupos: {len(set(groups.tolist()))}")
     return X, y, groups, n_classes, label2idx, idx2label
 
 
@@ -460,10 +460,10 @@ cls_present  = sorted(set(te_true_np.tolist()))
 f1_present   = [(idx2label.get(c, str(c)), float(f1_per_class[c])) for c in cls_present]
 f1_sorted    = sorted(f1_present, key=lambda x: x[1], reverse=True)
 
-print(f"\n  Top-5 clases (mejor F1 en test):")
+print(f"\n  Top-5 LSP - Vocabulario-palabras (mejor F1 en test):")
 for label, score in f1_sorted[:5]:
     print(f"    {label:<25} F1={score:.4f}")
-print(f"  Bottom-5 clases (peor F1 en test):")
+print(f"  Bottom-5 LSP - Vocabulario-palabras (peor F1 en test):")
 for label, score in f1_sorted[-5:]:
     print(f"    {label:<25} F1={score:.4f}")
 

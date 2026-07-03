@@ -257,7 +257,7 @@ def create_splits(
     """
     df = pd.read_csv(manifest_csv)
 
-    # Detectar si es manifest de segmentos (tiene start_frame) o de videos
+    # Detectar si es manifest de segmentos (tiene start_frame) o de LSP - Palabras
     is_segments = 'start_frame' in df.columns
     group_col = 'num_vineta' if 'num_vineta' in df.columns else 'clase'
 

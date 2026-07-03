@@ -86,7 +86,7 @@ for src_dir in PKL_SOURCES:
     print(f"  {src_dir.name}: {loaded} muestras cargadas")
 
 print(f"\nTotal muestras: {len(X_list)}")
-print(f"Clases únicas:  {len(set(y_list))}")
+print(f"LSP - Vocabulario-palabras únicas:  {len(set(y_list))}")
 
 # Distribución
 conteo = Counter(y_list)
@@ -104,7 +104,7 @@ X = np.array(X_list, dtype=np.float32)  # [N, 30, 150]
 y = np.array([label2idx[l] for l in y_list], dtype=np.int64)
 
 print(f"\nX shape: {X.shape}  y shape: {y.shape}")
-print(f"Ejemplo clases: {classes[:8]}")
+print(f"Ejemplo LSP - Vocabulario-palabras: {classes[:8]}")
 
 # ── Guardar ───────────────────────────────────────────────────────────────────
 
@@ -114,4 +114,4 @@ print(f"\n✅ {npz_path}  ({npz_path.stat().st_size/1e6:.1f} MB)")
 
 with open(OUT_DIR / "lstm_label2idx.json", "w", encoding="utf-8") as f:
     json.dump(label2idx, f, ensure_ascii=False, indent=2)
-print(f"✅ data/lstm_label2idx.json  ({len(label2idx)} clases)")
+print(f"✅ data/lstm_label2idx.json  ({len(label2idx)} LSP - Vocabulario-palabras)")

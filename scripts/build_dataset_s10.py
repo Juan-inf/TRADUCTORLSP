@@ -103,7 +103,7 @@ for src_dir, src_name, is_abc in PKL_SOURCES:
         print(f"  {src_name}: {loaded} muestras cargadas")
 
 print(f"\n  Total muestras : {len(X_list)}")
-print(f"  Clases únicas  : {len(set(y_list))}")
+print(f"  LSP - Vocabulario-palabras únicas  : {len(set(y_list))}")
 
 # ── Construir arrays ──────────────────────────────────────────────────────────
 
@@ -124,15 +124,15 @@ groups_int      = np.array([group2int[g] for g in group_list], dtype=np.int32)
 
 vals = sorted(counts.values(), reverse=True)
 print(f"  Muestras/clase: min={min(vals)}  max={max(vals)}  media={np.mean(vals):.1f}")
-print(f"  Clases con ≥2  : {sum(1 for v in vals if v >= 2)}")
-print(f"  Clases con ≥5  : {sum(1 for v in vals if v >= 5)}")
+print(f"  LSP - Vocabulario-palabras con ≥2  : {sum(1 for v in vals if v >= 2)}")
+print(f"  LSP - Vocabulario-palabras con ≥5  : {sum(1 for v in vals if v >= 5)}")
 
 # Distribución por fuente
 for src_name in ["pkl", "glosas", "abecedario"]:
     mask  = np.array([g.startswith(src_name) for g in group_list])
     n_src = int(mask.sum())
     cls_src = len(set(np.array(y_list)[mask]))
-    print(f"  {src_name:<12}: {n_src:>4} muestras  {cls_src:>4} clases")
+    print(f"  {src_name:<12}: {n_src:>4} muestras  {cls_src:>4} LSP - Vocabulario-palabras")
 
 # ── Guardar ───────────────────────────────────────────────────────────────────
 
@@ -144,7 +144,7 @@ print(f"\n✅ {npz_path}  ({npz_path.stat().st_size / 1e6:.1f} MB)")
 json_path = OUT_DIR / "s10_label2idx.json"
 with open(json_path, "w", encoding="utf-8") as f:
     json.dump(label2idx, f, ensure_ascii=False, indent=2)
-print(f"✅ {json_path}  ({len(label2idx)} clases)")
+print(f"✅ {json_path}  ({len(label2idx)} LSP - Vocabulario-palabras)")
 
 # Guardar también groups mapping
 gmap_path = OUT_DIR / "s10_groups.json"

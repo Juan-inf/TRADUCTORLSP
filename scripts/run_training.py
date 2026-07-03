@@ -189,7 +189,7 @@ def main(args):
     with open(DATA_DIR / "label2idx.json") as f:
         label2idx = json.load(f)
     n_classes = len(label2idx)
-    print(f"Clases: {n_classes} | Segmentos: {len(df)}")
+    print(f"LSP - Vocabulario-palabras: {n_classes} | Segmentos: {len(df)}")
 
     df_train = df[df['split'] == 'train']
     df_val   = df[df['split'] == 'val']
@@ -201,7 +201,7 @@ def main(args):
     val_ds   = LSPSegmentDataset(df_val,   label2idx, args.img_size, augment=False)
     test_ds  = LSPSegmentDataset(df_test,  label2idx, args.img_size, augment=False)
 
-    # WeightedRandomSampler para balancear clases
+    # WeightedRandomSampler para balancear LSP - Vocabulario-palabras
     class_counts = df_train['clase'].value_counts()
     weights = [1.0 / class_counts[row['clase']] for _, row in df_train.iterrows()]
     sampler = WeightedRandomSampler(weights, len(weights), replacement=True)

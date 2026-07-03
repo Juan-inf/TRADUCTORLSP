@@ -1,14 +1,7 @@
 """
-Traductor LSP → Castellano
-MediaPipe Holistic + LSTM Bidireccional (482 señas LSP)
+Traductor LSP → Castellano  — Sprint 13
+MediaPipe Holistic + BiLSTM Bidireccional S13 (193 señas LSP, F1=0.370, Top-5=58%)
 Tiempo real desde cámara web o video pregrabado.
-
-Correcciones S9.1:
-- Video: ventana deslizante frame a frame (no muestreo de 30 frames)
-- Traducción progresiva en tiempo real
-- Panel de transcripción dinámico con confianza por seña
-- Detección continua de cuerpo completo
-- Exportación a TXT
 """
 
 import json, time, pickle, warnings, tempfile
@@ -30,9 +23,9 @@ import onnxruntime as ort
 
 # ── Configuración ─────────────────────────────────────────────────────────────
 
-LSTM_ONNX  = "checkpoints/lstm_signs.onnx"
+LSTM_ONNX  = "checkpoints/bilstm_s13.onnx"
 RF_CKPT    = "checkpoints/rf_signs.pkl"
-LABEL_PATH = "data/lstm_label2idx.json"
+LABEL_PATH = "data/s13_label2idx.json"
 
 N_FRAMES    = 30
 N_DIMS      = 150   # pose(33×2) + left_hand(21×2) + right_hand(21×2)
@@ -86,9 +79,9 @@ def load_models():
                      if p in avail]
             lstm_session = ort.InferenceSession(LSTM_ONNX, providers=provs)
             inp = lstm_session.get_inputs()[0]
-            print(f"LSTM ONNX listo — input={inp.name} {inp.shape} — {len(idx2label)} etiquetas")
+            print(f"BiLSTM S13 ONNX listo — input={inp.name} {inp.shape} — {len(idx2label)} etiquetas")
         except Exception as e:
-            print(f"LSTM error: {e}")
+            print(f"BiLSTM S13 error: {e}")
 
     if Path(RF_CKPT).exists() and lstm_session is None:
         try:
@@ -201,10 +194,10 @@ def run_inference(kp_seq: np.ndarray) -> dict | None:
         probs /= probs.sum()
         idx    = int(probs.argmax())
         top3   = [{"clase": idx2label.get(int(i), str(i)), "prob": float(probs[i])}
-                  for i in np.argsort(probs)[::-1][:3]]
+                  for i in np.argsort(probs)[::-1][:5]]
         seña   = idx2label.get(idx, "?")
         conf   = float(probs[idx])
-        modelo = "LSTM-LSP"
+        modelo = "BiLSTM-S13"
 
     elif rf_model is not None:
         feat  = kp_seq_to_rf_features(kp_seq).reshape(1, -1)
@@ -375,7 +368,7 @@ def process_webcam_frame(frame):
             f"**Confianza:** {conf:.1f}%  |  **Modelo:** {r['modelo']}  |  "
             f"**Latencia:** {r['latency_ms']:.0f} ms"
         )
-        top3_md = "**Top 3:**\n" + "\n".join(
+        top3_md = "**Top 5:**\n" + "\n".join(
             f"{i+1}. {t['clase']} — {t['prob']*100:.1f}%"
             for i, t in enumerate(r.get("top3", []))
         )
@@ -608,7 +601,7 @@ def process_image(image):
         f"**Confianza:** {conf:.1f}%  |  **Modelo:** {result['modelo']}  |  "
         f"**Latencia:** {result['latency_ms']:.0f} ms"
     )
-    top3_md = "**Top 3:**\n" + "\n".join(
+    top3_md = "**Top 5:**\n" + "\n".join(
         f"{i+1}. {t['clase']} — {t['prob']*100:.1f}%"
         for i, t in enumerate(result.get("top3", []))
     )
@@ -629,10 +622,10 @@ CSS = """
 with gr.Blocks(title="Traductor LSP → Castellano", css=CSS) as demo:
 
     gr.Markdown(f"""
-# 🤟 Traductor LSP → Castellano
+# 🤟 Traductor LSP → Castellano — Sprint 13
 **Sistema integral de comunicación inclusiva** — Lengua de Señas Peruana a texto en tiempo real.
 MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
-LSTM Bidireccional clasifica la seña en **{len(idx2label)}** clases LSP.
+**BiLSTM S13** clasifica la seña en **{len(idx2label)}** clases LSP | F1=0.370 | Top-5=58.2%
     """)
 
     with gr.Tabs():
@@ -748,13 +741,13 @@ Feature extraction: 150 dims/frame
      ↓
 Buffer deslizante [{N_FRAMES} frames × 150 dims], stride={STRIDE} frames (overlap 50%)
      ↓
-LSTM Bidireccional + Attention → {len(idx2label)} señas LSP
+BiLSTM S13: proj(150→128) → LayerNorm → BiLSTM(128,256) → TemporalAttention → head(512→{len(idx2label)})
      ↓
 Construcción de texto:
      Letras individuales → se concatenan (H+O+L+A → "HOLA")
      Palabras/frases → se unen con espacios
      ↓
-Transcripción en tiempo real + Confianza por seña + Exportar TXT
+Transcripción en tiempo real + Top-5 candidatos + Confianza + Exportar TXT
 ```
 
 ## Ventana deslizante
@@ -766,23 +759,28 @@ Transcripción en tiempo real + Confianza por seña + Exportar TXT
 | FPS efectivos procesados | ~15 fps |
 | Umbral de confianza | {CONF_UMBRAL*100:.0f}% |
 
-## Dataset de entrenamiento
+## Dataset S13 de entrenamiento
 
 | Fuente | Muestras | Clases |
 |--------|---------|--------|
-| Keypoints/pkl (viñetas segmentadas) | 3,684 | 1,086 |
-| Glosas/MP4 (grabaciones individuales) | 252 | 143 |
-| **Total** | **3,936** | **1,141** |
+| PUCP base (viñetas + glosas + abecedario) | ~7,300 | ~180 |
+| PUCP-305 (MP4 originales) | ~2,450 | — |
+| PUCP-AEC (intérprete TV) | 830 | — |
+| PUCP-DGI156 (múltiples señantes) | 3,642 | — |
+| LSA64 (señas argentinas) | 3,200 | — |
+| **Total (≥5 muestras/clase)** | **14,980** | **193** |
 
-## Modelo LSTM Bidireccional S9
+## Modelo BiLSTM S13
 
 | Parámetro | Valor |
 |-----------|-------|
-| Arquitectura | LSTM Bidir 2 capas + Temporal Attention |
-| Parámetros | 2.6M |
-| hidden=256, dropout=0.35 | |
-| F1-macro val | 0.0365 |
-| Latencia ONNX | <50 ms |
+| Arquitectura | proj(150→128) → LayerNorm → BiLSTM(128,256,1capa) → TemporalAttention |
+| Parámetros | ~992K |
+| hidden=256, dropout=0.20, lr=1.71e-3 | |
+| F1-macro test | **0.3696** (+1124% vs baseline S10) |
+| Top-3 accuracy | **53.0%** |
+| Top-5 accuracy | **58.2%** |
+| Latencia ONNX | <5 ms |
             """)
 
 

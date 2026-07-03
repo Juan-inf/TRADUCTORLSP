@@ -154,7 +154,7 @@ def s9_fig02_dataset():
     fig = plt.figure(figsize=(14, 5))
     gs  = gridspec.GridSpec(1, 3, figure=fig)
 
-    # Panel 1 — Muestras y clases por fuente
+    # Panel 1 — Muestras y LSP - Vocabulario-palabras por fuente
     ax1 = fig.add_subplot(gs[0])
     fuentes   = ["Keypoints\n/pkl\n(viñetas)", "Glosas\n/glosas_pkl\n(MP4+EAF)",
                  "Abecedario\n/abec_pkl\n(JPG)"]
@@ -173,8 +173,8 @@ def s9_fig02_dataset():
         ax1b.text(bar.get_x()+bar.get_width()/2, bar.get_height()+5,
                   str(v), ha="center", fontsize=9)
     ax1.set_xticks(x); ax1.set_xticklabels(fuentes, fontsize=8)
-    ax1.set_ylabel("Muestras"); ax1b.set_ylabel("Clases")
-    ax1.set_title("Muestras y Clases por Fuente\n(dataset_lstm.npz)")
+    ax1.set_ylabel("Muestras"); ax1b.set_ylabel("LSP - Vocabulario-palabras")
+    ax1.set_title("Muestras y LSP - Vocabulario-palabras por Fuente\n(dataset_lstm.npz)")
     p1 = mpatches.Patch(color="gray", alpha=0.9, label="Muestras (eje izq.)")
     p2 = mpatches.Patch(color="gray", alpha=0.5, hatch="//", label="Clases (eje der.)")
     ax1.legend(handles=[p1,p2], fontsize=8, loc="upper right")
@@ -195,8 +195,8 @@ def s9_fig02_dataset():
     ax2.hist(counts_despues, bins=bins, alpha=0.6, color="#3498db",
              label=f"Después filtro\n(482 clases, ≥2 muestras)", edgecolor="white")
     ax2.axvline(2, ls="--", color="black", lw=1.2, label="Umbral ≥ 2")
-    ax2.set_xlabel("Muestras por clase"); ax2.set_ylabel("N.° de clases")
-    ax2.set_title("Filtrado de clases con <2 muestras\n1,163 → 482 clases activas")
+    ax2.set_xlabel("Muestras por clase"); ax2.set_ylabel("N.° de LSP - Vocabulario-palabras")
+    ax2.set_title("Filtrado de LSP - Vocabulario-palabras con <2 muestras\n1,163 → 482 LSP - Vocabulario-palabras activas")
     ax2.legend(fontsize=8); ax2.set_xlim(0, 21)
 
     # Panel 3 — Pie chart composición final
@@ -211,7 +211,7 @@ def s9_fig02_dataset():
         vals, labels=labels_pie, colors=wedge_colors, autopct="%1.0f%%",
         startangle=90, textprops={"fontsize": 9})
     for at in autotexts: at.set_fontsize(9)
-    ax3.set_title(f"Composición dataset filtrado\n(~{int(sum(vals)):,} muestras, 482 clases)")
+    ax3.set_title(f"Composición dataset filtrado\n(~{int(sum(vals)):,} muestras, 482 LSP - Vocabulario-palabras)")
 
     plt.suptitle("Sprint 9 — Dataset Combinado: Viñetas + Glosas + Abecedario\n"
                  "Total: 7,536 instancias | 1,163 clases | 150 dims/frame × 30 frames",
@@ -435,7 +435,7 @@ def s9_fig06_ablacion_rf_vs_lstm():
                 fontsize=9, color=col, fontweight="bold")
     ax.set_xticks(x); ax.set_xticklabels(metricas)
     ax.set_ylabel("Valor de métrica")
-    ax.set_title("RF (S8) vs LSTM Bidir+Attn (S9)\nMismas clases (482 filtradas)")
+    ax.set_title("RF (S8) vs LSTM Bidir+Attn (S9)\nMismas LSP - Vocabulario-palabras (482 filtradas)")
     ax.legend(fontsize=8, loc="upper right")
 
     # Panel 2 — Tabla comparativa de configuraciones

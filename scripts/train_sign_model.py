@@ -66,8 +66,8 @@ labels = sorted(set(y_list))
 label2idx = {c: i for i, c in enumerate(labels)}
 y      = np.array([label2idx[l] for l in y_list])
 
-print(f"  Muestras: {len(X)} | Clases: {len(labels)} | Features: {X.shape[1]}")
-print(f"  Ejemplo clases: {labels[:8]}")
+print(f"  Muestras: {len(X)} | LSP - Vocabulario-palabras: {len(labels)} | Features: {X.shape[1]}")
+print(f"  Ejemplo LSP - Vocabulario-palabras: {labels[:8]}")
 
 # Guardar mapeo de etiquetas
 with open(ROOT / "data" / "sign_label2idx.json", "w", encoding="utf-8") as f:
@@ -109,6 +109,6 @@ with open(ckpt_path, "wb") as f:
 
 size_mb = ckpt_path.stat().st_size / 1e6
 print(f"\nModelo guardado: {ckpt_path} ({size_mb:.1f} MB)")
-print(f"  Clases (muestra): {labels[:5]}...")
-print(f"  Total clases LSP: {len(labels)}")
+print(f"  LSP - Vocabulario-palabras (muestra): {labels[:5]}...")
+print(f"  Total LSP - Vocabulario-palabras LSP: {len(labels)}")
 print("\n[LISTO] Usa checkpoints/rf_signs.pkl para inferencia en tiempo real.")

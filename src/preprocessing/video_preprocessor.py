@@ -187,7 +187,7 @@ class VideoPreprocessor:
                 continue
             tasks.append((row['ruta'], str(out_path)))
 
-        print(f"Videos a procesar: {len(tasks)}")
+        print(f"LSP - Palabras a procesar: {len(tasks)}")
 
         errors = []
         with tqdm(total=len(tasks)) as pbar:

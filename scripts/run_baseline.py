@@ -258,7 +258,7 @@ def main(args):
     log("=" * 70)
     log("BASELINE CLÁSICO — Sistema LSP (Lengua de Señas Peruana)")
     log("=" * 70)
-    log(f"Dataset: 26 clases | Sliding window 30f stride15")
+    log(f"Dataset: 26 LSP - Vocabulario-palabras | Sliding window 30f stride15")
     log()
 
     # ── Cargar datos ──────────────────────────────────────────────────────
@@ -385,11 +385,11 @@ def main(args):
     log("5. RIESGOS Y OBSERVACIONES")
     log()
     log("  [RIESGO] Desbalance 11:1 (vineta_003: 1137 segs vs vineta_027: 102 segs)")
-    log("           → F1-macro penaliza esto; F1-weighted favorece clases mayoritarias")
+    log("           → F1-macro penaliza esto; F1-weighted favorece LSP - Vocabulario-palabras mayoritarias")
     log()
     log("  [RIESGO] Data leakage: frames consecutivos del mismo video")
     log("           → MITIGADO: splits a nivel de VIDEO (no de segmento)")
-    log("           → Test incluye SOLO videos no vistos en train/val")
+    log("           → Test incluye SOLO LSP - Palabras no vistos en train/val")
     log()
     log("  [RIESGO] Concept drift: resoluciones distintas (480p vs 1080p)")
     log("           → Normalización + resize mitigan parcialmente")
@@ -428,7 +428,7 @@ def main(args):
     log("=" * 70)
     log("RESUMEN EJECUTIVO")
     log("=" * 70)
-    log(f"  Dataset:      26 clases | 7,235 segmentos | desbalance 11:1")
+    log(f"  Dataset:      26 LSP - Vocabulario-palabras | 7,235 segmentos | desbalance 11:1")
     log(f"  Random:       Acc={1/26:.4f} | F1-macro=0.038")
     for r in results:
         log(f"  {r['model']:<30s} Acc={r['accuracy']:.4f} | F1-m={r['f1_macro']:.4f}")

@@ -95,7 +95,7 @@ def load_dataset():
         label2idx = json.load(f)
     idx2label = {int(v): k for k, v in label2idx.items()}
 
-    # Filtrar clases con < 2 muestras y re-mapear
+    # Filtrar LSP - Vocabulario-palabras con < 2 muestras y re-mapear
     counts    = Counter(y.tolist())
     keep_mask = np.array([counts[int(v)] >= 2 for v in y])
     X, y_raw, groups = X[keep_mask], y[keep_mask], groups[keep_mask]
@@ -108,7 +108,7 @@ def load_dataset():
     label2idx = {v: k for k, v in idx2label.items()}
 
     print(f"\nDataset S10:")
-    print(f"  Muestras: {len(X)}  |  Clases ≥2: {n_classes}")
+    print(f"  Muestras: {len(X)}  |  LSP - Vocabulario-palabras ≥2: {n_classes}")
     return X, y, groups, n_classes, label2idx, idx2label
 
 

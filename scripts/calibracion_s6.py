@@ -76,7 +76,7 @@ le    = LabelEncoder()
 y_enc = le.fit_transform(labels)
 
 print(f"  Cargados: {len(seqs)} segmentos (errores={errores}) en {time.time()-t0:.1f}s")
-print(f"  Shape secuencia: {seqs.shape}  Clases: {len(le.classes_)}")
+print(f"  Shape secuencia: {seqs.shape}  LSP - Vocabulario-palabras: {len(le.classes_)}")
 print(f"  Viñetas únicas (grupos): {np.unique(video_ids).tolist()}")
 
 N_KP   = seqs.shape[2]   # 75
@@ -490,7 +490,7 @@ def ece(y_true_bin, y_prob_1d, n_bins=10):
 
 
 # Calcular ECE por clase y promedio
-# pipe_cal.classes_ puede tener menos clases que le.classes_ si alguna
+# pipe_cal.classes_ puede tener menos LSP - Vocabulario-palabras que le.classes_ si alguna
 # no apareció en el fold de entrenamiento (GroupKFold estricto por viñeta)
 trained_classes = pipe_cal.named_steps["clf"].classes_  # índices numéricos vistos
 ece_scores = []
@@ -522,12 +522,12 @@ else:
     calib_status = "❌ Mal calibrado — considerar Platt scaling o temperatura"
 print(f"  Status: {calib_status}")
 
-# Seleccionar las 6 clases con más muestras en test para graficar
+# Seleccionar las 6 LSP - Vocabulario-palabras con más muestras en test para graficar
 class_counts_te = {c: (y_te == c).sum() for c in range(len(le.classes_))}
 top6_cls = sorted(class_counts_te, key=lambda c: -class_counts_te[c])[:6]
 
 fig, axes = plt.subplots(2, 3, figsize=(14, 9))
-fig.suptitle(f"Curvas de Calibración por Clase (Top-6 clases en test)\n"
+fig.suptitle(f"Curvas de Calibración por Clase (Top-6 LSP - Vocabulario-palabras en test)\n"
              f"ECE global = {ece_mean:.4f} — {calib_status}",
              fontsize=10, fontweight="bold")
 
