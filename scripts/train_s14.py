@@ -1,12 +1,14 @@
 """
-train_s14.py — Sprint 14: BiLSTM S14 con normalización por muestra
+train_s14.py — Sprint 14: BiLSTM S14 — solo LSP peruano + normalización por muestra
 
 Diferencias vs S13:
+  Dataset        : dataset_s13.npz filtrado — se elimina fuente 'lsa64' (señas argentinas)
+                   Solo LSP peruano: AEC, DGI156, PUCP305, Abecedario, Glosa, Vineta
+                   11,780 muestras → 158 clases (vs 193 en S13)
   Normalización  : per-sample z-score [30×150] → elimina domain shift entre fuentes
   HE3 holdout    : source-stratified (cada fuente aporta proporcionalmente al holdout)
-  Dataset        : dataset_s13.npz (mismo que S13, sin recolectar datos nuevos)
   Warm-start     : S13 best params
-  Objetivo       : pasar HE3 KS-test (S13 falló KS p=0.0000)
+  Objetivo       : dataset LSP puro + pasar HE3 KS-test
 
 Arquitectura:   proj(150→128) → LayerNorm → BiLSTM(128,256) → TemporalAttention → head
 Checkpoints:    bilstm_s14.pt / bilstm_s14.onnx
@@ -66,7 +68,7 @@ MIN_SAMPLES = _args.min_muestras
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 print(f"Device  : {DEVICE}")
-print(f"Sprint 14 — BiLSTM S14 | per-sample norm | source-stratified HE3 | min_muestras={MIN_SAMPLES}")
+print(f"Sprint 14 — BiLSTM S14 | solo LSP peruano (sin lsa64) | per-sample norm | min_muestras={MIN_SAMPLES}")
 print("=" * 65)
 
 
@@ -101,6 +103,16 @@ def load_dataset():
     y_raw  = data["y"]
     groups = data["groups"]
 
+    # Filtrar fuente lsa64 (señas argentinas) — solo LSP peruano
+    src_path = DATA_DIR / "s13_sources.npy"
+    if not src_path.exists():
+        raise FileNotFoundError("s13_sources.npy no encontrado.")
+    sources_raw = np.load(src_path, allow_pickle=True)
+    mask_lsp    = sources_raw != 'lsa64'
+    X_raw, y_raw, groups = X_raw[mask_lsp], y_raw[mask_lsp], groups[mask_lsp]
+    sources_raw = sources_raw[mask_lsp]
+    print(f"  Fuente lsa64 eliminada. Muestras LSP puras: {len(X_raw)}")
+
     json_path = DATA_DIR / "s13_label2idx.json"
     with open(json_path, encoding="utf-8") as f:
         label2idx = json.load(f)
@@ -109,6 +121,7 @@ def load_dataset():
     counts = Counter(y_raw.tolist())
     keep   = np.array([counts[int(v)] >= MIN_SAMPLES for v in y_raw])
     X_raw, y_raw, groups = X_raw[keep], y_raw[keep], groups[keep]
+    sources_raw = sources_raw[keep]
 
     # Normalización por muestra (fix domain shift)
     print("  Aplicando normalización por muestra (z-score)...")
@@ -121,15 +134,15 @@ def load_dataset():
     idx2label = {remap[o]: idx2label.get(o, str(o)) for o in old_ids}
     label2idx = {v: k for k, v in idx2label.items()}
 
-    print(f"\nDataset S13 (normalizado):")
+    print(f"\nDataset S14 (solo LSP peruano, normalizado):")
     print(f"  Muestras  : {len(X)}  |  LSP - Vocabulario-palabras activas: {n_cl}")
     cnt = Counter(y.tolist())
     v   = sorted(cnt.values())
     print(f"  Samples/cls: min={v[0]} max={v[-1]} mean={np.mean(v):.1f} median={np.median(v):.0f}")
-    return X, y, groups, n_cl, label2idx, idx2label
+    return X, y, groups, sources_raw, n_cl, label2idx, idx2label
 
 
-X_all, y_all, groups_all, n_classes, label2idx, idx2label = load_dataset()
+X_all, y_all, groups_all, sources_all, n_classes, label2idx, idx2label = load_dataset()
 
 # Holdout test fijo 15%
 sss = StratifiedShuffleSplit(n_splits=1, test_size=0.15, random_state=SEED)
@@ -138,11 +151,8 @@ X_tv, y_tv, g_tv = X_all[tv_idx], y_all[tv_idx], groups_all[tv_idx]
 X_te, y_te        = X_all[te_idx],  y_all[te_idx]
 print(f"  Train+Val : {len(X_tv)}  |  Test holdout: {len(X_te)}")
 
-# Group holdout 20% para HE3 — source-stratified
-# Usamos GroupShuffleSplit normal pero estratificamos por source prefix
-# group IDs tienen forma "source/..." → extraer source para estratificación
-sources_tv = np.load(DATA_DIR / "s13_sources.npy")[tv_idx] \
-    if (DATA_DIR / "s13_sources.npy").exists() else None
+# Group holdout 20% para HE3
+sources_tv = sources_all[tv_idx]
 
 gss = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=SEED)
 core_idx, group_hold_idx = next(gss.split(X_tv, y_tv, groups=g_tv))
@@ -151,9 +161,8 @@ g_core           = g_tv[core_idx]
 X_ghold, y_ghold = X_tv[group_hold_idx], y_tv[group_hold_idx]
 print(f"  Core train: {len(X_core)}  |  Group holdout HE3: {len(X_ghold)}")
 
-if sources_tv is not None:
-    src_ghold = sources_tv[group_hold_idx]
-    print(f"  Fuentes en group-holdout: {Counter(src_ghold.tolist())}")
+src_ghold = sources_tv[group_hold_idx]
+print(f"  Fuentes en group-holdout: {Counter(src_ghold.tolist())}")
 
 
 # ── Augmentation y Dataset ────────────────────────────────────────────────────
@@ -551,6 +560,13 @@ ckpt = {
 torch.save(ckpt, CKPT_DIR / "bilstm_s14.pt")
 print(f"  ✅ checkpoints/bilstm_s14.pt")
 
+# Guardar label maps como JSON para otros scripts
+with open(DATA_DIR / "s14_label2idx.json", "w", encoding="utf-8") as f:
+    json.dump(label2idx, f, ensure_ascii=False, indent=2)
+with open(DATA_DIR / "s14_idx2label.json", "w", encoding="utf-8") as f:
+    json.dump({str(k): v for k, v in idx2label.items()}, f, ensure_ascii=False, indent=2)
+print(f"  ✅ data/s14_label2idx.json  ({n_classes} LSP - Vocabulario-palabras)")
+
 # ── Actualizar logs/runs.csv ──────────────────────────────────────────────────
 
 fecha = datetime.date.today().strftime("%Y%m%d")
@@ -570,8 +586,8 @@ row = {
     "split":       f"StratifiedKFold({N_FOLDS})+GroupHold",
     "seed":        str(SEED),
     "n_classes":   str(n_classes),
-    "notas":       (f"Dataset S13 {len(X_all)} muestras {n_classes} clases "
-                    f"min≥{MIN_SAMPLES} per-sample-zscore fix-KS; warmstart S13 best; "
+    "notas":       (f"Dataset S14 solo-LSP {len(X_all)} muestras {n_classes} clases "
+                    f"min≥{MIN_SAMPLES} sin-lsa64 per-sample-zscore; warmstart S13 best; "
                     f"ECE {ece_pre:.3f}→{ece_post:.3f}(T={T_opt:.2f}); "
                     f"Top3={res_te['top3']:.4f} Top5={res_te['top5']:.4f}; "
                     f"HE3={'PASA' if he3['passed'] else 'FALLA'}; "
