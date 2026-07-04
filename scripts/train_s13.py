@@ -1,5 +1,5 @@
 """
-train_s13.py — Sprint 13: BiLSTM en dataset ampliado (AEC + DGI156 + LSA64)
+train_s13.py — Sprint 13: BiLSTM en dataset ampliado (AEC + DGI156 + LSP-Base)
 
 Diferencias vs S12:
   Dataset       : dataset_s13.npz  (14,980 muestras, 193 clases, mediana=50)
@@ -65,7 +65,7 @@ MIN_SAMPLES = _args.min_muestras
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 print(f"Device  : {DEVICE}")
-print(f"Sprint 13 — BiLSTM S13 | AEC+DGI156+LSA64 | warm-start S12 best | min_muestras={MIN_SAMPLES}")
+print(f"Sprint 13 — BiLSTM S13 | AEC+DGI156+LSP-Base | warm-start S12 best | min_muestras={MIN_SAMPLES}")
 print("=" * 65)
 
 # ── Cargar dataset S12 ────────────────────────────────────────────────────────

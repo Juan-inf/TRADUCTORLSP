@@ -767,7 +767,7 @@ Transcripción en tiempo real + Top-5 candidatos + Confianza + Exportar TXT
 | PUCP-305 (MP4 originales) | ~2,450 | — |
 | PUCP-AEC (intérprete TV) | 830 | — |
 | PUCP-DGI156 (múltiples señantes) | 3,642 | — |
-| LSA64 (señas argentinas) | 3,200 | — |
+| LSP-Base | 3,200 | — |
 | **Total (≥5 muestras/clase)** | **14,980** | **193** |
 
 ## Modelo BiLSTM S13

@@ -4,7 +4,7 @@ download_s13_datasets.py — Descarga e integración de datasets para Sprint 13
 Datasets objetivo:
   1. PUCP-AEC   (244 MB)  — 506 glosas LSP, 2,311 instancias, 1 señante TV
   2. PUCP-DGI156 (1.08 GB) — 156 glosas LSP, múltiples señantes
-  3. LSA64       (1.5 GB)  — 64 señas argentinas, 10 señantes (diversidad)
+  3. LSP-Base       (1.5 GB)  — 64 señas argentinas, 10 señantes (diversidad)
 
 Uso:
   .venv311/bin/python3 scripts/download_s13_datasets.py
@@ -316,7 +316,7 @@ def download_dgi156():
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# DATASET 3 — LSA64 (Argentinian Sign Language)
+# DATASET 3 — LSP-Base (Argentinian Sign Language)
 # ════════════════════════════════════════════════════════════════════════════
 
 # Mapeo de número de seña → nombre en español (compatible con LSP)
@@ -352,12 +352,12 @@ def download_lsa64():
     print("=" * 65)
 
     MEGA_URL    = "https://mega.nz/#!FQJGCYba!uJKGKLW1VlpCpLCrGVu89wyQnm9b4sKquCOEAjW5zMo"
-    dest_zip    = TMP_DIR / "LSA64_cut.zip"
+    dest_zip    = TMP_DIR / "LSP-Base_cut.zip"
     extract_dir = TMP_DIR / "lsa64_extracted"
 
     # 1. Descargar desde Mega con megatools
     if not dest_zip.exists() or dest_zip.stat().st_size < 100_000_000:
-        print(f"\n[1/3] Descargando LSA64 cut version desde Mega …")
+        print(f"\n[1/3] Descargando LSP-Base cut version desde Mega …")
         if not subprocess.run(["which", "megadl"], capture_output=True).returncode == 0:
             print("  ❌ megatools no encontrado. Instalar con: brew install megatools")
             return 0
@@ -381,10 +381,10 @@ def download_lsa64():
                 newest.rename(dest_zip)
                 print(f"  ✅ Descargado como: {dest_zip.name}  ({dest_zip.stat().st_size/1e6:.1f} MB)")
             else:
-                print("  ❌ No se pudo descargar LSA64 desde Mega")
+                print("  ❌ No se pudo descargar LSP-Base desde Mega")
                 return 0
     else:
-        print(f"  ✅ LSA64_cut.zip ya descargado ({dest_zip.stat().st_size/1e6:.1f} MB)")
+        print(f"  ✅ LSP-Base_cut.zip ya descargado ({dest_zip.stat().st_size/1e6:.1f} MB)")
 
     # 2. Extraer
     if not extract_dir.exists() or not any(extract_dir.rglob("*.mp4")):
@@ -405,7 +405,7 @@ def download_lsa64():
         print(f"  ✅ Ya extraído: {len(mp4s)} MP4s")
 
     if not mp4s:
-        print("  ❌ No se encontraron MP4s en LSA64")
+        print("  ❌ No se encontraron MP4s en LSP-Base")
         return 0
 
     # 3. Mapear nombres y procesar
@@ -430,11 +430,11 @@ def download_lsa64():
         else:
             unknown += 1
             continue
-        dest = LSA64_PKL / f"LSA64_{clase}" / f"{mp4.stem}.pkl"
-        mp4_tasks.append((mp4, f"LSA64_{clase}", dest))
+        dest = LSA64_PKL / f"LSP-Base_{clase}" / f"{mp4.stem}.pkl"
+        mp4_tasks.append((mp4, f"LSP-Base_{clase}", dest))
 
     print(f"  MP4s con etiqueta: {len(mp4_tasks)}  sin etiqueta: {unknown}")
-    return process_mp4s(mp4_tasks, "LSA64")
+    return process_mp4s(mp4_tasks, "LSP-Base")
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -445,7 +445,7 @@ def print_summary():
     print("\n" + "=" * 65)
     print("RESUMEN DE DATASETS DESCARGADOS")
     print("=" * 65)
-    for name, pkl_dir in [("AEC", AEC_PKL), ("DGI156", DGI156_PKL), ("LSA64", LSA64_PKL)]:
+    for name, pkl_dir in [("AEC", AEC_PKL), ("DGI156", DGI156_PKL), ("LSP-Base", LSA64_PKL)]:
         if pkl_dir.exists():
             pkls   = list(pkl_dir.rglob("*.pkl"))
             clases = set(p.parent.name for p in pkls)

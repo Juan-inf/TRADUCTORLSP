@@ -12,7 +12,7 @@ Mejoras vs S12 (dataset ampliado):
   │  S12 base       501     7,102     mezclado                      │
   │  + AEC          +55     +1,639    +1 intérprete                 │
   │  + DGI156       +156    ~+1,000   múltiples                     │
-  │  + LSA64        +64     +3,200    +10 señantes                  │
+  │  + LSP-Base        +64     +3,200    +10 señantes                  │
   │  S13 esperado   ~600    ~13,000   diverso                       │
   └──────────────────────────────────────────────────────────────────┘
 
@@ -61,14 +61,14 @@ LABEL_ALIAS = {
     "COMO": "CÓMO", "DONDE": "DÓNDE", "CUANDO": "CUÁNDO",
     "QUE": "QUÉ", "QUIEN": "QUIÉN", "CUANTO": "CUÁNTO",
     "LLEGÓ": "LLEGAR", "VENIR": "VENIR",
-    # LSA64 prefixes stripped for matching
+    # LSP-Base prefixes stripped for matching
 }
 
 
 def normalize_label(raw: str) -> str:
     s = raw.strip().upper()
-    # Quitar prefijo LSA64_ para intentar matching con LSP
-    if s.startswith("LSA64_"):
+    # Quitar prefijo LSP-Base_ para intentar matching con LSP
+    if s.startswith("LSP-Base_"):
         s = s[6:]
     return LABEL_ALIAS.get(s, s)
 
@@ -132,7 +132,7 @@ def main():
     MIN_SAMPLES = args.min_muestras
 
     print("=" * 65)
-    print("build_dataset_s13.py — Sprint 13: AEC + DGI156 + LSA64")
+    print("build_dataset_s13.py — Sprint 13: AEC + DGI156 + LSP-Base")
     print("=" * 65)
 
     all_sources = PKL_SOURCES_S12 + [
@@ -171,7 +171,7 @@ def main():
             if m:
                 group_id = f"{src_name}/{m.group(1)}"
             elif src_name == "lsa64":
-                # LSA64: <sign>_<subject>_<rep>.pkl → group = lsa64/S<subject>
+                # LSP-Base: <sign>_<subject>_<rep>.pkl → group = lsa64/S<subject>
                 parts = p.stem.split("_")
                 if len(parts) >= 3:
                     group_id = f"lsa64/S{parts[-2]}"
