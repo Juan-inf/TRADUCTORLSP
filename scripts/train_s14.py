@@ -62,8 +62,11 @@ import argparse
 _ap = argparse.ArgumentParser()
 _ap.add_argument("--min-muestras", type=int, default=5,
                  help="Mínimo de muestras por clase (default: 5)")
+_ap.add_argument("--skip-hpo", action="store_true",
+                 help="Saltar HPO y usar parámetros S13-best directamente")
 _args = _ap.parse_args()
 MIN_SAMPLES = _args.min_muestras
+SKIP_HPO    = _args.skip_hpo
 
 torch.manual_seed(SEED)
 np.random.seed(SEED)
@@ -426,52 +429,59 @@ def export_onnx(model, name):
 # HPO BiLSTM S14 (warm-start S13 best, 20 trials)
 # ════════════════════════════════════════════════════════════════════════════
 
-print(f"\n{'='*65}")
-print("BLOQUE A — HPO BiLSTM S14  (warm-start S13, 20 trials)")
-print(f"{'='*65}")
+if SKIP_HPO:
+    hp     = {k: S13_BEST[k] for k in ("hidden","n_layers","dropout","lr","wd","ls")}
+    f1_hpo = 0.0
+    hpo_min = 0.0
+    print(f"\n{'='*65}")
+    print("BLOQUE A — HPO omitido (--skip-hpo): usando parámetros S13-best")
+    print(f"{'='*65}")
+    print(f"  HPs: {hp}")
+else:
+    print(f"\n{'='*65}")
+    print("BLOQUE A — HPO BiLSTM S14  (warm-start S13, 20 trials)")
+    print(f"{'='*65}")
 
-from sklearn.model_selection import ShuffleSplit
-sss_hpo = ShuffleSplit(n_splits=1, test_size=0.30, random_state=SEED)
-hpo_tr, hpo_val = next(sss_hpo.split(X_core))
-Xh_tr, yh_tr   = X_core[hpo_tr],  y_core[hpo_tr]
-Xh_val, yh_val  = X_core[hpo_val], y_core[hpo_val]
+    from sklearn.model_selection import ShuffleSplit
+    sss_hpo = ShuffleSplit(n_splits=1, test_size=0.30, random_state=SEED)
+    hpo_tr, hpo_val = next(sss_hpo.split(X_core))
+    Xh_tr, yh_tr   = X_core[hpo_tr],  y_core[hpo_tr]
+    Xh_val, yh_val  = X_core[hpo_val], y_core[hpo_val]
 
+    def objective(trial):
+        hidden   = trial.suggest_categorical("hidden",   [128, 256])
+        n_layers = trial.suggest_int("n_layers", 1, 3)
+        dropout  = trial.suggest_float("dropout", 0.10, 0.45, step=0.05)
+        lr       = trial.suggest_float("lr",      5e-4, 8e-3, log=True)
+        wd       = trial.suggest_float("wd",      1e-5, 5e-4, log=True)
+        ls       = trial.suggest_float("ls",      0.05, 0.20, step=0.05)
 
-def objective(trial):
-    hidden   = trial.suggest_categorical("hidden",   [128, 256])
-    n_layers = trial.suggest_int("n_layers", 1, 3)
-    dropout  = trial.suggest_float("dropout", 0.10, 0.45, step=0.05)
-    lr       = trial.suggest_float("lr",      5e-4, 8e-3, log=True)
-    wd       = trial.suggest_float("wd",      1e-5, 5e-4, log=True)
-    ls       = trial.suggest_float("ls",      0.05, 0.20, step=0.05)
+        def make():
+            return LSPLSTMBidirS14(N_DIMS, n_classes,
+                                   hidden=hidden, n_layers=n_layers, dropout=dropout)
 
-    def make():
-        return LSPLSTMBidirS14(N_DIMS, n_classes,
-                               hidden=hidden, n_layers=n_layers, dropout=dropout)
+        _, f1 = train_one_run(Xh_tr, yh_tr, Xh_val, yh_val, make,
+                              lr=lr, wd=wd, label_smoothing=ls,
+                              n_epochs=N_EPOCHS_HPO, patience=PATIENCE_HPO, trial=trial)
+        return f1
 
-    _, f1 = train_one_run(Xh_tr, yh_tr, Xh_val, yh_val, make,
-                          lr=lr, wd=wd, label_smoothing=ls,
-                          n_epochs=N_EPOCHS_HPO, patience=PATIENCE_HPO, trial=trial)
-    return f1
-
-
-t0    = time.time()
-study = optuna.create_study(
-    direction="maximize",
-    sampler=TPESampler(seed=SEED),
-    pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=10),
-)
-study.enqueue_trial({
-    "hidden":   S13_BEST["hidden"],   "n_layers": S13_BEST["n_layers"],
-    "dropout":  S13_BEST["dropout"],  "lr":       S13_BEST["lr"],
-    "wd":       S13_BEST["wd"],       "ls":       S13_BEST["ls"],
-})
-study.optimize(objective, n_trials=N_TRIALS, show_progress_bar=True)
-hp      = study.best_params
-f1_hpo  = study.best_value
-hpo_min = (time.time() - t0) / 60
-print(f"\n  ✅ HPO → F1-hpo={f1_hpo:.4f}  tiempo={hpo_min:.1f} min")
-print(f"  Mejores HPs: {hp}")
+    t0    = time.time()
+    study = optuna.create_study(
+        direction="maximize",
+        sampler=TPESampler(seed=SEED),
+        pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=10),
+    )
+    study.enqueue_trial({
+        "hidden":   S13_BEST["hidden"],   "n_layers": S13_BEST["n_layers"],
+        "dropout":  S13_BEST["dropout"],  "lr":       S13_BEST["lr"],
+        "wd":       S13_BEST["wd"],       "ls":       S13_BEST["ls"],
+    })
+    study.optimize(objective, n_trials=N_TRIALS, show_progress_bar=True)
+    hp      = study.best_params
+    f1_hpo  = study.best_value
+    hpo_min = (time.time() - t0) / 60
+    print(f"\n  ✅ HPO → F1-hpo={f1_hpo:.4f}  tiempo={hpo_min:.1f} min")
+    print(f"  Mejores HPs: {hp}")
 
 # ════════════════════════════════════════════════════════════════════════════
 # KFold(5) final
