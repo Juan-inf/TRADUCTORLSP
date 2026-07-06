@@ -1,0 +1,34 @@
+{
+  "fuentes_lsp": {
+    "AEC_PeruSIL": {
+      "total_clases": 506,
+      "instancias_totales": 2311,
+      "clases_>=5": 117,
+      "overlap_s14": 46,
+      "instancias_overlap": 835,
+      "clases_nuevas": 71,
+      "keypoints_formato": "pkl (MediaPipe Holistic)",
+      "descarga": "Keypoints.rar (139 MB) - en curso"
+    },
+    "DGI156_SRT": {
+      "glosas_unicas_anotadas": 1341,
+      "instancias_totales": 4072,
+      "overlap_s14_>=5": 25,
+      "instancias_overlap": 648,
+      "clases_nuevas_>=5": 152,
+      "nota": "SRTs descargados, videos necesitan extracción de keypoints"
+    },
+    "PUCP_305": {
+      "zip_size_MB": 2748,
+      "nota": "Requiere descarga del ZIP completo (2.7 GB)"
+    }
+  },
+  "impacto_potencial": {
+    "instancias_nuevas_para_clases_existentes": 1483,
+    "clases_nuevas_aportadas": 223,
+    "dataset_s14_actual": {
+      "muestras": 11745,
+      "clases": 139
+    }
+  }
+}
