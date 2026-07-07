@@ -117,9 +117,12 @@ def load_aec_instances(aec_dict: dict, s14_glosses: set, solo_overlap: bool,
                 skipped += 1
                 continue
 
+            # Asignar grupo por video (no signer_id=-1) para que GroupShuffleSplit
+            # distribuya AEC correctamente entre train y holdout HE3
+            aec_group = hash(sub) % 10000 + 5000  # ira_alegria→5xxx, proteinas→5xxx distintos
             Xs.append(seq)
             Ls.append(gloss)
-            Gs.append(inst.get("signer_id", -1))
+            Gs.append(aec_group)
             Ss.append("aec")
             loaded += 1
 
