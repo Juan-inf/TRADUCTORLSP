@@ -1,0 +1,24 @@
+{
+  "n_train": 9409,
+  "n_holdout": 1838,
+  "clases_train": 61,
+  "clases_holdout": 28,
+  "clases_sin_training": [
+    "CUÁNTO",
+    "G-R",
+    "HISTORIAS_VINETAS_8",
+    "UNO",
+    "YO"
+  ],
+  "n_clases_sin_training": 5,
+  "muestras_holdout_cero_training": 272,
+  "pct_holdout_cero": 14.798694232861806,
+  "fuentes_holdout": {
+    "abecedario": 800,
+    "dgi156": 550,
+    "vineta": 411,
+    "aec": 71,
+    "pucp305": 5,
+    "glosa": 1
+  }
+}
