@@ -102,7 +102,8 @@ SOURCE_CONFIG = {
     },
     "aec_pkl": {
         "etiqueta": "aec",
-        "estrategia": "hash_nombre",   # hash del video de origen
+        "estrategia": "por_subgrupo",  # divide muestras en 5 sub-grupos (2 intérpretes × episodios)
+        "n_subgrupos": 5,
         "grupo_offset": 5000,
     },
     "pucp305_pkl": {
