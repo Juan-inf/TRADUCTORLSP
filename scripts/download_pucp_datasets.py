@@ -2,7 +2,7 @@
 download_pucp_datasets.py — Descarga e integra datasets LSP de la PUCP al pipeline.
 
 Fuentes soportadas:
-  --pucp305   PUCP-305 Glosas (2.88 GB ZIP, 305 glosas LSP)
+  --vocabulario_lsp_p   vocabulario_lsp_p Glosas (2.88 GB ZIP, 305 glosas LSP)
   --dgi156    PUCP-DGI156 Videos (1.08 GB TAR, 156 glosas LSP)
 
 Flujo completo por fuente:
@@ -13,10 +13,10 @@ Flujo completo por fuente:
   5. Muestra reporte de clases nuevas vs clases que ya existen en S11
 
 Uso:
-  .venv311/bin/python3 scripts/download_pucp_datasets.py --pucp305
+  .venv311/bin/python3 scripts/download_pucp_datasets.py --vocabulario_lsp_p
   .venv311/bin/python3 scripts/download_pucp_datasets.py --dgi156
-  .venv311/bin/python3 scripts/download_pucp_datasets.py --pucp305 --dgi156
-  .venv311/bin/python3 scripts/download_pucp_datasets.py --pucp305 --solo-reporte
+  .venv311/bin/python3 scripts/download_pucp_datasets.py --vocabulario_lsp_p --dgi156
+  .venv311/bin/python3 scripts/download_pucp_datasets.py --vocabulario_lsp_p --solo-reporte
 
 Flags opcionales:
   --solo-reporte   Omite descarga/extracción; solo analiza PKLs ya guardados
@@ -74,7 +74,7 @@ N_DIMS   = 150
 
 # ── Dataverse API ─────────────────────────────────────────────────────────────
 PUCP_BASE   = "https://datos.pucp.edu.pe/api/access/datafile"
-PUCP_305_ID = 21028   # PUCP 305 (glosas).zip
+vocabulario_lsp_p_ID = 21028   # PUCP 305 (glosas).zip
 PUCP_VIDEOS_ID = 14427  # PUCP-DGI156 Videos.tar
 
 # ── Normalización de etiquetas (mismo mapa que build_dataset_s11.py) ──────────
@@ -321,10 +321,17 @@ def procesar_mp4s(
     out_pkl_dir: pathlib.Path,
     fuente: str,
     limite: int | None = None,
+    sufijo_dest: str = "",
 ) -> dict:
     """
     Recorre mp4_root buscando .mp4, extrae keypoints y guarda PKL.
     Retorna estadísticas {clase: n_nuevos}.
+
+    sufijo_dest: se inserta antes de ".pkl" en el nombre destino. Necesario
+    cuando mp4_root es un lote distinto que reutiliza los mismos nombres de
+    archivo que uno ya procesado (p.ej. "AHORA_1.mp4" en dos lotes distintos):
+    sin sufijo, dest.exists() sería True y el lote nuevo se saltaría entero
+    aunque el contenido del video sea distinto.
     """
     if not MEDIAPIPE_OK:
         print("ERROR: mediapipe no disponible")
@@ -345,7 +352,7 @@ def procesar_mp4s(
             continue
 
         clase = clase_from_path(mp4, mp4_root)
-        dest  = out_pkl_dir / clase / f"{mp4.stem}.pkl"
+        dest  = out_pkl_dir / clase / f"{mp4.stem}{sufijo_dest}.pkl"
 
         if dest.exists():
             skip += 1
@@ -429,26 +436,26 @@ def reporte_integracion(out_pkl_dir: pathlib.Path, fuente: str):
     print(f"\n  Reporte guardado en: {report_path}")
 
 
-# ── Flujo PUCP-305 ────────────────────────────────────────────────────────────
+# ── Flujo vocabulario_lsp_p ────────────────────────────────────────────────────────────
 
-def run_pucp305(solo_reporte: bool, limite: int | None):
+def run_vocabulario_lsp_p(solo_reporte: bool, limite: int | None):
     print("\n" + "="*70)
-    print("FUENTE: PUCP-305 Glosas (305 LSP - Vocabulario-palabras LSP, ~2.88 GB)")
+    print("FUENTE: vocabulario_lsp_p Glosas (305 LSP - Vocabulario-palabras LSP, ~2.88 GB)")
     print("="*70)
 
-    out_pkl = KP_DIR / "pucp305_pkl"
+    out_pkl = KP_DIR / "vocabulario_lsp_p_pkl"
     out_pkl.mkdir(parents=True, exist_ok=True)
 
     if solo_reporte:
-        reporte_integracion(out_pkl, "PUCP-305")
+        reporte_integracion(out_pkl, "vocabulario_lsp_p")
         return
 
     # 1. Descarga
-    zip_dest = TMP_DIR / "PUCP_305_glosas.zip"
-    download_file(PUCP_305_ID, zip_dest, "PUCP 305 Glosas ZIP")
+    zip_dest = TMP_DIR / "vocabulario_lsp_p_glosas.zip"
+    download_file(vocabulario_lsp_p_ID, zip_dest, "PUCP 305 Glosas ZIP")
 
     # 2. Extracción
-    extract_dir = TMP_DIR / "pucp305"
+    extract_dir = TMP_DIR / "vocabulario_lsp_p"
     extract_zip(zip_dest, extract_dir)
 
     # Detectar dónde están los MP4 dentro del ZIP
@@ -464,13 +471,46 @@ def run_pucp305(solo_reporte: bool, limite: int | None):
     print(f"  MP4 detectados en: {mp4_root}")
 
     # 3. Extracción de keypoints
-    procesar_mp4s(mp4_root, out_pkl, "PUCP-305", limite=limite)
+    procesar_mp4s(mp4_root, out_pkl, "vocabulario_lsp_p", limite=limite)
 
     # 4. Reporte
-    reporte_integracion(out_pkl, "PUCP-305")
+    reporte_integracion(out_pkl, "vocabulario_lsp_p")
 
     print(f"\n  PKL guardados en: {out_pkl}")
-    print("  Siguiente paso: agregar 'pucp305_pkl' como fuente en build_dataset_s12.py")
+    print("  Siguiente paso: agregar 'vocabulario_lsp_p_pkl' como fuente en build_dataset_s12.py")
+
+
+# ── Flujo vocabulario_lsp_p — segundo lote ya extraído localmente ──────────────────────
+
+def run_vocabulario_lsp_p_extra(solo_reporte: bool, limite: int | None):
+    """Procesa el 2do lote de vocabulario_lsp_p ("5. Segundo avance (corregido)") que ya
+    está descomprimido en data/_pucp_tmp/vocabulario_lsp_p_extracted/ (468 MP4 con .eaf de
+    timing) pero nunca se corrió con MediaPipe. No descarga nada — reusa
+    procesar_mp4s()/extract_keypoints() tal cual, igual que run_vocabulario_lsp_p()."""
+    print("\n" + "="*70)
+    print("FUENTE: vocabulario_lsp_p — 2do lote (vocabulario_lsp_p_extracted, ya descomprimido)")
+    print("="*70)
+
+    out_pkl = KP_DIR / "vocabulario_lsp_p_pkl"
+    out_pkl.mkdir(parents=True, exist_ok=True)
+
+    if solo_reporte:
+        reporte_integracion(out_pkl, "vocabulario_lsp_p")
+        return
+
+    mp4_root = TMP_DIR / "vocabulario_lsp_p_extracted"
+    if not mp4_root.exists():
+        print(f"  ERROR: no existe {mp4_root}")
+        return
+
+    # sufijo_dest="_v2": el lote "Segundo avance (corregido)" reusa los mismos
+    # nombres de archivo que el lote original (p.ej. AHORA_1.mp4 en ambos) —
+    # sin sufijo, procesar_mp4s los marcaría como YA_EXISTÍA y no añadiría nada.
+    procesar_mp4s(mp4_root, out_pkl, "vocabulario_lsp_p-v2", limite=limite, sufijo_dest="_v2")
+    reporte_integracion(out_pkl, "vocabulario_lsp_p")
+
+    print(f"\n  PKL guardados en: {out_pkl}")
+    print("  Siguiente paso: python3 scripts/build_dataset_s17.py --min-muestras 15")
 
 
 # ── Flujo PUCP-DGI156 ─────────────────────────────────────────────────────────
@@ -527,7 +567,7 @@ def instrucciones_s12():
       (ROOT / "data" / "Keypoints" / "glosas_pkl",   "glosa",     False),
       (ROOT / "data" / "Keypoints" / "abecedario_pkl","abecedario",True),
       # ── Nuevas fuentes PUCP ──────────────────────────────────────────
-      (ROOT / "data" / "Keypoints" / "pucp305_pkl",  "pucp305",   False),
+      (ROOT / "data" / "Keypoints" / "vocabulario_lsp_p_pkl",  "vocabulario_lsp_p",   False),
       (ROOT / "data" / "Keypoints" / "dgi156_pkl",   "dgi156",    False),
   ]
 
@@ -546,16 +586,18 @@ def main():
     parser = argparse.ArgumentParser(
         description="Descarga e integra datasets PUCP LSP al pipeline"
     )
-    parser.add_argument("--pucp305",      action="store_true", help="Procesar PUCP-305 Glosas")
+    parser.add_argument("--vocabulario_lsp_p",      action="store_true", help="Procesar vocabulario_lsp_p Glosas")
+    parser.add_argument("--vocabulario_lsp_p-extra", action="store_true",
+                        help="Procesar 2do lote ya descomprimido en data/_pucp_tmp/vocabulario_lsp_p_extracted (sin descargar)")
     parser.add_argument("--dgi156",       action="store_true", help="Procesar PUCP-DGI156 Videos")
     parser.add_argument("--solo-reporte", action="store_true", help="Solo mostrar reporte, sin descargar")
     parser.add_argument("--limite",       type=int, default=None,
                         help="Procesar solo N MP4 (para prueba rápida)")
     args = parser.parse_args()
 
-    if not args.pucp305 and not args.dgi156:
+    if not args.vocabulario_lsp_p and not args.vocabulario_lsp_p_extra and not args.dgi156:
         parser.print_help()
-        print("\n  Ejemplo: python scripts/download_pucp_datasets.py --pucp305")
+        print("\n  Ejemplo: python scripts/download_pucp_datasets.py --vocabulario_lsp_p")
         sys.exit(0)
 
     if not args.solo_reporte and not MEDIAPIPE_OK:
@@ -565,8 +607,11 @@ def main():
 
     t0 = time.time()
 
-    if args.pucp305:
-        run_pucp305(args.solo_reporte, args.limite)
+    if args.vocabulario_lsp_p:
+        run_vocabulario_lsp_p(args.solo_reporte, args.limite)
+
+    if args.vocabulario_lsp_p_extra:
+        run_vocabulario_lsp_p_extra(args.solo_reporte, args.limite)
 
     if args.dgi156:
         run_dgi156(args.solo_reporte, args.limite)

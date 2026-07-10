@@ -1,0 +1,21 @@
+{
+  "n_train": 9858,
+  "n_holdout": 2292,
+  "clases_train": 94,
+  "clases_holdout": 65,
+  "clases_sin_training": [
+    "ORIGINAL",
+    "T"
+  ],
+  "n_clases_sin_training": 2,
+  "muestras_holdout_cero_training": 177,
+  "pct_holdout_cero": 7.722513089005235,
+  "fuentes_holdout": {
+    "abecedario": 850,
+    "dgi156": 606,
+    "vineta": 596,
+    "aec": 217,
+    "vocabulario_lsp_p": 18,
+    "glosa": 5
+  }
+}

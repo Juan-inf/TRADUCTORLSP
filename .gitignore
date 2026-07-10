@@ -1,5 +1,6 @@
 # Entorno virtual
 .venv310/
+.venv311/
 notebooks/venv/
 venv/
 .venv/
@@ -13,6 +14,11 @@ data/videos/
 data/processed_pixels/
 data/landmarks/
 data/baseline_features.npz
+data/dataset_s*.npz
+data/_pucp_tmp/
+data/_s13_tmp/
+data/Keypoints/*_pkl/
+data/external_lsp/
 # data/Glosas/ — versionado via LFS en Sprint 7
 checkpoints/*.onnx
 

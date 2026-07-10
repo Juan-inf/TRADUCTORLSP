@@ -46,7 +46,7 @@ PKL_SOURCES_S12 = [
     (KP_DIR / "pkl",            "vineta",    False),
     (KP_DIR / "glosas_pkl",     "glosa",     False),
     (KP_DIR / "abecedario_pkl", "abecedario", True),
-    (KP_DIR / "pucp305_pkl",    "pucp305",   False),
+    (KP_DIR / "vocabulario_lsp_p_pkl",    "vocabulario_lsp_p",   False),
 ]
 
 PKL_SOURCES_S13 = [

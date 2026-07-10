@@ -764,7 +764,7 @@ Transcripción en tiempo real + Top-5 candidatos + Confianza + Exportar TXT
 | Fuente | Muestras | Clases |
 |--------|---------|--------|
 | PUCP base (viñetas + glosas + abecedario) | ~7,300 | ~180 |
-| PUCP-305 (MP4 originales) | ~2,450 | — |
+| vocabulario_lsp_p (MP4 originales) | ~2,450 | — |
 | PUCP-AEC (intérprete TV) | 830 | — |
 | PUCP-DGI156 (múltiples señantes) | 3,642 | — |
 | LSP-Base | 3,200 | — |

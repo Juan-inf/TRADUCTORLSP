@@ -6,7 +6,7 @@ Extiende S11 incorporando las fuentes PUCP descargadas por download_pucp_dataset
 Mejoras vs S11 (build_dataset_s11.py):
   ┌──────────────────────────────────────────────────────────────────────────┐
   │  Cambio              S11                    S12                          │
-  │  Fuentes             vineta+glosa+abc        + pucp305 + dgi156          │
+  │  Fuentes             vineta+glosa+abc        + vocabulario_lsp_p + dgi156          │
   │  Muestras esperadas  6,855                   ~10,000–14,000              │
   │  Clases esperadas    479                      ~500–600                   │
   │  Media/clase         14.3                     ~20–30                     │
@@ -53,7 +53,7 @@ PKL_SOURCES_BASE = [
 ]
 
 PKL_SOURCES_PUCP = [
-    (ROOT / "data" / "Keypoints" / "pucp305_pkl",   "pucp305",   False),
+    (ROOT / "data" / "Keypoints" / "vocabulario_lsp_p_pkl",   "vocabulario_lsp_p",   False),
     (ROOT / "data" / "Keypoints" / "dgi156_pkl",    "dgi156",    False),
 ]
 

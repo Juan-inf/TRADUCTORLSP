@@ -3,7 +3,7 @@ train_s14.py — Sprint 14: BiLSTM S14 — solo LSP peruano + normalización por
 
 Diferencias vs S13:
   Dataset        : dataset_s13.npz filtrado — se elimina fuente 'lsa64' (señas argentinas)
-                   Solo LSP peruano: AEC, DGI156, PUCP305, Abecedario, Glosa, Vineta
+                   Solo LSP peruano: AEC, DGI156, vocabulario_lsp_p, Abecedario, Glosa, Vineta
                    11,780 muestras → 158 clases (vs 193 en S13)
   Normalización  : per-sample z-score [30×150] → elimina domain shift entre fuentes
   HE3 holdout    : source-stratified (cada fuente aporta proporcionalmente al holdout)

@@ -11,7 +11,7 @@
       "vineta",
       "abecedario",
       "aec",
-      "pucp305",
+      "vocabulario_lsp_p",
       "glosa"
     ]
   },
@@ -133,7 +133,7 @@
         "mejora_vocabulario": "SÍ — añade ~248 glosas nuevas del contexto educativo"
       }
     },
-    "PUCP_305": {
+    "vocabulario_lsp_p": {
       "nombre": "LSP PUCP 305 (Glosas)",
       "descripcion": "Dataset de 305 glosas LSP grabadas en estudio por señantes de la comunidad sorda de Lima. Usado para entrenar el Diccionario de LSP de PUCP. Múltiples señantes por seña.",
       "institucion": "PUCP",
@@ -161,7 +161,7 @@
         "frames_por_seq": 30
       },
       "estado_local": {
-        "carpeta": "data/Keypoints/pucp305_pkl/",
+        "carpeta": "data/Keypoints/vocabulario_lsp_p_pkl/",
         "clases_descargadas": 110,
         "muestras_descargadas": 224,
         "clases_disponibles_online": 305,
@@ -170,7 +170,7 @@
       },
       "uso_en_s15": {
         "incluida": true,
-        "fuente_label": "pucp305",
+        "fuente_label": "vocabulario_lsp_p",
         "clases_en_s15": 110,
         "muestras_en_s15": 224,
         "nota": "Solo subset parcial; media de 2 muestras/clase — muy bajo"
@@ -178,7 +178,7 @@
       "aporte_potencial": {
         "clases_nuevas": 195,
         "muestras_nuevas_est": 680,
-        "mejora_holdout": "NO directamente (PUCP305 no incluye abecedario)",
+        "mejora_holdout": "NO directamente (vocabulario_lsp_p no incluye abecedario)",
         "mejora_vocabulario": "SÍ — añade 195 glosas nuevas de vocabulario básico LSP"
       }
     },
@@ -295,7 +295,7 @@
     "prioridad_1_inmediata": {
       "accion": "Descomprimir y re-integrar AEC completo (Keypoints.rar → 2311 instancias)",
       "impacto": "Añade ~1481 muestras nuevas + 248 clases nuevas sin descarga adicional",
-      "comando": "python3 scripts/build_dataset_s16.py --fuentes dgi156,aec,abecedario,pucp305,glosa",
+      "comando": "python3 scripts/build_dataset_s16.py --fuentes dgi156,aec,abecedario,vocabulario_lsp_p,glosa",
       "tiempo_est": "30 minutos"
     },
     "prioridad_2_descarga": {
@@ -311,8 +311,8 @@
       "herramienta": "MediaPipe Holistic + scripts/grabar_keypoints.py (a crear)",
       "tiempo_est": "1 día"
     },
-    "prioridad_4_pucp305": {
-      "accion": "Solicitar acceso al PUCP305 completo (305 glosas, ~900 muestras)",
+    "prioridad_4_vocabulario_lsp_p": {
+      "accion": "Solicitar acceso al vocabulario_lsp_p completo (305 glosas, ~900 muestras)",
       "url": "https://datos.pucp.edu.pe/dataset.xhtml?persistentId=hdl:20.500.12534/JU4OLG",
       "impacto": "Añade 195 clases nuevas con múltiples señantes → mejora diversidad",
       "requiere": "Registro + solicitud de acceso (ldatos@pucp.edu.pe)",
@@ -350,7 +350,7 @@
       "clases": 27,
       "muestras": 3684
     },
-    "pucp305_pkl": {
+    "vocabulario_lsp_p_pkl": {
       "clases": 109,
       "muestras": 224
     }

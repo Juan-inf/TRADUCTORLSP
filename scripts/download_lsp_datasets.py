@@ -4,7 +4,7 @@ Descarga automática de datasets LSP desde fuentes públicas.
 
 Fuentes disponibles:
   1. DGI156 completo   — datos.pucp.edu.pe (requiere sesión/token)
-  2. PUCP305 completo  — datos.pucp.edu.pe (requiere solicitud de acceso)
+  2. vocabulario_lsp_p completo  — datos.pucp.edu.pe (requiere solicitud de acceso)
   3. AEC/PeruSIL       — datos.pucp.edu.pe (requiere sesión)
   4. VideoLSP10        — GitHub (público, sin registro)
   5. gissemari/PeruvianSignLanguage — GitHub (código + subset PKL)
@@ -143,13 +143,13 @@ FUENTES = {
         ],
     },
 
-    # datos.pucp.edu.pe — PUCP305
-    "pucp305_full": {
-        "nombre": "PUCP305 completo — datos.pucp.edu.pe",
+    # datos.pucp.edu.pe — vocabulario_lsp_p
+    "vocabulario_lsp_p_full": {
+        "nombre": "vocabulario_lsp_p completo — datos.pucp.edu.pe",
         "tipo":   "dataverse_restricted",
         "persistent_id": "hdl:20.500.12534/JU4OLG",
         "base_url": "https://datos.pucp.edu.pe",
-        "destino": EXT_DIR / "pucp305_full",
+        "destino": EXT_DIR / "vocabulario_lsp_p_full",
         "descripcion": (
             "305 glosas LSP grabadas en estudio con múltiples señantes. "
             "Requiere solicitar acceso al equipo PUCP."
@@ -158,7 +158,7 @@ FUENTES = {
         "requiere_acceso_especial": True,
         "contacto": "ldatos@pucp.edu.pe",
         "instrucciones_token": (
-            "1. Enviar email a ldatos@pucp.edu.pe solicitando acceso al dataset PUCP305\n"
+            "1. Enviar email a ldatos@pucp.edu.pe solicitando acceso al dataset vocabulario_lsp_p\n"
             "2. Una vez aprobado, seguir instrucciones de acceso del equipo PUCP\n"
             "3. Registrarse en https://datos.pucp.edu.pe y obtener API Token"
         ),

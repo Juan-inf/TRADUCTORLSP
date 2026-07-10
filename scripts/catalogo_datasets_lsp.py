@@ -34,7 +34,7 @@ CATALOGO = {
         "clases_totales":   255,
         "clases_min15":     101,
         "muestras_min15":   12259,
-        "fuentes":          ["dgi156", "vineta", "abecedario", "aec", "pucp305", "glosa"],
+        "fuentes":          ["dgi156", "vineta", "abecedario", "aec", "vocabulario_lsp_p", "glosa"],
     },
     "problema_estructural": {
         "descripcion": (
@@ -167,8 +167,8 @@ CATALOGO = {
             },
         },
 
-        # ── 3. PUCP305 ───────────────────────────────────────────────────────
-        "PUCP_305": {
+        # ── 3. vocabulario_lsp_p ───────────────────────────────────────────────────────
+        "vocabulario_lsp_p": {
             "nombre": "LSP PUCP 305 (Glosas)",
             "descripcion": (
                 "Dataset de 305 glosas LSP grabadas en estudio por señantes de la comunidad "
@@ -201,7 +201,7 @@ CATALOGO = {
                 "frames_por_seq":   30,
             },
             "estado_local": {
-                "carpeta": "data/Keypoints/pucp305_pkl/",
+                "carpeta": "data/Keypoints/vocabulario_lsp_p_pkl/",
                 "clases_descargadas": 110,
                 "muestras_descargadas": 224,
                 "clases_disponibles_online": 305,
@@ -213,7 +213,7 @@ CATALOGO = {
             },
             "uso_en_s15": {
                 "incluida": True,
-                "fuente_label": "pucp305",
+                "fuente_label": "vocabulario_lsp_p",
                 "clases_en_s15": 110,
                 "muestras_en_s15": 224,
                 "nota": "Solo subset parcial; media de 2 muestras/clase — muy bajo",
@@ -221,7 +221,7 @@ CATALOGO = {
             "aporte_potencial": {
                 "clases_nuevas":     195,
                 "muestras_nuevas_est": 680,
-                "mejora_holdout":    "NO directamente (PUCP305 no incluye abecedario)",
+                "mejora_holdout":    "NO directamente (vocabulario_lsp_p no incluye abecedario)",
                 "mejora_vocabulario": "SÍ — añade 195 glosas nuevas de vocabulario básico LSP",
             },
         },
@@ -366,7 +366,7 @@ CATALOGO = {
         "prioridad_1_inmediata": {
             "accion": "Descomprimir y re-integrar AEC completo (Keypoints.rar → 2311 instancias)",
             "impacto": "Añade ~1481 muestras nuevas + 248 clases nuevas sin descarga adicional",
-            "comando": "python3 scripts/build_dataset_s16.py --fuentes dgi156,aec,abecedario,pucp305,glosa",
+            "comando": "python3 scripts/build_dataset_s16.py --fuentes dgi156,aec,abecedario,vocabulario_lsp_p,glosa",
             "tiempo_est": "30 minutos",
         },
         "prioridad_2_descarga": {
@@ -382,8 +382,8 @@ CATALOGO = {
             "herramienta": "MediaPipe Holistic + scripts/grabar_keypoints.py (a crear)",
             "tiempo_est": "1 día",
         },
-        "prioridad_4_pucp305": {
-            "accion": "Solicitar acceso al PUCP305 completo (305 glosas, ~900 muestras)",
+        "prioridad_4_vocabulario_lsp_p": {
+            "accion": "Solicitar acceso al vocabulario_lsp_p completo (305 glosas, ~900 muestras)",
             "url":    "https://datos.pucp.edu.pe/dataset.xhtml?persistentId=hdl:20.500.12534/JU4OLG",
             "impacto": "Añade 195 clases nuevas con múltiples señantes → mejora diversidad",
             "requiere": "Registro + solicitud de acceso (ldatos@pucp.edu.pe)",
@@ -460,7 +460,7 @@ def main():
     rows = [
         ("PUCP-DGI156",  156,  4072, 28,  3642, "datos.pucp.edu.pe",     "⬇ 128 clases pendientes"),
         ("AEC/PeruSIL",  506,  2311, 258,  830, "datos.pucp.edu.pe",     "⬇ 1481 muestras pendientes"),
-        ("PUCP-305",     305,  "~900",110,  224, "datos.pucp.edu.pe",    "⬇ solicitar acceso completo"),
+        ("vocabulario_lsp_p",     305,  "~900",110,  224, "datos.pucp.edu.pe",    "⬇ solicitar acceso completo"),
         ("Abecedario",    24,  3600,  24, 3600, "LOCAL",                  "⚠ 1 señante — diversidad crítica"),
         ("VideoLSP10",    10,   810,   0,    0, "github.com/videoLSP",   "⚠ formato Kinect — conversión requerida"),
         ("LSA64",         64,  3200,   0,    0, "N/A — excluido S15",   "✗ LSA ≠ LSP"),

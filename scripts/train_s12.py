@@ -1,13 +1,13 @@
 """
-train_s12.py — Sprint 12: BiLSTM en dataset ampliado con PUCP-305
+train_s12.py — Sprint 12: BiLSTM en dataset ampliado con vocabulario_lsp_p
 
 Diferencias vs S11:
-  Dataset       : dataset_s12.npz  (7,102 muestras, 501 clases, +PUCP-305)
+  Dataset       : dataset_s12.npz  (7,102 muestras, 501 clases, +vocabulario_lsp_p)
   HPO           : warm-start desde S11 best + 20 trials (rápido)
   Arquitectura  : BiLSTM S11 (mismo diseño probado)
   Checkpoints   : bilstm_s12.pt / bilstm_s12.onnx
 
-Objetivo: verificar si PUCP-305 mejora F1-test vs baseline S10 (0.0302).
+Objetivo: verificar si vocabulario_lsp_p mejora F1-test vs baseline S10 (0.0302).
 Tiempo estimado: ~25-40 min (MPS/CPU).
 """
 
@@ -65,7 +65,7 @@ MIN_SAMPLES = _args.min_muestras
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 print(f"Device  : {DEVICE}")
-print(f"Sprint 12 — BiLSTM S12 + PUCP-305 | warm-start S11 best | min_muestras={MIN_SAMPLES}")
+print(f"Sprint 12 — BiLSTM S12 + vocabulario_lsp_p | warm-start S11 best | min_muestras={MIN_SAMPLES}")
 print("=" * 65)
 
 # ── Cargar dataset S12 ────────────────────────────────────────────────────────
@@ -537,7 +537,7 @@ row = {
     "seed":        str(SEED),
     "n_classes":   str(n_classes),
     "notas":       (f"Dataset S12 {len(X_all)} muestras {n_classes} clases "
-                    f"min≥{MIN_SAMPLES} +PUCP-305; warmstart S11 best; "
+                    f"min≥{MIN_SAMPLES} +vocabulario_lsp_p; warmstart S11 best; "
                     f"ECE {ece_pre:.3f}→{ece_post:.3f}(T={T_opt:.2f}); "
                     f"Top3={res_te['top3']:.4f} Top5={res_te['top5']:.4f}; "
                     f"HE3={'PASA' if he3['passed'] else 'FALLA'}; "

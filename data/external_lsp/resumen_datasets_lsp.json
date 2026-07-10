@@ -18,7 +18,7 @@
       "clases_nuevas_>=5": 152,
       "nota": "SRTs descargados, videos necesitan extracción de keypoints"
     },
-    "PUCP_305": {
+    "vocabulario_lsp_p": {
       "zip_size_MB": 2748,
       "nota": "Requiere descarga del ZIP completo (2.7 GB)"
     }
