@@ -83,7 +83,7 @@ SOURCE_CONFIG = {
     "abecedario_pkl": {
         "etiqueta": "abecedario",
         "estrategia": "por_subgrupo",
-        "n_subgrupos": 3,
+        "n_subgrupos": 20,
         "grupo_offset": 1000,
     },
     "dgi156_pkl": {
@@ -99,7 +99,7 @@ SOURCE_CONFIG = {
     "aec_pkl": {
         "etiqueta": "aec",
         "estrategia": "por_subgrupo",
-        "n_subgrupos": 5,
+        "n_subgrupos": 15,
         "grupo_offset": 5000,
     },
     "vocabulario_lsp_p_pkl": {
@@ -210,7 +210,9 @@ def balancear_grupos_hv(L_all: np.ndarray, G_all: np.ndarray,
         print("  No hay clases dgi156∩vineta — grupos sin cambio.")
         return G_new
 
-    N_SUBGRUPOS = 5   # 5 sub-grupos por clase HV (≈ 20% en holdout si se elige 1)
+    N_SUBGRUPOS = 10  # sub-grupos por clase HV — más finos que 5 reducen el riesgo
+                      # de que 2+ caigan juntos en holdout para clases grandes
+                      # (ej. HISTORIAS_VINETAS_3, 1086 muestras)
     BASE_OFFSET = 20000  # fuera del rango de todos los demás offsets (máx ≈ 9000)
 
     print(f"\n  [S17 FIX] Sub-grupos balanceados para clases dgi156∩vineta: {len(clases_hv_cruce)}")

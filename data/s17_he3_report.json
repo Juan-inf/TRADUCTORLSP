@@ -1,21 +1,20 @@
 {
-  "n_train": 9858,
-  "n_holdout": 2292,
-  "clases_train": 94,
-  "clases_holdout": 65,
+  "n_train": 9344,
+  "n_holdout": 2806,
+  "clases_train": 95,
+  "clases_holdout": 91,
   "clases_sin_training": [
-    "ORIGINAL",
-    "T"
+    "ORIGINAL"
   ],
-  "n_clases_sin_training": 2,
-  "muestras_holdout_cero_training": 177,
-  "pct_holdout_cero": 7.722513089005235,
+  "n_clases_sin_training": 1,
+  "muestras_holdout_cero_training": 27,
+  "pct_holdout_cero": 0.962223806129722,
   "fuentes_holdout": {
-    "abecedario": 850,
-    "dgi156": 606,
-    "vineta": 596,
-    "aec": 217,
-    "vocabulario_lsp_p": 18,
+    "abecedario": 713,
+    "dgi156": 933,
+    "vineta": 926,
+    "aec": 221,
+    "vocabulario_lsp_p": 8,
     "glosa": 5
   }
 }

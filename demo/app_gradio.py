@@ -1,6 +1,6 @@
 """
-Traductor LSP → Castellano  — Sprint 13
-MediaPipe Holistic + BiLSTM Bidireccional S13 (193 señas LSP, F1=0.370, Top-5=58%)
+Traductor LSP → Castellano  — Sprint 27
+MediaPipe Holistic + BiLSTM Bidireccional S27 (96 señas LSP, F1=0.4349, Top-5=63.6%)
 Tiempo real desde cámara web o video pregrabado.
 """
 
@@ -21,22 +21,36 @@ except ImportError:
 import mediapipe as mp
 import onnxruntime as ort
 
+from src.features.landmarks import (
+    results_to_kp as _results_to_kp,
+    kp_seq_to_features as kp_seq_to_lstm_features,
+    normalize_sample,
+    resample_to_n_frames,
+)
+from src.features.segmentacion import SegmentadorPausas
+
 # ── Configuración ─────────────────────────────────────────────────────────────
 
-LSTM_ONNX  = "checkpoints/bilstm_s13.onnx"
-RF_CKPT    = "checkpoints/rf_signs.pkl"
-LABEL_PATH = "data/s13_label2idx.json"
+LSTM_ONNX      = "checkpoints/bilstm_s27.onnx"
+RF_CKPT        = "checkpoints/rf_signs.pkl"
+LABEL_PATH     = "data/s27_label2idx.json"
+CLASE_TEXTO_PATH = "data/clase_texto.json"
 
 N_FRAMES    = 30
 N_DIMS      = 150   # pose(33×2) + left_hand(21×2) + right_hand(21×2)
-N_KP        = 75    # [0:21]=left_hand, [21:42]=right_hand, [42:75]=pose
-CONF_UMBRAL = 0.30
+# Calibrado con 15 clips reales (2026-07-17): con 0.30 se ocultaban aciertos
+# reales (ej. "AHORA" correcto con 21% de confianza, descartado). El modelo
+# tiene 96 clases muy parecidas entre sí — la confianza cruda tiende a
+# repartirse, no a concentrarse, incluso cuando acierta. 0.20 capturó el 100%
+# de los aciertos de la muestra sin dejar pasar mucho más ruido.
+CONF_UMBRAL = 0.20
 STRIDE      = N_FRAMES // 2   # ventana deslizante 50% overlap
 
 # ── Buffers globales (webcam) ─────────────────────────────────────────────────
 
-kp_buffer = deque(maxlen=N_FRAMES)
-historial  = deque(maxlen=10)
+kp_buffer     = deque(maxlen=N_FRAMES)  # solo para el contador "acumulando..." en pantalla
+historial     = deque(maxlen=10)
+segmentador_cam = SegmentadorPausas()
 
 # ── MediaPipe ─────────────────────────────────────────────────────────────────
 
@@ -61,16 +75,21 @@ COLOR_FACE  = (200, 200, 200)
 lstm_session = None
 rf_model     = None
 idx2label    = {}
+clase_texto  = {}   # clase → descripción legible (solo clases sin traducción 1:1, ej. viñetas)
 
 
 def load_models():
-    global lstm_session, rf_model, idx2label
+    global lstm_session, rf_model, idx2label, clase_texto
 
     if Path(LABEL_PATH).exists():
         with open(LABEL_PATH, encoding="utf-8") as f:
             l2i = json.load(f)
         idx2label = {int(v): k for k, v in l2i.items()}
         print(f"Etiquetas cargadas: {len(idx2label)} señas LSP")
+
+    if Path(CLASE_TEXTO_PATH).exists():
+        with open(CLASE_TEXTO_PATH, encoding="utf-8") as f:
+            clase_texto = json.load(f)
 
     if Path(LSTM_ONNX).exists():
         try:
@@ -79,9 +98,9 @@ def load_models():
                      if p in avail]
             lstm_session = ort.InferenceSession(LSTM_ONNX, providers=provs)
             inp = lstm_session.get_inputs()[0]
-            print(f"BiLSTM S13 ONNX listo — input={inp.name} {inp.shape} — {len(idx2label)} etiquetas")
+            print(f"BiLSTM S27 ONNX listo — input={inp.name} {inp.shape} — {len(idx2label)} etiquetas")
         except Exception as e:
-            print(f"BiLSTM S13 error: {e}")
+            print(f"BiLSTM S27 error: {e}")
 
     if Path(RF_CKPT).exists() and lstm_session is None:
         try:
@@ -124,21 +143,6 @@ def _draw_landmarks(vis_bgr: np.ndarray, results) -> None:
             mp_drawing.DrawingSpec(color=COLOR_RHAND, thickness=2))
 
 
-def _results_to_kp(results) -> np.ndarray:
-    """MediaPipe results → array kp [75, 3]: [left(21), right(21), pose(33)]."""
-    kp = np.zeros((N_KP, 3), dtype=np.float32)
-    if results.left_hand_landmarks:
-        for i, lm in enumerate(results.left_hand_landmarks.landmark):
-            kp[i] = [lm.x, lm.y, lm.z]
-    if results.right_hand_landmarks:
-        for i, lm in enumerate(results.right_hand_landmarks.landmark):
-            kp[21 + i] = [lm.x, lm.y, lm.z]
-    if results.pose_landmarks:
-        for i, lm in enumerate(results.pose_landmarks.landmark):
-            kp[42 + i] = [lm.x, lm.y, lm.z]
-    return kp
-
-
 def _make_detected(results) -> dict:
     return {
         "mano_izq": results.left_hand_landmarks  is not None,
@@ -160,18 +164,8 @@ def extract_and_draw(frame_rgb: np.ndarray):
 
 
 # ── Feature extraction ────────────────────────────────────────────────────────
-
-def kp_seq_to_lstm_features(kp_seq: np.ndarray) -> np.ndarray:
-    """kp_seq [T, 75, 3] → [T, 150]: pose_x/y(33) + left_x/y(21) + right_x/y(21)."""
-    pose  = kp_seq[:, 42:75, :2]
-    left  = kp_seq[:,  0:21, :2]
-    right = kp_seq[:, 21:42, :2]
-    return np.concatenate([
-        pose[:, :, 0], pose[:, :, 1],
-        left[:, :, 0], left[:, :, 1],
-        right[:, :, 0], right[:, :, 1],
-    ], axis=1).astype(np.float32)
-
+# kp_seq_to_lstm_features y normalize_sample vienen de src/features/landmarks.py
+# (compartido con api/main.py, debe coincidir exactamente con el entrenamiento).
 
 def kp_seq_to_rf_features(kp_seq: np.ndarray) -> np.ndarray:
     """kp_seq [T,75,3] → [108] para RF fallback."""
@@ -188,7 +182,7 @@ def run_inference(kp_seq: np.ndarray) -> dict | None:
     t0 = time.perf_counter()
 
     if lstm_session is not None:
-        feat   = kp_seq_to_lstm_features(kp_seq)[np.newaxis]   # (1, 30, 150)
+        feat   = normalize_sample(kp_seq_to_lstm_features(kp_seq))[np.newaxis]   # (1, 30, 150)
         logits = lstm_session.run(None, {"sequence": feat})[0][0]
         probs  = np.exp(logits - logits.max())
         probs /= probs.sum()
@@ -197,7 +191,7 @@ def run_inference(kp_seq: np.ndarray) -> dict | None:
                   for i in np.argsort(probs)[::-1][:5]]
         seña   = idx2label.get(idx, "?")
         conf   = float(probs[idx])
-        modelo = "BiLSTM-S13"
+        modelo = "BiLSTM-S27"
 
     elif rf_model is not None:
         feat  = kp_seq_to_rf_features(kp_seq).reshape(1, -1)
@@ -220,6 +214,30 @@ def run_inference(kp_seq: np.ndarray) -> dict | None:
 
 # ── Construcción de texto ─────────────────────────────────────────────────────
 
+def _es_clase_narrativa(seña: str) -> bool:
+    """HISTORIAS_VINETAS_N es la clase 'este clip ENTERO de 1-9 minutos es la
+    narrativa N' — no una seña puntual. No tiene sentido que aparezca como
+    detección dentro de una ventana de 30 frames (~1s) de streaming continuo:
+    ninguna persona puede 'firmar' un video ajeno en 1 segundo. Se excluye de
+    la detección en vivo; el modelo sigue midiéndose con F1 sobre el clip
+    completo (esa parte no cambia)."""
+    return seña.startswith("HISTORIAS_VINETAS_")
+
+
+def _texto_legible(seña: str) -> str:
+    """Texto para mostrar en la transcripción. La mayoría de clases YA son
+    palabras en castellano (BIEN, DIEZ, IGUAL...) y basta con capitalizarlas.
+    Las clases HISTORIAS_VINETAS_N son clips narrativos completos, no una
+    palabra — no tienen traducción 1:1, así que se muestran como marcador
+    corto en vez de mangled ('Historias_vinetas_2' via .capitalize())."""
+    if seña.startswith("HISTORIAS_VINETAS_"):
+        n = seña.rsplit("_", 1)[-1]
+        return f"[Viñeta {n}]"
+    if seña in clase_texto:
+        return clase_texto[seña]
+    return seña.capitalize()
+
+
 def build_translation_text(parts: list) -> str:
     """Construye texto desde señas acumuladas.
 
@@ -238,7 +256,7 @@ def build_translation_text(parts: list) -> str:
             if letter_group:
                 words.append("".join(letter_group))
                 letter_group = []
-            words.append(seña.capitalize())
+            words.append(_texto_legible(seña))
     if letter_group:
         words.append("".join(letter_group))
     return " ".join(words)
@@ -288,9 +306,11 @@ def _build_result_md(translation_text: str, parts: list) -> str:
     md   = []
     if translation_text:
         md.append(f"## TRADUCCIÓN EN TIEMPO REAL\n\n### {translation_text}")
+    detalle = clase_texto.get(last["seña"])
     md.append(
-        f"\n**Última seña:** `{last['seña']}` "
-        f"<span style='color:{col}'>**{conf:.0f}%**</span>  |  "
+        f"\n**Última seña:** `{last['seña']}`"
+        + (f" — {detalle}" if detalle else "")
+        + f"  <span style='color:{col}'>**{conf:.0f}%**</span>  |  "
         f"**Modelo:** {last.get('modelo','N/A')}"
     )
     return "\n\n".join(md)
@@ -347,13 +367,13 @@ def process_webcam_frame(frame):
         frame = frame[:, :, :3]
 
     vis, kp, detected = extract_and_draw(frame)
-    kp_buffer.append(kp)
+    kp_buffer.append(kp)  # solo para el contador visual "acumulando..."
 
-    frames_in = len(kp_buffer)
-    if frames_in >= N_FRAMES and frames_in % (N_FRAMES // 2) == 0:
-        kp_seq = np.stack(list(kp_buffer))
+    segmento = segmentador_cam.push(kp)
+    if segmento is not None:
+        kp_seq = resample_to_n_frames(segmento, N_FRAMES)
         r = run_inference(kp_seq)
-        if r is not None and r["confidence"] >= CONF_UMBRAL:
+        if r is not None and r["confidence"] >= CONF_UMBRAL and not _es_clase_narrativa(r["seña"]):
             last_result = r
             if not historial or historial[-1] != r["seña"]:
                 historial.append(r["seña"])
@@ -364,7 +384,7 @@ def process_webcam_frame(frame):
         r    = last_result
         conf = r["confidence"] * 100
         result_md = (
-            f"## {r['seña']}\n\n"
+            f"## {_texto_legible(r['seña'])}\n\n"
             f"**Confianza:** {conf:.1f}%  |  **Modelo:** {r['modelo']}  |  "
             f"**Latencia:** {r['latency_ms']:.0f} ms"
         )
@@ -372,10 +392,9 @@ def process_webcam_frame(frame):
             f"{i+1}. {t['clase']} — {t['prob']*100:.1f}%"
             for i, t in enumerate(r.get("top3", []))
         )
-        hist_md = "**Historial:** " + " › ".join(list(historial)[-8:])
+        hist_md = "**Historial:** " + " › ".join(_texto_legible(s) for s in list(historial)[-8:])
     else:
-        n_buf = len(kp_buffer)
-        result_md = f"**Acumulando señas… {n_buf}/{N_FRAMES} frames**"
+        result_md = "**Esperando seña… hacé la seña y pausá un instante al terminar**"
         top3_md   = ""
         hist_md   = ""
 
@@ -410,6 +429,9 @@ def process_video_streaming(video_path):
         return
 
     # Modo tracking para frames consecutivos (mejor que static_image_mode=True)
+    # model_complexity=0 se probó para acelerar, pero degradaba la detección de
+    # la mano derecha (3/10 → 1/10 frames en prueba real) y dejaba de mostrar
+    # traducción — revertido a 1. La velocidad se gana solo con frame_stride.
     holistic_vid = mp_holistic.Holistic(
         static_image_mode=False,
         model_complexity=1,
@@ -417,13 +439,13 @@ def process_video_streaming(video_path):
         min_tracking_confidence=0.4,
     )
 
-    local_buffer      = deque(maxlen=N_FRAMES)
+    segmentador       = SegmentadorPausas()
     translation_parts = []   # [{seña, confidence, modelo}]
-    last_seña         = None
     frame_count       = 0    # frames leídos del video
-    frames_added      = 0    # frames añadidos al buffer
-    # Submuestreo para procesar ~15 fps efectivos
-    frame_stride      = max(1, int(fps / 15))
+    frames_procesados = 0    # frames pasados al segmentador (tras submuestreo)
+    # Submuestreo para procesar ~10 fps efectivos (antes 15) — más velocidad de
+    # principio a fin de la demo, a costa de un poco de resolución temporal.
+    frame_stride      = max(1, int(fps / 10))
     detected_any      = {k: False for k in ["mano_izq", "mano_der", "cuerpo", "rostro"]}
     last_vis_rgb      = None
 
@@ -459,29 +481,27 @@ def process_video_streaming(video_path):
 
         last_vis_rgb = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
 
-        # Extraer keypoints y acumular buffer
+        # Extraer keypoints y pasarlos al segmentador por pausas
         kp = _results_to_kp(results)
-        local_buffer.append(kp)
-        frames_added += 1
+        frames_procesados += 1
 
-        # Ventana deslizante: inferencia cada STRIDE frames, una vez lleno el buffer
+        # Clasificar cuando el segmentador detecta el fin de una seña (pausa
+        # de las manos), no cada N frames fijos — ver src/features/segmentacion.py
         new_sign = False
-        if frames_added >= N_FRAMES and (frames_added - N_FRAMES) % STRIDE == 0:
-            kp_seq = np.stack(list(local_buffer))
+        segmento = segmentador.push(kp)
+        if segmento is not None:
+            kp_seq = resample_to_n_frames(segmento, N_FRAMES)
             r = run_inference(kp_seq)
-            if r and r["confidence"] >= CONF_UMBRAL:
-                seña = r["seña"]
-                if seña != last_seña:
-                    translation_parts.append({
-                        "seña":       seña,
-                        "confidence": r["confidence"],
-                        "modelo":     r.get("modelo", "LSTM"),
-                    })
-                    last_seña = seña
-                    new_sign  = True
+            if r and r["confidence"] >= CONF_UMBRAL and not _es_clase_narrativa(r["seña"]):
+                translation_parts.append({
+                    "seña":       r["seña"],
+                    "confidence": r["confidence"],
+                    "modelo":     r.get("modelo", "LSTM"),
+                })
+                new_sign = True
 
         # Yield al detectar seña nueva o cada STRIDE frames (actualización de progreso)
-        if new_sign or (frames_added % STRIDE == 0):
+        if new_sign or (frames_procesados % STRIDE == 0):
             progress_pct      = min(frame_count / max(total_frames, 1) * 100, 99)
             translation_text  = build_translation_text(translation_parts)
             result_md         = _build_result_md(translation_text, translation_parts)
@@ -495,6 +515,20 @@ def process_video_streaming(video_path):
 
     holistic_vid.close()
     cap.release()
+
+    # El video puede terminar a mitad de una seña (sin pausa final que la
+    # cierre) — típico en clips ya recortados de una sola seña. El segmentador
+    # entrega lo que quedó acumulado si alcanza el mínimo de frames.
+    segmento_final = segmentador.flush()
+    if segmento_final is not None:
+        kp_seq = resample_to_n_frames(segmento_final, N_FRAMES)
+        r = run_inference(kp_seq)
+        if r and r["confidence"] >= CONF_UMBRAL and not _es_clase_narrativa(r["seña"]):
+            translation_parts.append({
+                "seña":       r["seña"],
+                "confidence": r["confidence"],
+                "modelo":     r.get("modelo", "LSTM"),
+            })
 
     # Resultado final
     translation_text = build_translation_text(translation_parts)
@@ -619,13 +653,44 @@ CSS = """
                  font-family: monospace; min-height: 80px; }
 """
 
+# TTS 100% navegador (Web Speech API) — sin backend, sin costo.
+# %s se reemplaza por el selector CSS del elemento con el texto a leer.
+TTS_JS = """
+() => {
+  const el = document.querySelector('%s');
+  const text = el ? (el.innerText || el.textContent) : '';
+  if (!text || !text.trim()) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.trim());
+  u.lang = 'es-PE';
+  window.speechSynthesis.speak(u);
+}
+"""
+
+TTS_JS_TEXTAREA = """
+() => {
+  const el = document.querySelector('%s');
+  const text = el ? el.value : '';
+  if (!text || !text.trim()) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.trim());
+  u.lang = 'es-PE';
+  window.speechSynthesis.speak(u);
+}
+"""
+
 with gr.Blocks(title="Traductor LSP → Castellano", css=CSS) as demo:
 
     gr.Markdown(f"""
-# 🤟 Traductor LSP → Castellano — Sprint 13
+# 🤟 Traductor LSP → Castellano — Sprint 27
 **Sistema integral de comunicación inclusiva** — Lengua de Señas Peruana a texto en tiempo real.
 MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
-**BiLSTM S13** clasifica la seña en **{len(idx2label)}** clases LSP | F1=0.370 | Top-5=58.2%
+**BiLSTM S27** clasifica la seña en **{len(idx2label)}** clases LSP | F1=0.4349 | Top-5=63.6%
+
+> ⚠️ **Alcance actual:** reconoce **una seña aislada a la vez** (con una breve pausa entre cada una) —
+> igual que fue entrenado y medido. **No** está diseñado para traducir narración continua palabra por
+> palabra (p. ej. una historia contada de corrido); eso requiere un modelo de reconocimiento continuo
+> que todavía no existe en el proyecto.
     """)
 
     with gr.Tabs():
@@ -640,8 +705,12 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
                 with gr.Column(scale=2):
                     estado_cam = gr.Markdown("", elem_classes=["estado"])
                     result_cam = gr.Markdown("**Esperando señas…**",
+                                             elem_id="result_cam",
                                              elem_classes=["traduccion"])
+                    tts_btn_cam = gr.Button("🔊 Leer en voz alta", size="sm")
                     top3_cam   = gr.Markdown("")
+
+            tts_btn_cam.click(fn=None, inputs=None, outputs=None, js=TTS_JS % "#result_cam")
 
             webcam_in.stream(
                 fn=process_webcam_frame,
@@ -654,9 +723,13 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
         # ── Tab 2: Subir video ────────────────────────────────────────────
         with gr.TabItem("🎬 Subir video"):
             gr.Markdown(
-                "> El sistema procesa el video **frame a frame** con ventana deslizante "
-                f"({N_FRAMES} frames, overlap 50%). Cada seña reconocida se añade a la "
-                "transcripción en tiempo real."
+                "> El sistema detecta el **fin de cada seña por la pausa de las manos** "
+                "(no una ventana fija) y clasifica cada segmento por separado — igual que "
+                "el modelo fue entrenado. Cada seña reconocida se añade a la transcripción.\n\n"
+                "> ⚠️ **Funciona con señante que hace pausas breves entre señas.** "
+                "Videos de narración fluida sin pausas (una historia completa firmada de corrido) "
+                "**no van a segmentarse ni traducirse bien** — eso es reconocimiento continuo "
+                "gloss-por-gloss, un problema de investigación aparte, no resuelto en este sistema."
             )
             with gr.Row():
                 with gr.Column(scale=2):
@@ -681,13 +754,18 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
                     placeholder="La traducción aparecerá aquí mientras se procesa el video…",
                     lines=4,
                     max_lines=12,
+                    elem_id="export_text_vid",
                     elem_classes=["transcripcion"],
                     interactive=False,
                 )
             with gr.Row():
                 btn_export = gr.Button("💾 Exportar a TXT", variant="secondary", size="sm")
                 btn_copy   = gr.Button("📋 Copiar texto", variant="secondary", size="sm")
+                tts_btn_vid = gr.Button("🔊 Leer transcripción", variant="secondary", size="sm")
                 file_out   = gr.File(label="Descargar traduccion_lsp.txt")
+
+            tts_btn_vid.click(fn=None, inputs=None, outputs=None,
+                              js=TTS_JS_TEXTAREA % "#export_text_vid textarea")
 
             btn_vid.click(
                 fn=process_video_streaming,
@@ -741,7 +819,7 @@ Feature extraction: 150 dims/frame
      ↓
 Buffer deslizante [{N_FRAMES} frames × 150 dims], stride={STRIDE} frames (overlap 50%)
      ↓
-BiLSTM S13: proj(150→128) → LayerNorm → BiLSTM(128,256) → TemporalAttention → head(512→{len(idx2label)})
+BiLSTM S27: proj(150→128) → LayerNorm → BiLSTM(128,256) → TemporalAttention → head(512→{len(idx2label)})
      ↓
 Construcción de texto:
      Letras individuales → se concatenan (H+O+L+A → "HOLA")
@@ -759,28 +837,30 @@ Transcripción en tiempo real + Top-5 candidatos + Confianza + Exportar TXT
 | FPS efectivos procesados | ~15 fps |
 | Umbral de confianza | {CONF_UMBRAL*100:.0f}% |
 
-## Dataset S13 de entrenamiento
+## Dataset S17 de entrenamiento (fix cross-source dgi156↔vineta + sub-grupos ampliados)
 
-| Fuente | Muestras | Clases |
-|--------|---------|--------|
-| PUCP base (viñetas + glosas + abecedario) | ~7,300 | ~180 |
-| vocabulario_lsp_p (MP4 originales) | ~2,450 | — |
-| PUCP-AEC (intérprete TV) | 830 | — |
-| PUCP-DGI156 (múltiples señantes) | 3,642 | — |
-| LSP-Base | 3,200 | — |
-| **Total (≥5 muestras/clase)** | **14,980** | **193** |
+| Fuente | Muestras |
+|--------|---------|
+| vineta (Historias viñetas) | 3,684 |
+| dgi156 (múltiples señantes) | 3,642 |
+| abecedario (10 sub-grupos) | 3,600 |
+| AEC (intérprete TV, 10 sub-grupos) | 1,102 |
+| vocabulario_lsp_p | 80 |
+| glosa | 42 |
+| **Total (≥15 muestras/clase)** | **12,150** en **96 clases** |
 
-## Modelo BiLSTM S13
+## Modelo BiLSTM S27
 
 | Parámetro | Valor |
 |-----------|-------|
 | Arquitectura | proj(150→128) → LayerNorm → BiLSTM(128,256,1capa) → TemporalAttention |
-| Parámetros | ~992K |
+| Parámetros | ~966K |
 | hidden=256, dropout=0.20, lr=1.71e-3 | |
-| F1-macro test | **0.3696** (+1124% vs baseline S10) |
-| Top-3 accuracy | **53.0%** |
-| Top-5 accuracy | **58.2%** |
-| Latencia ONNX | <5 ms |
+| F1-macro test | **0.4349** (mejor punto histórico del proyecto) |
+| Top-3 accuracy | **56.1%** |
+| Top-5 accuracy | **63.6%** |
+| ΔF1 (HE3, generalización) | **0.0509** (umbral ≤0.15) |
+| Latencia ONNX | **0.72 ms** |
             """)
 
 

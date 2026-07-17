@@ -18,17 +18,22 @@ Sistema integral de comunicación inclusiva para la traducción de **Lengua de S
 
 - **Tiempo real** desde cámara web (webcam, laptop, tablet, smartphone)
 - **Videos pregrabados** MP4, AVI, MOV
-- **1141 señas LSP** reconocidas
+- **96 señas LSP** reconocidas (BiLSTM Sprint 27)
+- **F1-macro = 0.4349** · Top-5 = 63.6% · latencia ONNX = 0.72ms
 - **LSTM Bidireccional + Attention** sobre secuencias temporales de landmarks
 - **MediaPipe Holistic**: pose (33 pts) + ambas manos (21 pts c/u) = 150 dims/frame
 
-## Dataset
+## Dataset (S17 — fix de grupos cross-source)
 
-| Fuente | Muestras | Clases |
-|--------|---------|--------|
-| Keypoints/pkl (viñetas segmentadas) | 3,684 | 1,086 |
-| Glosas (grabaciones individuales) | 252 | 143 |
-| **Total** | **3,936** | **1,141** |
+| Fuente | Muestras |
+|--------|---------|
+| vineta (Historias viñetas) | 3,684 |
+| dgi156 (múltiples señantes) | 3,642 |
+| abecedario | 3,600 |
+| AEC (intérprete TV) | 1,102 |
+| vocabulario_lsp_p | 80 |
+| glosa | 42 |
+| **Total (≥15 muestras/clase)** | **12,150** en **96 clases** |
 
 ## Uso
 

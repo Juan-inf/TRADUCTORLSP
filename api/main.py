@@ -16,6 +16,7 @@ import base64
 import asyncio
 import numpy as np
 import cv2
+import mediapipe as mp
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional, List
@@ -30,19 +31,24 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.inference.predictor import ONNXPredictor
+from src.features.landmarks import results_to_kp, kp_seq_to_features, normalize_sample
 
 # ── Configuración ────────────────────────────────────────────────────────────
 
 CONFIG = {
-    "checkpoint_path": "checkpoints/cnn_lstm_best.pt",
-    "onnx_path":       "checkpoints/cnn_lstm_best.onnx",
-    "label2idx_path":  "data/label2idx.json",
+    "onnx_path":       "checkpoints/bilstm_s27.onnx",
+    "label2idx_path":  "data/s27_label2idx.json",
     "n_frames":        30,
-    "img_size":        (112, 112),   # shape exportada del ONNX
     "device":          "cuda" if torch.cuda.is_available() else "cpu",
     "confidence_threshold": 0.40,
-    "mode":            "pixels",
 }
+
+holistic = mp.solutions.holistic.Holistic(
+    static_image_mode=False,
+    model_complexity=1,
+    min_detection_confidence=0.4,
+    min_tracking_confidence=0.4,
+)
 
 # ── Estado global del predictor ──────────────────────────────────────────────
 
@@ -73,7 +79,6 @@ async def lifespan(app: FastAPI):
                 onnx_path=CONFIG["onnx_path"],
                 label2idx_path=CONFIG["label2idx_path"],
                 n_frames=CONFIG["n_frames"],
-                img_size=CONFIG["img_size"],
             )
             print(f"Modelo ONNX listo — {len(idx2label)} LSP - Vocabulario-palabras")
         else:
@@ -148,15 +153,15 @@ async def predict_video(file: UploadFile = File(...)):
     with open(tmp_path, 'wb') as f:
         f.write(contents)
 
-    # Extraer frames
-    frames = _extract_frames_from_file(tmp_path, CONFIG["n_frames"], CONFIG["img_size"])
+    # Extraer secuencia de landmarks
+    seq = _extract_landmark_sequence_from_file(tmp_path, CONFIG["n_frames"])
     Path(tmp_path).unlink(missing_ok=True)
 
-    if frames is None:
+    if seq is None:
         raise HTTPException(422, "No se pudo procesar el video")
 
     # Inferencia
-    result = _run_inference(frames)
+    result = _run_inference(seq)
     result['latency_ms'] = (time.perf_counter() - t0) * 1000
 
     return result
@@ -181,11 +186,8 @@ async def predict_frame(
     if frame is None:
         raise HTTPException(422, "No se pudo decodificar la imagen")
 
-    # Por simplicidad, este endpoint procesa un frame a la vez
-    # En producción, usar el WebSocket para streaming real
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame_norm = _preprocess_single_frame(frame_rgb, CONFIG["img_size"])
-
+    # Por simplicidad, este endpoint solo confirma recepción de un frame.
+    # El modelo necesita una secuencia de 30 frames — usar /predict/stream.
     return {"status": "frame_received", "note": "Usar /predict/stream para tiempo real"}
 
 
@@ -202,7 +204,6 @@ async def websocket_predict(websocket: WebSocket):
       Server → {"seña": "HOLA", "confidence": 0.92, "latency_ms": 145}
     """
     await websocket.accept()
-    frame_buffer = []
     kp_buffer = []
 
     try:
@@ -220,31 +221,30 @@ async def websocket_predict(websocket: WebSocket):
                 await websocket.send_json({"error": "frame inválido"})
                 continue
 
-            # Preprocesar y agregar al buffer
-            frame_norm = _preprocess_single_frame(
-                cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB),
-                CONFIG["img_size"],
-            )
-            frame_buffer.append(frame_norm)
+            # Extraer landmarks del frame y agregar al buffer
+            frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+            results = holistic.process(frame_rgb)
+            kp_buffer.append(results_to_kp(results))
 
             # Mantener solo los últimos n_frames
-            if len(frame_buffer) > CONFIG["n_frames"]:
-                frame_buffer.pop(0)
+            if len(kp_buffer) > CONFIG["n_frames"]:
+                kp_buffer.pop(0)
 
             # Predecir cuando el buffer está lleno
-            if len(frame_buffer) == CONFIG["n_frames"]:
-                pixels = np.stack(frame_buffer)                    # [T, H, W, C]
-                pixels = np.transpose(pixels, (3, 0, 1, 2))       # [C, T, H, W]
-                pixels = pixels[np.newaxis]                        # [1, C, T, H, W]
+            if len(kp_buffer) == CONFIG["n_frames"]:
+                kp_seq = np.stack(kp_buffer)                        # [T, 75, 3]
+                feat   = kp_seq_to_features(kp_seq)                 # [T, 150]
+                feat   = normalize_sample(feat)
+                seq    = feat[np.newaxis]                            # [1, T, 150]
 
-                result = _run_inference(pixels)
+                result = _run_inference(seq)
                 result['latency_ms'] = (time.perf_counter() - t0) * 1000
 
                 await websocket.send_json(result)
             else:
                 await websocket.send_json({
                     "status": "buffering",
-                    "frames_collected": len(frame_buffer),
+                    "frames_collected": len(kp_buffer),
                     "frames_needed": CONFIG["n_frames"],
                 })
 
@@ -259,25 +259,13 @@ async def websocket_predict(websocket: WebSocket):
 
 # ── Funciones auxiliares ─────────────────────────────────────────────────────
 
-IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], np.float32)
-IMAGENET_STD  = np.array([0.229, 0.224, 0.225], np.float32)
-
-
-def _preprocess_single_frame(
-    frame_rgb: np.ndarray,
-    img_size: tuple,
-) -> np.ndarray:
-    frame = cv2.resize(frame_rgb, img_size, interpolation=cv2.INTER_LINEAR)
-    frame = frame.astype(np.float32) / 255.0
-    frame = (frame - IMAGENET_MEAN) / IMAGENET_STD
-    return frame
-
-
-def _extract_frames_from_file(
+def _extract_landmark_sequence_from_file(
     video_path: str,
     n_frames: int,
-    img_size: tuple,
 ) -> Optional[np.ndarray]:
+    """Muestrea n_frames uniformemente del video, extrae landmarks MediaPipe
+    por frame, y arma la secuencia normalizada [1, n_frames, 150] lista para
+    el modelo — mismo contrato que scripts/train_s27.py."""
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         return None
@@ -285,41 +273,38 @@ def _extract_frames_from_file(
     total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     indices = np.linspace(0, total - 1, n_frames, dtype=int)
 
-    frames = []
+    kps = []
     for idx in indices:
         cap.set(cv2.CAP_PROP_POS_FRAMES, int(idx))
         ret, frame = cap.read()
         if ret:
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frames.append(_preprocess_single_frame(frame_rgb, img_size))
+            results = holistic.process(frame_rgb)
+            kps.append(results_to_kp(results))
 
     cap.release()
 
-    if not frames:
+    if not kps:
         return None
 
-    # Pad si hace falta
-    while len(frames) < n_frames:
-        frames.append(frames[-1])
+    while len(kps) < n_frames:
+        kps.append(kps[-1])
 
-    arr = np.stack(frames[:n_frames])             # [T, H, W, C]
-    arr = np.transpose(arr, (3, 0, 1, 2))         # [C, T, H, W]
-    return arr[np.newaxis]                         # [1, C, T, H, W]
+    kp_seq = np.stack(kps[:n_frames])              # [T, 75, 3]
+    feat   = kp_seq_to_features(kp_seq)             # [T, 150]
+    feat   = normalize_sample(feat)
+    return feat[np.newaxis]                          # [1, T, 150]
 
 
 def _clase_a_texto(clase_id: str) -> str:
-    if clase_id in clase_texto:
-        return clase_texto[clase_id]
-    if clase_id.startswith("vineta_"):
-        return f"Historia viñeta {clase_id.replace('vineta_', '')}"
-    return clase_id
+    return clase_texto.get(clase_id, clase_id)
 
 
-def _run_inference(pixels: np.ndarray) -> dict:
-    """Ejecuta inferencia ONNX sobre batch de pixels y devuelve texto castellano."""
+def _run_inference(sequence: np.ndarray) -> dict:
+    """Ejecuta inferencia ONNX sobre la secuencia de landmarks y devuelve texto castellano."""
     global predictor, idx2label
 
-    result = predictor.predict(pixels)
+    result = predictor.predict(sequence)
 
     # Agregar texto en castellano
     clase_id = result.get('seña', '')

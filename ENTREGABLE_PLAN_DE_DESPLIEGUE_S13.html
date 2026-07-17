@@ -1,0 +1,292 @@
+<title>Plan de Despliegue — Traductor LSP</title>
+<style>
+:root{
+  --bg:#f4f6f7; --surface:#ffffff; --surface-2:#eef1f2;
+  --ink:#182225; --ink-soft:#425055; --muted:#6b7a80; --border:#d7dfe1;
+  --accent:#0e7c78; --accent-ink:#075c59; --accent-soft:#e2f2f0;
+  --amber:#b3791f; --amber-soft:#f7ecd9;
+  --good:#1f8f5f; --good-soft:#e3f4ea;
+  --bad:#c2384a; --bad-soft:#fbe6e9;
+  --shadow: 0 1px 2px rgba(20,30,32,.06), 0 8px 24px -12px rgba(20,30,32,.18);
+}
+:root[data-theme="dark"]{
+  --bg:#10161a; --surface:#171f24; --surface-2:#1d262b; --ink:#e7edee; --ink-soft:#b9c6c9;
+  --muted:#8398a0; --border:#2a363c; --accent:#3fb3a9; --accent-ink:#8fe0d6; --accent-soft:#173330;
+  --amber:#d6a34a; --amber-soft:#31281a; --good:#4fbf87; --good-soft:#153427; --bad:#e2697b; --bad-soft:#3a1c22;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161a; --surface:#171f24; --surface-2:#1d262b; --ink:#e7edee; --ink-soft:#b9c6c9;
+    --muted:#8398a0; --border:#2a363c; --accent:#3fb3a9; --accent-ink:#8fe0d6; --accent-soft:#173330;
+    --amber:#d6a34a; --amber-soft:#31281a; --good:#4fbf87; --good-soft:#153427; --bad:#e2697b; --bad-soft:#3a1c22;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:15.5px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.wrap{ max-width:900px; margin:0 auto; padding:0 24px 96px; }
+.masthead{ border-bottom:1px solid var(--border); padding:40px 0 28px; margin-bottom:32px; }
+.eyebrow{
+  font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent);
+  display:flex; align-items:center; gap:8px; margin-bottom:14px;
+}
+.eyebrow .dot{ width:6px;height:6px;border-radius:50%;background:var(--accent); }
+h1{
+  font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,serif;
+  font-weight:600; font-size:clamp(26px,4vw,34px); line-height:1.16; letter-spacing:-.01em;
+  margin:0 0 12px; text-wrap:balance; color:var(--ink);
+}
+.subtitle{ color:var(--ink-soft); font-size:15.5px; max-width:70ch; margin:0 0 18px; }
+.meta-row{
+  display:flex; flex-wrap:wrap; gap:8px 20px;
+  font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  font-size:12px; color:var(--muted);
+}
+.meta-row b{ color:var(--ink-soft); font-weight:600; }
+section{ margin:46px 0; }
+.sec-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:10px; }
+.sec-num{ font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; color:var(--accent); font-size:14px; font-weight:600; }
+h2{
+  font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,serif;
+  font-size:21px; font-weight:600; margin:0; color:var(--ink); text-wrap:balance;
+}
+h3{ font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  font-size:13.5px; font-weight:600; margin:22px 0 8px; color:var(--accent-ink); }
+p{ color:var(--ink-soft); max-width:74ch; }
+.callout{ background:var(--accent-soft); border:1px solid var(--accent); border-left-width:4px;
+  border-radius:8px; padding:14px 18px; margin:16px 0; color:var(--ink); font-size:14px; }
+.callout b{ color:var(--accent-ink); }
+.callout.warn{ background:var(--amber-soft); border-color:var(--amber); }
+.callout.warn b{ color:var(--amber); }
+.table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:10px; margin:14px 0; box-shadow:var(--shadow); }
+table{ border-collapse:collapse; width:100%; min-width:480px; background:var(--surface); }
+thead th{ background:var(--surface-2); text-align:left; font-size:11px; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--muted); font-weight:600; padding:9px 13px; border-bottom:1px solid var(--border); white-space:nowrap; }
+tbody td{ padding:9px 13px; border-bottom:1px solid var(--border); font-size:13px; color:var(--ink-soft); vertical-align:top; }
+tbody td:first-child{ color:var(--ink); font-weight:600; white-space:nowrap; }
+tbody tr:last-child td{ border-bottom:none; }
+tbody tr:hover td{ background:var(--surface-2); }
+pre{ background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:16px 18px;
+  overflow-x:auto; font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; font-size:12.5px;
+  color:var(--ink); line-height:1.55; }
+code.inline{ font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; background:var(--surface-2);
+  padding:1px 6px; border-radius:5px; font-size:.9em; color:var(--ink-soft); }
+.pill{ display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:99px; font-size:11.5px; font-weight:600; }
+.pill.pass{ background:var(--good-soft); color:var(--good); }
+.pill.warn{ background:var(--amber-soft); color:var(--amber); }
+ul.clean{ list-style:none; margin:10px 0; padding:0; display:flex; flex-direction:column; gap:7px; }
+ul.clean li{ padding-left:20px; position:relative; color:var(--ink-soft); font-size:14px; }
+ul.clean li::before{ content:"—"; position:absolute; left:0; color:var(--accent); }
+footer{ border-top:1px solid var(--border); margin-top:56px; padding-top:20px; color:var(--muted); font-size:12px; }
+</style>
+
+<div class="wrap">
+  <div class="masthead">
+    <div class="eyebrow"><span class="dot"></span>Entregable · Antes de la tesis</div>
+    <h1>Plan de Despliegue — Traductor LSP → Castellano</h1>
+    <p class="subtitle">Backend FastAPI, demo Gradio, despliegue público y modelo BiLSTM S27 (v4). No introduce componentes nuevos: documenta lo construido y validado esta semana, y lo que falta para producción real.</p>
+    <div class="meta-row">
+      <span><b>Fecha</b> 2026-07-17</span>
+      <span><b>Responsable</b> Juan Calla</span>
+      <span><b>Estado</b> 6/6 tests pasan · E2E verificado en vivo</span>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>Resumen ejecutivo</h2></div>
+    <p>El sistema traduce en tiempo real señas aisladas de un vocabulario de 96 clases LSP a texto en castellano, con latencia end-to-end medida de <b style="color:var(--ink)">p50=54.7ms / p95=58.7ms</b> (umbral objetivo: 200ms) y F1-macro=0.4426 con generalización verificada a señantes no vistos (ΔF1=0.0406, 3.7× de margen sobre el umbral de HE3). Existen tres superficies funcionales y validadas con datos reales esta semana: una demo interactiva (<code class="inline">demo/app_gradio.py</code>, cámara + video + TTS), un backend API con WebSocket para integración (<code class="inline">api/main.py</code>), y un despliegue público en HuggingFace Spaces (<code class="inline">spaces/</code>).</p>
+    <p>El sistema <b style="color:var(--ink)">no está listo para producción sin trabajo adicional</b>: no hay build de Docker verificado, el checkpoint del modelo no está versionado en git, la configuración de CORS/seguridad es la de desarrollo, y el backend API todavía no incorpora las mejoras de calidad que sí tiene la demo (R9). "Validado" en la tabla de arquitectura significa que no se cae, no que tenga la misma calidad de reconocimiento que la demo.</p>
+    <div class="callout warn"><b>Límite de alcance conocido:</b> el sistema reconoce señas aisladas, no narración continua ni gramática conectada — no es parte de este plan de despliegue, es una limitación de capacidad del modelo, no de infraestructura.</div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>Arquitectura candidata</h2></div>
+    <pre>  Cliente (navegador / cámara)
+       │
+       │  captura frame (JPEG base64)
+       ▼
+  api/main.py — FastAPI
+       │  endpoints: /health  /classes  /predict/video  WS /predict/stream
+       ▼
+  MediaPipe Holistic  →  landmarks [75,3]
+       │
+       ▼
+  src/features/landmarks.py
+       │  kp_seq_to_features()  →  [30,150]
+       │  normalize_sample()    →  z-score
+       ▼
+  ONNXPredictor  →  checkpoints/bilstm_s27.onnx  (96 clases)
+       │
+       ▼
+  Cliente  ←  {clase, texto_castellano, confidence, latency_ms, top3}</pre>
+    <p style="font-size:13.5px;">Rutas alternativas (mismo modelo y módulo de landmarks, sin pasar por <code class="inline">api/main.py</code>): <code class="inline">demo/app_gradio.py</code> (Gradio standalone, incluye además segmentación por pausas) y <code class="inline">spaces/app.py</code> (copia autónoma para HuggingFace Spaces).</p>
+    <div class="callout warn"><b>Divergencia real, encontrada al escribir este plan:</b> los 3 ajustes de esta semana (segmentación por pausas, filtro de clases <code class="inline">HISTORIAS_VINETAS_*</code>, umbral de confianza calibrado a 0.20) están solo en <code class="inline">demo/</code> y <code class="inline">spaces/</code>. <code class="inline">api/main.py</code> sigue con ventana fija de 30 frames sin filtrar — ver R9.
+    <br><br><b>Confirmado por código, no solo por lectura:</b> el notebook busca en vivo las cadenas <code class="inline">SegmentadorPausas</code> y <code class="inline">CONF_UMBRAL</code> en ambos archivos — resultado real: <code class="inline">api/main.py</code> → ambas <code class="inline">False</code>; <code class="inline">demo/app_gradio.py</code> → ambas <code class="inline">True</code>.</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Componente</th><th>Archivo</th><th>Estado</th></tr></thead>
+      <tbody>
+        <tr><td>Extracción de landmarks</td><td><code class="inline">src/features/landmarks.py</code></td><td><span class="pill pass">✓</span> compartido entre api/ y demo/</td></tr>
+        <tr><td>Segmentación por pausas</td><td><code class="inline">src/features/segmentacion.py</code></td><td><span class="pill pass">✓</span> calibrado con datos reales</td></tr>
+        <tr><td>Modelo</td><td><code class="inline">checkpoints/bilstm_s27.onnx</code> (3.9MB)</td><td><span class="pill pass">✓</span> entrenado — <span class="pill warn">⚠</span> no está en git</td></tr>
+        <tr><td>Backend API</td><td><code class="inline">api/main.py</code></td><td><span class="pill pass">✓</span> validado con servidor + WS real</td></tr>
+        <tr><td>Demo</td><td><code class="inline">demo/app_gradio.py</code></td><td><span class="pill pass">✓</span> validado en vivo, :7860</td></tr>
+        <tr><td>Deploy público</td><td><code class="inline">spaces/</code></td><td><span class="pill pass">✓</span> actualizado a S27</td></tr>
+        <tr><td>Contenedor</td><td><code class="inline">Dockerfile</code></td><td><span class="pill warn">⚠</span> preparado, sin build-test real</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>Contratos I/O</h2></div>
+    <h3>GET /health</h3>
+    <pre>{"status": "ok", "model_ready": true, "device": "cpu", "n_classes": 96}</pre>
+    <h3>GET /classes</h3>
+    <pre>{"classes": ["A", "AHORA", "APRENDER", "..."], "total": 96}</pre>
+    <h3>POST /predict/video (multipart/form-data, campo "file")</h3>
+    <pre>// Response 200 — capturado en vivo con `make test-video`
+{
+  "clase": "DIEZ",
+  "texto_castellano": "DIEZ",
+  "confidence": 0.0984,
+  "latency_ms": 4662.9,
+  "top3": [
+    {"clase": "DIEZ", "confidence": 0.0984},
+    {"clase": "ORIGINAL", "confidence": 0.0908},
+    {"clase": "IGUAL", "confidence": 0.0593}
+  ]
+}
+// Response 422 si el video no se puede procesar; 503 si el modelo no cargó</pre>
+    <p style="font-size:13px;">Nota: <code class="inline">api/main.py</code> no filtra por confianza (R9) — esta respuesta se devuelve tal cual aunque la confianza sea baja (9.8% en este ejemplo real).</p>
+    <h3>Segunda corrida en vivo, mismo video (notebook, ejecutada después)</h3>
+    <pre>{
+  "clase": "ORIGINAL", "texto_castellano": "ORIGINAL",
+  "confidence": 0.0947, "latency_ms": 7089.8,
+  "top3": [
+    {"clase": "ORIGINAL", "confidence": 0.0947},
+    {"clase": "DIEZ", "confidence": 0.0940},
+    {"clase": "IGUAL", "confidence": 0.0377}
+  ]
+}</pre>
+    <div class="callout warn"><b>Hallazgo real:</b> el top-1 cambió de <code class="inline">DIEZ</code> a <code class="inline">ORIGINAL</code> entre corridas — diferencia de confianza de solo 0.0007 (prácticamente empatados). Cuando el top-3 está así de cerca, el top-1 de <code class="inline">/predict/video</code> no es estable entre ejecuciones; <code class="inline">top3</code> es más confiable que <code class="inline">clase</code> sola para estos casos límite.</div>
+    <h3>WS /predict/stream</h3>
+    <pre>Cliente  → {"frame": "&lt;base64 JPEG&gt;", "include_landmarks": false}
+Servidor → {"status": "buffering", "frames_collected": 12, "frames_needed": 30}
+Servidor → {"clase": "DOS", "confidence": 0.149, "latency_ms": 46.4, "top3": [...]}
+Servidor → {"error": "frame inválido"}</pre>
+    <p style="font-size:13px;">Latencia real medida (cliente WebSocket real, no simulado): p50=54.7ms, p95=58.7ms, max=118.2ms.</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><h2>Reproducibilidad</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Ítem</th><th>Estado real</th></tr></thead>
+      <tbody>
+        <tr><td>Entorno</td><td><code class="inline">.venv310/</code> (Python 3.10.20 — torch, backend) y <code class="inline">.venv311/</code> (Python 3.11.15 — MediaPipe, Gradio)</td></tr>
+        <tr><td>Seeds</td><td><code class="inline">SEED=42</code> fijo en todos los splits. <b>No determinístico al 100%</b> — <code class="inline">WeightedRandomSampler</code> + augmentation sin seed por worker; confirmado que v3/v4 no reproducen bit-a-bit</td></tr>
+        <tr><td>Lockfile</td><td><span class="pill pass">✓</span> <code class="inline">requirements.lock.txt</code> — 198 paquetes con versión exacta, generado del entorno real validado</td></tr>
+        <tr><td>Makefile</td><td><span class="pill pass">✓</span> nuevo — comandos ya validados (install, run-demo, run-api, health, test, test-video, docker-build)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">05</span><h2>E2E en limpio</h2></div>
+    <pre># 1. Entorno
+python3.10 -m venv .venv310 && .venv310/bin/pip install -r requirements-api.txt
+
+# 2. Modelo (no está en git — copiar manualmente, ver R1)
+
+# 3. Levantar backend
+.venv310/bin/python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
+
+# 4. make health   → {"status":"ok","model_ready":true,"n_classes":96}
+# 5. make test-video → JSON con "clase" dentro del vocabulario de 96</pre>
+    <p style="font-size:13.5px;"><b style="color:var(--ink)">Criterio de éxito:</b> <code class="inline">/health</code> responde <code class="inline">model_ready:true</code>, y <code class="inline">/predict/video</code> devuelve una clase válida en menos de 10s. <b>Ejecutado y verificado 2 veces en vivo</b> al construir este plan.</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">06</span><h2>Observabilidad</h2></div>
+    <ul class="clean">
+      <li><code class="inline">logs/runs.csv</code> — historial de entrenamientos, no de inferencia en producción.</li>
+      <li><code class="inline">print()</code> a stdout — sin niveles, sin structured logging, sin destino persistente.</li>
+      <li><code class="inline">latency_ms</code> se devuelve por request pero no se agrega ni persiste.</li>
+    </ul>
+    <div class="callout warn"><b>Gap real:</b> sin métricas agregadas, sin alertas, sin dashboard. Recomendación mínima: <code class="inline">logging</code> estándar + contador de latencias antes de producción.</div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">07</span><h2>Validación &amp; tests</h2></div>
+    <p><span class="pill pass">✓ 6/6 pasan</span> — implementado y verificado, no solo documentado:</p>
+    <ul class="clean">
+      <li><code class="inline">tests/test_smoke.py</code> — health, classes, formato de respuesta.</li>
+      <li><code class="inline">tests/test_golden.py</code> — 3 clips reales (AHORA, TÚ, PROTEÍNA) en top-3. Elegidos con evidencia: de 7 videos de viñeta completa solo 1/7 acertó — los clips cortos sí son representativos de la tarea real (F1=0.4426).</li>
+      <li><code class="inline">tests/test_websocket_contract.py</code> — protocolo buffering→predicción, manejo de error.</li>
+    </ul>
+    <pre>.venv310/bin/python -m pytest tests/ -v
+# 6 passed in ~13s</pre>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">08</span><h2>Seguridad &amp; config</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Ítem</th><th>Estado</th><th>Riesgo</th></tr></thead>
+      <tbody>
+        <tr><td>CORS</td><td><code class="inline">allow_origins=["*"]</code></td><td>Alto — abierto a cualquier origen</td></tr>
+        <tr><td>Secretos/.env</td><td>No existe, todo hardcodeado</td><td>Bajo hoy, no escala</td></tr>
+        <tr><td>Límite de upload</td><td>No valida tamaño</td><td>Medio — memoria/tiempo</td></tr>
+        <tr><td>Rate limiting</td><td>No existe</td><td>Medio — sin protección DoS</td></tr>
+        <tr><td>Autenticación</td><td>Endpoints públicos</td><td>Alto si se expone fuera de red controlada</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><b>Confirmado por lectura real del archivo:</b> el notebook extrae <code class="inline">allow_origins</code> de <code class="inline">api/main.py</code> con una expresión regular sobre el código fuente real → <code class="inline">["*"]</code>. También confirma en vivo que <code class="inline">.env</code> no existe y que no hay ninguna cadena <code class="inline">max_size</code>/<code class="inline">MAX_UPLOAD</code> en el archivo.</div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">09</span><h2>Hoja de ruta a Docker/API</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Tarea</th><th>Responsable</th><th>Fecha</th><th>Estado</th></tr></thead>
+      <tbody>
+        <tr><td>Tests (smoke+golden+WS)</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
+        <tr><td>Lockfile congelado</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
+        <tr><td>Portar mejoras a api/main.py (R9)</td><td>Juan Calla</td><td>Antes de integrar</td><td><span class="pill warn">⚠ Pendiente</span></td></tr>
+        <tr><td>Build de Docker real</td><td>Juan Calla</td><td>Próxima sesión c/Docker</td><td><span class="pill warn">⚠ Bloqueado</span></td></tr>
+        <tr><td>Checkpoint a git</td><td>Juan Calla</td><td>Antes del próximo deploy</td><td><span class="pill warn">⚠ Pendiente</span></td></tr>
+        <tr><td>requirements-api.txt exacto</td><td>Juan Calla</td><td>Antes de producción</td><td>Pendiente</td></tr>
+        <tr><td>Logging estructurado</td><td>Juan Calla</td><td>1 semana</td><td>Pendiente</td></tr>
+        <tr><td>Restringir CORS/límites</td><td>Juan Calla</td><td>Antes de exponer</td><td>Pendiente</td></tr>
+        <tr><td>CI (pytest en cada push)</td><td>Juan Calla</td><td>1 semana</td><td>Pendiente</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">10</span><h2>Riesgos &amp; mitigaciones</h2></div>
+    <p style="font-size:13.5px;">Todos reales, encontrados esta semana durante el desarrollo — no hipotéticos.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Riesgo</th><th>Encontrado</th><th>Mitigación / Rollback</th></tr></thead>
+      <tbody>
+        <tr><td>R1 — Checkpoint fuera de git</td><td><code class="inline">.gitignore</code> excluye <code class="inline">checkpoints/*.onnx</code></td><td>Commitear con excepción, o release aparte</td></tr>
+        <tr><td>R2 — Checkpoint v3 perdido</td><td>v4 sobrescribió el mejor KS (D=0.049)</td><td>Versionar por nombre de corrida</td></tr>
+        <tr><td>R3 — Entrenamiento impredecible</td><td>788min vs. 66-120min históricos</td><td>+10× margen; máquina dedicada</td></tr>
+        <tr><td>R4 — Umbral mal calibrado</td><td>0.30 ocultaba aciertos reales</td><td>Corregido a 0.20 con datos reales</td></tr>
+        <tr><td>R5 — Docker sin probar</td><td>Sin acceso a Docker esta semana</td><td>Probar antes de deploy en contenedor</td></tr>
+        <tr><td>R6 — Regresión silenciosa</td><td><code class="inline">model_complexity=0</code> rompió detección</td><td>Validar contra videos de referencia, no solo velocidad</td></tr>
+        <tr><td>R7 — CORS abierto</td><td><code class="inline">allow_origins=["*"]</code></td><td>Restringir antes de exponer</td></tr>
+        <tr><td>R8 — Sin reconocimiento continuo</td><td>Verificado contra SRT real</td><td>Fuera de alcance, investigación aparte</td></tr>
+        <tr><td>R9 — API sin las mejoras de la semana</td><td>Segmentación/filtro/umbral solo en demo</td><td>Portar antes de integrar backend real</td></tr>
+        <tr><td>R10 — Videos largos rinden peor</td><td>1/7 en viñetas completas vs 3/4 en clips cortos</td><td>No usar videos largos como demo del API</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><b>Rollback general:</b> todos los cambios de esta semana están en el working tree sin commitear — <code class="inline">git diff</code>/<code class="inline">git checkout</code> revierte cualquier cambio individualmente. El modelo v4 es el único artefacto no versionado (R1).</div>
+    <div class="callout warn"><b>R1 y R2 confirmados por comandos reales:</b> el notebook corre <code class="inline">git check-ignore -v checkpoints/bilstm_s27.onnx</code> en vivo → confirma <code class="inline">.gitignore:23:checkpoints/*.onnx</code>. También lista los archivos <code class="inline">bilstm_s27.*</code> en disco → solo existen <code class="inline">.onnx</code> y <code class="inline">.pt</code> de v4; ningún rastro de v1/v2/v3.</div>
+  </section>
+
+  <footer>Entregable — Plan de Despliegue (S13) · Traductor LSP → Castellano · 2026-07-17 · Responsable: Juan Calla</footer>
+</div>

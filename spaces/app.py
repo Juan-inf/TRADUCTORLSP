@@ -1,6 +1,7 @@
 """
-Traductor LSP → Castellano — HuggingFace Spaces
+Traductor LSP → Castellano — HuggingFace Spaces — Sprint 27
 Sistema integral de comunicación inclusiva: Lengua de Señas Peruana a texto.
+BiLSTM S27: 96 señas LSP, F1-macro=0.4349, latencia ONNX=0.72ms.
 """
 
 import json, time, warnings
@@ -19,7 +20,7 @@ import onnxruntime as ort
 N_FRAMES    = 30
 N_DIMS      = 150
 N_KP        = 75
-CONF_UMBRAL = 0.25
+CONF_UMBRAL = 0.20  # calibrado con datos reales — ver demo/app_gradio.py
 
 kp_buffer  = deque(maxlen=N_FRAMES)
 historial  = deque(maxlen=10)
@@ -46,6 +47,11 @@ ROOT = Path(__file__).parent
 with open(ROOT / "lstm_label2idx.json", encoding="utf-8") as f:
     l2i = json.load(f)
 idx2label = {int(v): k for k, v in l2i.items()}
+
+clase_texto = {}
+if (ROOT / "clase_texto.json").exists():
+    with open(ROOT / "clase_texto.json", encoding="utf-8") as f:
+        clase_texto = json.load(f)
 
 session = ort.InferenceSession(str(ROOT / "lstm_signs.onnx"),
                                 providers=["CPUExecutionProvider"])
@@ -105,8 +111,17 @@ def kp_seq_to_features(kp_seq):
     ], axis=1).astype(np.float32)
 
 
+def normalize_sample(x):
+    """Z-score escalar global — requerido por bilstm_s27 (normalize_input=True),
+    idéntico a scripts/train_s27.py:normalize_sample."""
+    mu, std = x.mean(), x.std()
+    if std < 1e-8:
+        return x
+    return ((x - mu) / std).astype(np.float32)
+
+
 def run_inference(kp_seq):
-    feat   = kp_seq_to_features(kp_seq)[np.newaxis]
+    feat   = normalize_sample(kp_seq_to_features(kp_seq))[np.newaxis]
     logits = session.run(None, {"sequence": feat})[0][0]
     probs  = np.exp(logits - logits.max())
     probs /= probs.sum()
@@ -183,6 +198,16 @@ def webcam_frame(frame):
 STRIDE = N_FRAMES // 2
 
 
+def _texto_legible(s):
+    """La mayoría de clases ya son palabras en castellano; las
+    HISTORIAS_VINETAS_N son clips narrativos completos, sin traducción 1:1."""
+    if s.startswith("HISTORIAS_VINETAS_"):
+        return f"[Viñeta {s.rsplit('_', 1)[-1]}]"
+    if s in clase_texto:
+        return clase_texto[s]
+    return s.capitalize()
+
+
 def _build_text(parts):
     """Letras individuales → concatenar; palabras → separar con espacio."""
     words, letters = [], []
@@ -193,7 +218,7 @@ def _build_text(parts):
         else:
             if letters:
                 words.append("".join(letters)); letters = []
-            words.append(s.capitalize())
+            words.append(_texto_legible(s))
     if letters:
         words.append("".join(letters))
     return " ".join(words)
@@ -261,8 +286,9 @@ CSS = ".traduccion{font-size:1.5em!important;padding:14px 18px;border-left:5px s
 
 with gr.Blocks(title="Traductor LSP", css=CSS) as demo:
     gr.Markdown(f"""
-    # 🤟 Traductor LSP → Castellano
-    Sistema de comunicación inclusiva · {len(idx2label)} señas peruanas · LSTM Bidireccional
+    # 🤟 Traductor LSP → Castellano — Sprint 27
+    Sistema de comunicación inclusiva · {len(idx2label)} señas peruanas · BiLSTM Bidireccional
+    F1-macro=0.4349 · Top-5=63.6% · Latencia ONNX=0.72ms
     """)
     with gr.Tabs():
         with gr.TabItem("📷 Cámara en vivo"):

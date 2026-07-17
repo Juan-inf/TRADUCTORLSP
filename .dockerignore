@@ -1,0 +1,25 @@
+.venv*/
+notebooks/venv/
+venv/
+__pycache__/
+*.pyc
+.git/
+.gradio/
+
+# Datos y checkpoints — solo se copian explícitamente en el Dockerfile
+data/
+checkpoints/
+resultados_nsga2/
+logs/
+
+# Entregables/documentación, no forman parte de la imagen de servicio
+*.ipynb
+*.docx
+*.html
+docs/
+EXAMEN_PARCIAL_S9/
+Entrega Sprint Semana6/
+Entrega Sprint Semana7/
+entregas/
+figs/
+spaces/

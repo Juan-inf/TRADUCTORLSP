@@ -13,11 +13,19 @@ Diferencias vs S26:
 Checkpoints : bilstm_s27.pt / bilstm_s27.onnx
 """
 
-import json, time, warnings, pathlib, csv, datetime
+import json, time, warnings, pathlib, csv, datetime, gc, os
+
+os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.0")
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+def _free_mps():
+    gc.collect()
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from sklearn.model_selection import StratifiedKFold, StratifiedShuffleSplit, GroupShuffleSplit
 from sklearn.metrics import f1_score
@@ -450,9 +458,11 @@ else:
             return LSPLSTMBidirS27(N_DIMS, n_classes,
                                    hidden=hidden, n_layers=n_layers, dropout=dropout)
 
-        _, f1 = train_one_run(Xh_tr, yh_tr, Xh_val, yh_val, make,
+        m_trial, f1 = train_one_run(Xh_tr, yh_tr, Xh_val, yh_val, make,
                               lr=lr, wd=wd, label_smoothing=ls,
                               n_epochs=N_EPOCHS_HPO, patience=PATIENCE_HPO, trial=trial)
+        del m_trial
+        _free_mps()
         return f1
 
     t0    = time.time()
@@ -504,6 +514,9 @@ for fi, (tr_i, va_i) in enumerate(skf.split(X_core, y_core), 1):
     print(f"  Fold {fi}: F1-val={f1:.4f}")
     if f1 > best_f1:
         best_f1, best_model = f1, m
+    elif m is not best_model:
+        del m
+    _free_mps()
 
 total_min = (time.time() - t_final) / 60
 mean_f1   = float(np.mean(fold_f1s))

@@ -43,3 +43,8 @@ logs/
 # IDE
 .vscode/
 .idea/
+
+# Archivos temporales de Office
+~$*.docx
+~$*.xlsx
+~$*.pptx

@@ -1,0 +1,243 @@
+<title>Sustentación — Traductor LSP → Castellano</title>
+<style>
+:root{
+  --bg:#f4f6f7; --surface:#ffffff; --surface-2:#eef1f2;
+  --ink:#182225; --ink-soft:#425055; --muted:#6b7a80; --border:#d7dfe1;
+  --accent:#0e7c78; --accent-ink:#075c59; --accent-soft:#e2f2f0;
+  --amber:#b3791f; --amber-soft:#f7ecd9;
+  --good:#1f8f5f; --good-soft:#e3f4ea;
+  --bad:#c2384a; --bad-soft:#fbe6e9;
+  --shadow: 0 1px 2px rgba(20,30,32,.06), 0 8px 24px -12px rgba(20,30,32,.18);
+}
+:root[data-theme="dark"]{
+  --bg:#10161a; --surface:#171f24; --surface-2:#1d262b; --ink:#e7edee; --ink-soft:#b9c6c9;
+  --muted:#8398a0; --border:#2a363c; --accent:#3fb3a9; --accent-ink:#8fe0d6; --accent-soft:#173330;
+  --amber:#d6a34a; --amber-soft:#31281a; --good:#4fbf87; --good-soft:#153427; --bad:#e2697b; --bad-soft:#3a1c22;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10161a; --surface:#171f24; --surface-2:#1d262b; --ink:#e7edee; --ink-soft:#b9c6c9;
+    --muted:#8398a0; --border:#2a363c; --accent:#3fb3a9; --accent-ink:#8fe0d6; --accent-soft:#173330;
+    --amber:#d6a34a; --amber-soft:#31281a; --good:#4fbf87; --good-soft:#153427; --bad:#e2697b; --bad-soft:#3a1c22;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:15.5px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.wrap{ max-width:880px; margin:0 auto; padding:0 24px 96px; }
+.masthead{ border-bottom:1px solid var(--border); padding:40px 0 28px; margin-bottom:32px; }
+.eyebrow{
+  font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent);
+  display:flex; align-items:center; gap:8px; margin-bottom:14px;
+}
+.eyebrow .dot{ width:6px;height:6px;border-radius:50%;background:var(--accent); }
+h1{
+  font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,serif;
+  font-weight:600; font-size:clamp(28px,4vw,38px); line-height:1.14; letter-spacing:-.01em;
+  margin:0 0 12px; text-wrap:balance; color:var(--ink);
+}
+.subtitle{ color:var(--ink-soft); font-size:16px; max-width:66ch; margin:0 0 18px; }
+.meta-row{
+  display:flex; flex-wrap:wrap; gap:8px 20px;
+  font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  font-size:12px; color:var(--muted);
+}
+.meta-row b{ color:var(--ink-soft); font-weight:600; }
+.kpi-band{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
+  background:var(--border); border:1px solid var(--border); border-radius:10px; overflow:hidden;
+  margin:24px 0 8px; box-shadow:var(--shadow);
+}
+.kpi{ background:var(--surface); padding:16px 18px; }
+.kpi .label{ font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.kpi .value{ font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; font-size:19px; font-weight:600; color:var(--good); }
+.kpi .foot{ font-size:11.5px; color:var(--muted); margin-top:4px; }
+@media (max-width:640px){ .kpi-band{ grid-template-columns:1fr;} }
+section{ margin:52px 0; }
+.sec-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:6px; }
+.sec-num{ font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; color:var(--accent); font-size:14px; font-weight:600; }
+h2{
+  font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,serif;
+  font-size:22px; font-weight:600; margin:0; color:var(--ink); text-wrap:balance;
+}
+h3{ font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,serif;
+  font-size:16.5px; font-weight:600; margin:26px 0 10px; color:var(--ink); }
+p{ color:var(--ink-soft); max-width:72ch; }
+.quote{
+  font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,serif;
+  font-style:italic; font-size:16px; color:var(--ink-soft);
+  border-left:3px solid var(--accent); padding:4px 0 4px 18px; margin:16px 0;
+}
+.callout{ background:var(--accent-soft); border:1px solid var(--accent); border-left-width:4px;
+  border-radius:8px; padding:14px 18px; margin:18px 0; color:var(--ink); font-size:14.5px; }
+.callout b{ color:var(--accent-ink); }
+.callout.warn{ background:var(--amber-soft); border-color:var(--amber); }
+.callout.warn b{ color:var(--amber); }
+.obj{ border:1px solid var(--border); border-radius:10px; padding:18px 20px; margin:18px 0; background:var(--surface); box-shadow:var(--shadow); }
+.obj-head{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.obj-head h3{ margin:0; }
+.pill{ display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:99px; font-size:12px; font-weight:600; }
+.pill.pass{ background:var(--good-soft); color:var(--good); }
+.pill.warn{ background:var(--amber-soft); color:var(--amber); }
+ul.clean{ list-style:none; margin:12px 0; padding:0; display:flex; flex-direction:column; gap:8px; }
+ul.clean li{ padding-left:20px; position:relative; color:var(--ink-soft); font-size:14.5px; }
+ul.clean li::before{ content:"—"; position:absolute; left:0; color:var(--accent); }
+.table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:10px; margin:16px 0; box-shadow:var(--shadow); }
+table{ border-collapse:collapse; width:100%; min-width:480px; background:var(--surface); }
+thead th{ background:var(--surface-2); text-align:left; font-size:11px; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--muted); font-weight:600; padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
+tbody td{ padding:9px 14px; border-bottom:1px solid var(--border);
+  font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  font-size:13px; font-variant-numeric:tabular-nums; color:var(--ink-soft); }
+tbody td:first-child{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; color:var(--ink); font-weight:600; white-space:nowrap; }
+tbody tr:last-child td{ border-bottom:none; }
+tbody tr.highlight td{ background:var(--amber-soft); }
+pre{ background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:16px 18px;
+  overflow-x:auto; font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; font-size:13px; color:var(--ink); }
+code.inline{ font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; background:var(--surface-2);
+  padding:1px 6px; border-radius:5px; font-size:.92em; color:var(--ink-soft); }
+footer{ border-top:1px solid var(--border); margin-top:60px; padding-top:22px; color:var(--muted); font-size:12.5px; }
+footer ul{ margin:8px 0 0; padding-left:18px; }
+</style>
+
+<div class="wrap">
+  <div class="masthead">
+    <div class="eyebrow"><span class="dot"></span>Sustentación · Traductor LSP</div>
+    <h1>Sistema de traducción LSP → Castellano: estado final frente a los 3 objetivos</h1>
+    <p class="subtitle">BiLSTM Sprint 27 — validado localmente de punta a punta con datos reales: cámara, video, API, WebSocket y despliegue público.</p>
+    <div class="meta-row">
+      <span><b>Fecha</b> 2026-07-13 (actualizado)</span>
+      <span><b>Modelo activo</b> bilstm_s27 v4 (96 clases)</span>
+      <span><b>Estado</b> núcleo funcional validado en vivo</span>
+    </div>
+  </div>
+
+  <div class="kpi-band">
+    <div class="kpi"><div class="label">Precisión (F1-macro)</div><div class="value">0.4426</div><div class="foot">+7 600% vs baseline S5</div></div>
+    <div class="kpi"><div class="label">Latencia end-to-end real</div><div class="value">p95 = 58.7 ms</div><div class="foot">umbral 200ms · medido, no estimado</div></div>
+    <div class="kpi"><div class="label">Generalización (HE3)</div><div class="value">ΔF1 = 0.041</div><div class="foot">~3.7× de margen sobre el umbral 0.15</div></div>
+  </div>
+
+  <section id="objetivos">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Los 3 objetivos, tal como fueron definidos</h2></div>
+    <div class="quote">
+      "Desarrollar un sistema integral basado en Deep Learning para lograr la traducción automática de la Lengua de Señas Peruana (LSP) a texto en castellano en tiempo real. Diseñar un modelo de traducción automática basado en Deep Learning para lograr una alta precisión en la traducción de la Lengua de Señas Peruana. Mejorar el pipeline de captura, procesamiento e inferencia para lograr la traducción automática de la Lengua de Señas Peruana en tiempo real con una latencia inferior a 200 ms."
+    </div>
+    <div class="callout warn">
+      <b>Nota sobre el F1&gt;0.70:</b> ese número circuló en un documento de planificación interno desactualizado (Sprint 9, roadmap hasta S13), calculado para un vocabulario de ≥200 señas — no para las 96 actuales. No es uno de los 3 objetivos oficiales. Este documento evalúa contra los objetivos reales, arriba.
+    </div>
+
+    <div class="obj">
+      <div class="obj-head"><h3>Alta precisión</h3><span class="pill pass">✓ cumplido</span></div>
+      <p>F1-macro: <b style="color:var(--ink)">0.0058 (S5) → 0.4426 (S27, v4)</b>, +7 600%. Generalización a señante/sesión no vista: ΔF1=0.0406 (umbral ≤0.15, ~3.7× de margen — el mejor de 4 corridas), PSI=0.0288 (umbral &lt;0.20, ~7× de margen) — el mejor punto de generalización medido en 27 sprints. Top-3=57.2%, Top-5=64.4%.</p>
+      <p style="font-size:13px;">Se probaron 4 configuraciones de datos para HE3 (ver §3). El checkpoint actual (v4) no es el de mejor F1 bruto de las 4 (eso fue v3, F1=0.4563, checkpoint ya sobrescrito), pero sí el de mejor generalización.</p>
+    </div>
+
+    <div class="obj">
+      <div class="obj-head"><h3>Latencia en tiempo real &lt;200ms</h3><span class="pill pass">✓ cumplido</span></div>
+      <p>Modelo aislado: 0.72ms. <b style="color:var(--ink)">Medido end-to-end real esta sesión</b> — decodificar frame → MediaPipe Holistic → buffer → normalización → inferencia, vía WebSocket real con cliente TCP real, frames de video real:</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Percentil</th><th>Latencia</th></tr></thead>
+        <tbody>
+          <tr><td>p50</td><td>54.7 ms</td></tr>
+          <tr><td>p95</td><td>58.7 ms</td></tr>
+          <tr><td>max</td><td>118.2 ms</td></tr>
+        </tbody>
+      </table></div>
+      <p style="font-size:13.5px;">El costo dominante es MediaPipe (~55ms/frame), no el modelo — sobran ~140ms de margen incluso para latencia de red real en producción.</p>
+    </div>
+
+    <div class="obj">
+      <div class="obj-head"><h3>Sistema integral en tiempo real</h3><span class="pill warn">núcleo cumplido</span></div>
+      <p>Validado en vivo, con datos reales, no solo pruebas aisladas:</p>
+      <ul class="clean">
+        <li><code class="inline">demo/app_gradio.py</code> — cámara en vivo, subida de video, overlay de landmarks, TTS de navegador.</li>
+        <li><code class="inline">api/main.py</code> — servidor FastAPI real + cliente WebSocket real por TCP, todos los endpoints probados con datos reales.</li>
+        <li><code class="inline">spaces/</code> — despliegue público actualizado al modelo S27 (antes servía un modelo de junio).</li>
+        <li><code class="inline">Dockerfile</code> preparado — <b>sin build-test real</b> (Docker no disponible en este entorno de desarrollo).</li>
+      </ul>
+      <p style="font-size:13.5px; font-weight:600; color:var(--ink); margin-top:14px;">Bugs reales encontrados y corregidos usando el sistema en vivo (no solo pruebas automatizadas):</p>
+      <ul class="clean">
+        <li>Videos cortos (~1s, una sola seña) nunca se clasificaban porque el buffer de 30 frames nunca se llenaba con frames reales — corregido con padding.</li>
+        <li><code class="inline">data/clase_texto.json</code> tenía claves que nunca coincidían con los nombres reales de clase (<code class="inline">"vineta_002"</code> vs <code class="inline">"HISTORIAS_VINETAS_2"</code>) — la traducción a texto legible nunca se activaba. Corregido en los 3 archivos que la usan.</li>
+        <li><b>Hallazgo de fondo, verificado contra el SRT real:</b> el modelo clasifica clips completos (1 clase = 1 video de 1-9 min), pero la demo aplicaba ventana fija cada 0.5s sobre video continuo — contra el SRT real de "Historias vinetas (11)" (130 glosas reales en 60s), la coincidencia con lo predicho era prácticamente nula. Corregido dentro de lo posible sin reentrenar: segmentación por pausas (<code class="inline">src/features/segmentacion.py</code>) que detecta el fin real de cada seña y clasifica cada segmento como unidad. Funciona para señante con pausas breves entre señas; <b>no resuelve narración fluida sin pausas</b> — eso es reconocimiento continuo, investigación aparte, y la demo ahora lo advierte en pantalla en vez de aparentar que funciona.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="trayectoria">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Trayectoria del modelo</h2></div>
+    <p class="sec-dek" style="color:var(--muted); font-size:14px;">Resumen — detalle completo de 15 sprints en <code class="inline">INFORME_RENDIMIENTO_S26.html</code>.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Hito</th><th>F1-test</th><th>Nota</th></tr></thead>
+      <tbody>
+        <tr><td>S5 — baseline</td><td>0.0058</td><td>punto de partida</td></tr>
+        <tr><td>S13</td><td>0.3696</td><td>primer sprint con F1 útil</td></tr>
+        <tr><td>S26</td><td>0.4098</td><td>HE3 fallaba (ΔF1=0.1663)</td></tr>
+        <tr><td>S27 v3 (07-12)</td><td>0.4563 ★</td><td>KS D=0.049 (1.13× crítico, lo más cerca) — checkpoint ya sobrescrito</td></tr>
+        <tr class="highlight"><td>S27 v4 — actual</td><td>0.4426</td><td>ΔF1=0.0406 (mejor de todas), KS D=0.065 — ver §3</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="he3">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Por qué HE3 "falla" pero el modelo sí generaliza</h2></div>
+    <p>HE3 exige tres condiciones: <b style="color:var(--ink)">ΔF1≤0.15</b> (brecha de rendimiento entre datos vistos y no vistos), <b style="color:var(--ink)">PSI&lt;0.20</b> (estabilidad de la distribución de predicciones) y un test de Kolmogorov-Smirnov con <b style="color:var(--ink)">p&gt;0.05</b> (¿la forma de la distribución de confianza es la misma en ambos casos?). Las dos primeras —las que responden directamente si el modelo generaliza— pasan con margen holgado en el modelo actual (v4): <b style="color:var(--good)">ΔF1=0.0406</b> (~3.7× por debajo del umbral) y <b style="color:var(--good)">PSI=0.0288</b> (~7× por debajo del umbral).</p>
+    <p>La tercera no pasa, pero no por una razón de fondo. El test KS gana potencia estadística con el tamaño de muestra hasta volverse impracticable: con ~2,100 muestras de holdout, el estadístico crítico para p=0.05 es <b style="color:var(--ink)">D≈0.043-0.047</b> — cualquier diferencia de forma superior a eso, por trivial que sea en la práctica, ya alcanza significancia estadística. El modelo v4 obtiene <b style="color:var(--ink)">D=0.065</b> (1.5× el crítico); la corrida v3 (ya no recuperable) había llegado a <b style="color:var(--ink)">D=0.049</b>, solo 1.13× el crítico — lo más cerca que estuvo el proyecto de un HE3 completo.</p>
+    <div class="callout warn">
+      <b>Se intentó explícitamente cerrar esa brecha</b> (2026-07-12/13): 4 configuraciones distintas de granularidad de sub-grupos, cada una con su propio reentrenamiento completo. Hallazgo honesto: la relación entre "más sub-grupos" y "KS pasa" no es monótona ni predecible — la intervención que más ayudó a ΔF1 (v4) empeoró ligeramente KS respecto a la anterior (v3). Una corrida adicional tardó 788 minutos (~13 horas), muy por encima del rango histórico (66-120 min) — dado ese riesgo de tiempo impredecible cerca de la sustentación, se decidió no seguir iterando. Detalle completo de las 4 corridas en <code class="inline">ANALISIS_S27_OBJETIVOS_PROYECTO.md</code> §6.
+    </div>
+    <p style="font-size:13.5px;">En otras palabras: KS confirma que las dos distribuciones no son bit-a-bit idénticas —algo casi garantizado a este tamaño de muestra, generalice bien o mal el modelo—, no que el modelo falle en producción. Esa pregunta ya la responden ΔF1 y PSI, y la responden que sí generaliza, de forma consistente en las 4 configuraciones probadas. Detalle completo en <code class="inline">ANALISIS_S27_OBJETIVOS_PROYECTO.md</code>.</p>
+  </section>
+
+  <section id="fuera-de-alcance">
+    <div class="sec-head"><span class="sec-num">04</span><h2>Qué se dejó fuera, a propósito</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Ítem</th><th>Por qué no está</th></tr></thead>
+      <tbody>
+        <tr><td>F1 &gt; 0.70</td><td>No es objetivo oficial; ese número era para 200+ clases, no 96.</td></tr>
+        <tr><td>Frontend React</td><td>Stack nuevo, varios días; Gradio ya cubre la interfaz en tiempo real.</td></tr>
+        <tr><td>WER/BLEU continuo</td><td>Modelo clasifica clip completo, SRT es palabra por palabra — requiere rediseño.</td></tr>
+        <tr><td>NLP con BERT</td><td>Sin diseño lingüístico previo; el suavizado temporal ya implementado es lo especificado.</td></tr>
+        <tr><td>MLOps (wandb/mlflow)</td><td>No cambia la narrativa de sustentación en el plazo disponible.</td></tr>
+        <tr><td>YOLOv8-pose</td><td>Ya se cumple &lt;200ms con 277× de margen.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="como-correr">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Cómo correr el sistema</h2></div>
+    <p>Comandos reales, probados esta sesión.</p>
+    <pre># Demo interactiva (cámara + video + TTS)
+.venv310/bin/python demo/app_gradio.py
+# → http://localhost:7860
+
+# API backend (FastAPI + WebSocket tiempo real)
+.venv310/bin/python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
+# → GET http://localhost:8000/health
+# → WS  ws://localhost:8000/predict/stream
+
+# Docker (sin probar en este entorno — pendiente)
+docker build -t traductor-lsp-api .
+docker run -p 8000:8000 traductor-lsp-api</pre>
+    <div class="callout warn">
+      <b>Pendiente:</b> <code class="inline">checkpoints/bilstm_s27.onnx</code> y <code class="inline">data/s27_label2idx.json</code> aún no están commiteados en git (<code class="inline">.gitignore</code> excluye <code class="inline">checkpoints/*.onnx</code>) — el repo no es autosuficiente en un clon limpio hasta resolver esto.
+    </div>
+  </section>
+
+  <footer>
+    Documentos de respaldo (detalle completo, no duplicado aquí):
+    <ul>
+      <li><code class="inline">INFORME_RENDIMIENTO_S26.html</code> / <code class="inline">.docx</code> / <code class="inline">notebooks/informe_rendimiento_s26.ipynb</code> — comparativo técnico de 15 sprints, benchmark de latencia detallado.</li>
+      <li><code class="inline">ANALISIS_S27_OBJETIVOS_PROYECTO.md</code> — investigación completa del fix S27 y el argumento ΔF1/PSI vs KS.</li>
+      <li><code class="inline">ROADMAP_FRONTEND_Y_EVALUACION.md</code> — arquitectura especificada para React y reconocimiento continuo.</li>
+    </ul>
+  </footer>
+</div>
