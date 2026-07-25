@@ -95,6 +95,11 @@ class SegmentadorPausas:
             return segmento
         return None
 
+    def __len__(self):
+        """Frames acumulados en el segmento actual (para reportar progreso,
+        p.ej. en el estado 'buffering' de un cliente en tiempo real)."""
+        return len(self._buffer)
+
     def flush(self):
         """Cierra y devuelve lo acumulado al terminar el stream (video/cámara
         se corta a mitad de una seña, sin pausa que la cierre formalmente).

@@ -21,6 +21,13 @@ data/Keypoints/*_pkl/
 data/external_lsp/
 # data/Glosas/ — versionado via LFS en Sprint 7
 checkpoints/*.onnx
+# Excepción: el checkpoint activo en producción y sus copias versionadas por
+# corrida SÍ se versionan (R1/R2 — evita que el repo dependa de una copia
+# manual fuera de git, y evita perder versiones anteriores por sobrescritura
+# silenciosa, como pasó con v3).
+!checkpoints/bilstm_s27.onnx
+!checkpoints/versionado/
+!checkpoints/versionado/*.onnx
 
 # Modelos pesados
 *.pt

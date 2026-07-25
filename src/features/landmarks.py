@@ -10,6 +10,47 @@ N_KP   = 75    # [0:21]=left_hand, [21:42]=right_hand, [42:75]=pose
 N_DIMS = 150   # pose_x/y(33) + left_x/y(21) + right_x/y(21)
 
 
+def aplicar_respaldo_manos_y_pose(results, frame_rgb: np.ndarray, hands_solution,
+                                   descartar_pose_sin_rostro: bool = False):
+    """Corrige un resultado de MediaPipe Holistic con hasta dos respaldos —
+    ver ENTREGABLE_PLAN_DE_DESPLIEGUE_S13.md R14:
+
+    1. Si Holistic no encontró NINGUNA mano, se corre `hands_solution`
+       (mediapipe.solutions.hands.Hands, no depende de pose) como respaldo.
+       Holistic recorta la región de cada mano usando la muñeca que estima
+       SU PROPIO modelo de pose; si esa pose es una adivinanza mala (p.ej.
+       encuadre de mano sola sin cuerpo, como el dataset de entrenamiento
+       del abecedario), el recorte falla y la mano nunca se detecta aunque
+       ocupe casi todo el frame. `hands_solution` debe ser una instancia ya
+       inicializada (se reutiliza entre llamadas, no se crea una por frame).
+       Se aplica siempre — nunca reemplaza una detección real, solo actúa
+       cuando Holistic ya falló en encontrar mano por su cuenta. Seguro en
+       las 5 rutas (cámara, video, WebSocket, imagen).
+    2. Si no hay rostro detectado, se descarta la pose que haya devuelto
+       Holistic. Validado y seguro **solo en imagen estática** (una foto de
+       mano sola sin cuerpo nunca tiene rostro, y su pose es siempre una
+       adivinanza de baja confianza). **No** se activa por defecto — en
+       cámara/video/WebSocket, una persona señando de verdad puede tapar
+       momentáneamente su propio rostro con la mano al hacer una seña cerca
+       de la cara (común en LSP), lo que haría fallar la detección de
+       rostro en ese frame puntual aunque el cuerpo sea real y la pose
+       también — descartarla ahí borraría información válida a mitad de una
+       seña real y degradaría la clasificación. Pasar
+       `descartar_pose_sin_rostro=True` solo desde `process_image()`."""
+    if results.left_hand_landmarks is None and results.right_hand_landmarks is None:
+        hands_result = hands_solution.process(frame_rgb)
+        if hands_result.multi_hand_landmarks:
+            for lm, handedness in zip(hands_result.multi_hand_landmarks,
+                                       hands_result.multi_handedness):
+                if handedness.classification[0].label == "Left":
+                    results.left_hand_landmarks = lm
+                else:
+                    results.right_hand_landmarks = lm
+    if descartar_pose_sin_rostro and results.face_landmarks is None:
+        results.pose_landmarks = None
+    return results
+
+
 def results_to_kp(results) -> np.ndarray:
     """MediaPipe Holistic results → array kp [75, 3]: [left(21), right(21), pose(33)]."""
     kp = np.zeros((N_KP, 3), dtype=np.float32)

@@ -1,0 +1,20 @@
+{
+  "n_train": 14102,
+  "n_holdout": 3369,
+  "clases_train": 216,
+  "clases_holdout": 200,
+  "clases_sin_training": [],
+  "n_clases_sin_training": 0,
+  "muestras_holdout_cero_training": 0,
+  "pct_holdout_cero": 0.0,
+  "fuentes_holdout": {
+    "abecedario": 779,
+    "dgi156": 607,
+    "vineta": 636,
+    "aec": 258,
+    "vocabulario_lsp_p": 54,
+    "glosa": 26,
+    "dgi156_gloss": 517,
+    "vineta_gloss": 492
+  }
+}

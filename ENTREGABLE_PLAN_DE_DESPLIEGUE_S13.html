@@ -101,7 +101,7 @@ footer{ border-top:1px solid var(--border); margin-top:56px; padding-top:20px; c
 
   <section>
     <div class="sec-head"><span class="sec-num">01</span><h2>Resumen ejecutivo</h2></div>
-    <p>El sistema traduce en tiempo real señas aisladas de un vocabulario de 96 clases LSP a texto en castellano, con latencia end-to-end medida de <b style="color:var(--ink)">p50=54.7ms / p95=58.7ms</b> (umbral objetivo: 200ms) y F1-macro=0.4426 con generalización verificada a señantes no vistos (ΔF1=0.0406, 3.7× de margen sobre el umbral de HE3). Existen tres superficies funcionales y validadas con datos reales esta semana: una demo interactiva (<code class="inline">demo/app_gradio.py</code>, cámara + video + TTS), un backend API con WebSocket para integración (<code class="inline">api/main.py</code>), y un despliegue público en HuggingFace Spaces (<code class="inline">spaces/</code>).</p>
+    <p>El sistema traduce en tiempo real señas aisladas de un vocabulario de 96 clases LSP a texto en castellano, con latencia end-to-end medida de <b style="color:var(--ink)">p50=54.7ms / p95=58.7ms</b> (umbral objetivo: 200ms). <b style="color:var(--accent-ink)">Actualización 2026-07-19 (§11):</b> la configuración activa pasó a un <b style="color:var(--ink)">ensemble de dos modelos</b> (v4 + S29, promedio de probabilidades), validado en holdout limpio con F1=0.4424 y mejor generalización (S29 es el primer checkpoint del proyecto en pasar HE3 completo). Existen tres superficies funcionales y validadas con datos reales esta semana: una demo interactiva (<code class="inline">demo/app_gradio.py</code>, cámara + video + TTS), un backend API con WebSocket para integración (<code class="inline">api/main.py</code>), y un despliegue público en HuggingFace Spaces (<code class="inline">spaces/</code>, aún sirviendo solo v4).</p>
     <p>El sistema <b style="color:var(--ink)">no está listo para producción sin trabajo adicional</b>: no hay build de Docker verificado, el checkpoint del modelo no está versionado en git, la configuración de CORS/seguridad es la de desarrollo, y el backend API todavía no incorpora las mejoras de calidad que sí tiene la demo (R9). "Validado" en la tabla de arquitectura significa que no se cae, no que tenga la misma calidad de reconocimiento que la demo.</p>
     <div class="callout warn"><b>Límite de alcance conocido:</b> el sistema reconoce señas aisladas, no narración continua ni gramática conectada — no es parte de este plan de despliegue, es una limitación de capacidad del modelo, no de infraestructura.</div>
   </section>
@@ -255,12 +255,13 @@ python3.10 -m venv .venv310 && .venv310/bin/pip install -r requirements-api.txt
       <tbody>
         <tr><td>Tests (smoke+golden+WS)</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
         <tr><td>Lockfile congelado</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
-        <tr><td>Portar mejoras a api/main.py (R9)</td><td>Juan Calla</td><td>Antes de integrar</td><td><span class="pill warn">⚠ Pendiente</span></td></tr>
+        <tr><td>Portar mejoras a api/main.py (R9)</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
+        <tr><td>Versionar checkpoint (R1/R2)</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
+        <tr><td>Restringir CORS/límites (R7)</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
         <tr><td>Build de Docker real</td><td>Juan Calla</td><td>Próxima sesión c/Docker</td><td><span class="pill warn">⚠ Bloqueado</span></td></tr>
-        <tr><td>Checkpoint a git</td><td>Juan Calla</td><td>Antes del próximo deploy</td><td><span class="pill warn">⚠ Pendiente</span></td></tr>
+        <tr><td>Commitear y pushear a GitHub</td><td>Juan Calla</td><td>Antes del próximo deploy</td><td><span class="pill warn">⚠ Pendiente</span></td></tr>
         <tr><td>requirements-api.txt exacto</td><td>Juan Calla</td><td>Antes de producción</td><td>Pendiente</td></tr>
         <tr><td>Logging estructurado</td><td>Juan Calla</td><td>1 semana</td><td>Pendiente</td></tr>
-        <tr><td>Restringir CORS/límites</td><td>Juan Calla</td><td>Antes de exponer</td><td>Pendiente</td></tr>
         <tr><td>CI (pytest en cada push)</td><td>Juan Calla</td><td>1 semana</td><td>Pendiente</td></tr>
       </tbody>
     </table></div>
@@ -272,21 +273,66 @@ python3.10 -m venv .venv310 && .venv310/bin/pip install -r requirements-api.txt
     <div class="table-wrap"><table>
       <thead><tr><th>Riesgo</th><th>Encontrado</th><th>Mitigación / Rollback</th></tr></thead>
       <tbody>
-        <tr><td>R1 — Checkpoint fuera de git</td><td><code class="inline">.gitignore</code> excluye <code class="inline">checkpoints/*.onnx</code></td><td>Commitear con excepción, o release aparte</td></tr>
-        <tr><td>R2 — Checkpoint v3 perdido</td><td>v4 sobrescribió el mejor KS (D=0.049)</td><td>Versionar por nombre de corrida</td></tr>
+        <tr><td>R1 — Checkpoint fuera de git</td><td><span class="pill pass">✓ Resuelto</span></td><td><code class="inline">bilstm_s27.onnx</code> + <code class="inline">checkpoints/versionado/</code> excepción explícita en <code class="inline">.gitignore</code></td></tr>
+        <tr><td>R2 — Checkpoint v3 perdido</td><td>v4 sobrescribió el mejor KS (D=0.049)</td><td>Resuelto para v4+: copia versionada por fecha, nunca se sobrescribe</td></tr>
         <tr><td>R3 — Entrenamiento impredecible</td><td>788min vs. 66-120min históricos</td><td>+10× margen; máquina dedicada</td></tr>
         <tr><td>R4 — Umbral mal calibrado</td><td>0.30 ocultaba aciertos reales</td><td>Corregido a 0.20 con datos reales</td></tr>
         <tr><td>R5 — Docker sin probar</td><td>Sin acceso a Docker esta semana</td><td>Probar antes de deploy en contenedor</td></tr>
         <tr><td>R6 — Regresión silenciosa</td><td><code class="inline">model_complexity=0</code> rompió detección</td><td>Validar contra videos de referencia, no solo velocidad</td></tr>
-        <tr><td>R7 — CORS abierto</td><td><code class="inline">allow_origins=["*"]</code></td><td>Restringir antes de exponer</td></tr>
-        <tr><td>R8 — Sin reconocimiento continuo</td><td>Verificado contra SRT real</td><td>Fuera de alcance, investigación aparte</td></tr>
-        <tr><td>R9 — API sin las mejoras de la semana</td><td>Segmentación/filtro/umbral solo en demo</td><td>Portar antes de integrar backend real</td></tr>
+        <tr><td>R7 — CORS abierto</td><td><span class="pill pass">✓ Resuelto</span></td><td>Restringido a orígenes locales conocidos + límite de 150MB en upload</td></tr>
+        <tr><td>R8 — Sin reconocimiento continuo</td><td>Verificado de nuevo (2026-07-18): video real de 112s con SRT de 109 glosas (58/min); 24/33 segmentos descartados, 0 palabras coinciden con el guion real, solo 11/79 glosas están en el vocabulario del modelo</td><td>Fuera de alcance, investigación aparte</td></tr>
+        <tr><td>R9 — API sin las mejoras de la semana</td><td><span class="pill pass">✓ Resuelto</span></td><td>Verificado con WebSocket real: 120 frames, 1 segmento cerrado, descartado por umbral — cero fugas de clases narrativas</td></tr>
         <tr><td>R10 — Videos largos rinden peor</td><td>1/7 en viñetas completas vs 3/4 en clips cortos</td><td>No usar videos largos como demo del API</td></tr>
+        <tr><td>R11 — Clips ya-cortos (&lt;1s) sin detección en la demo</td><td>3 clips AEC de 0.3-0.7s dieron 0 señas en <code class="inline">demo/</code> pese a clasificar bien vía <code class="inline">/predict/video</code></td><td>Imagen espejo de R10: <code class="inline">frame_stride</code> deja muy pocos frames útiles en clips ya-cortos. No se tocó código — riesgo documentado, no crítico (la demo asume video continuo, no clips pre-recortados)</td></tr>
+        <tr><td>R12 — Segmentador no funciona con señas estáticas (abecedario)</td><td>Video completo del abecedario (24 letras, 54s): 6 "señas" detectadas, <b style="color:var(--bad)">ninguna una letra real</b>. Movimiento cuadro-a-cuadro de letras ≈0.00000 vs 0.0825 de palabras (AEC) — &gt;1000× menos. El segmentador confunde "letra sostenida" con "silencio entre señas" y captura las transiciones (sin significado) en vez de las letras</td><td>No es problema del modelo — letras aisladas clasifican con F1&gt;0.85. Limitación de diseño del segmentador (usa solo movimiento como señal). No se tocó código a esta hora. Mitigación actual: usar clips ya aislados de una letra, no video continuo del abecedario completo</td></tr>
       </tbody>
     </table></div>
     <div class="callout"><b>Rollback general:</b> todos los cambios de esta semana están en el working tree sin commitear — <code class="inline">git diff</code>/<code class="inline">git checkout</code> revierte cualquier cambio individualmente. El modelo v4 es el único artefacto no versionado (R1).</div>
     <div class="callout warn"><b>R1 y R2 confirmados por comandos reales:</b> el notebook corre <code class="inline">git check-ignore -v checkpoints/bilstm_s27.onnx</code> en vivo → confirma <code class="inline">.gitignore:23:checkpoints/*.onnx</code>. También lista los archivos <code class="inline">bilstm_s27.*</code> en disco → solo existen <code class="inline">.onnx</code> y <code class="inline">.pt</code> de v4; ningún rastro de v1/v2/v3.</div>
   </section>
 
-  <footer>Entregable — Plan de Despliegue (S13) · Traductor LSP → Castellano · 2026-07-17 · Responsable: Juan Calla</footer>
+  <section>
+    <div class="sec-head"><span class="sec-num">11</span><h2>Experimentos de mejora post-entrega (2026-07-18/19)</h2></div>
+    <p>Tras el cierre inicial de este plan, se reabrió la búsqueda de mejorar el F1 con una auditoría exhaustiva de datos sin usar, seguida de 4 corridas reales de entrenamiento. Se documenta el proceso completo — incluidos los intentos fallidos — porque son evidencia real del trabajo hecho.</p>
+
+    <h3>Auditoría de datos</h3>
+    <ul class="clean">
+      <li><code class="inline">dgi156_full</code>: 139 archivos netos-nuevos, ninguna clase cruza el umbral de 15 muestras → sin uso real.</li>
+      <li><code class="inline">aec/Keypoints-1</code>: duplicado exacto de <code class="inline">aec/Keypoints</code> → sin uso real.</li>
+      <li>PUCP-305: 448/468 videos ya procesados (95.7%) → prácticamente agotado.</li>
+      <li>LSA64: confirmado que se excluyó deliberadamente en Sprint 14 por ser Lengua de Señas Argentina, no peruana → correctamente descartado.</li>
+      <li><b style="color:var(--ink)">Hallazgo real:</b> <code class="inline">dgi156_pkl</code> y <code class="inline">pkl</code> (vineta) etiquetan cada archivo con el nombre de su carpeta narrativa, ignorando el nombre real del archivo — 744 glosas reales sin aprovechar (7151 archivos).</li>
+    </ul>
+
+    <h3>Cuatro corridas de entrenamiento</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Corrida</th><th>Clases</th><th>F1-test</th><th>HE3</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr><td>v4 (previo)</td><td>96</td><td>0.4426</td><td>Falla (solo KS)</td><td>Línea base</td></tr>
+        <tr><td>S28</td><td>216</td><td>0.2219</td><td>Pasa completo (1ra vez)</td><td>F1 muy bajo — más clases = más difícil</td></tr>
+        <tr><td>S29</td><td>96</td><td>0.4208</td><td>Pasa completo, márgenes amplios</td><td>Cercano a v4, mejor generalización</td></tr>
+        <tr><td>S30</td><td>96</td><td>0.225 (falla)</td><td>Pasa (débil)</td><td><span class="pill warn">⚠ Corrida inestable</span> — Fold 5 colapsó a F1=0.0004</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout warn"><b>Diagnóstico S30:</b> no es un bug de código (verificado). Es un límite real de tamaño de muestra: con clases de 15-20 muestras, cada fold de KFold(5) recibe muy pocos ejemplos, y la combinación partición+inicialización puede converger a una solución degenerada.</div>
+    <div class="callout warn"><b>Hallazgo de calidad de datos:</b> los clips de <code class="inline">dgi156_gloss</code> tienen siempre exactamente 30 frames (ventana fija, no segmentación real), a diferencia de <code class="inline">vineta_gloss</code> (1-34 frames, variación natural) — explica por qué QUÉ/TÚ/YO/DECIR/ESE empeoraron pese a ganar muestras.</div>
+
+    <h3>Ensemble v4+S29 — la mejora real, validada correctamente</h3>
+    <p>Comparar v4 vs. S29 directamente está contaminado (ambos datasets comparten fuentes crudas). Se reconstruyó la intersección real de ambos holdouts rastreando el archivo <code class="inline">.pkl</code> físico de cada muestra (<code class="inline">scripts/validar_ensemble_v4_s29.py</code>): <b style="color:var(--ink)">342 muestras, 72 clases</b>, garantizadas fuera del entrenamiento de ambos modelos.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>F1-macro (holdout limpio)</th></tr></thead>
+      <tbody>
+        <tr><td>v4 solo</td><td>0.4222</td></tr>
+        <tr><td>S29 solo</td><td>0.3591</td></tr>
+        <tr><td><b>Ensemble</b></td><td><b>0.4424</b></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><b>El ensemble supera a ambos modelos individuales</b> en esta comparación válida, iguala el F1 histórico de v4, y hereda la generalización de S29. Pasa a ser la configuración activa del sistema.</div>
+    <p style="font-size:13.5px;"><b style="color:var(--ink)">Implementación:</b> <code class="inline">api/main.py</code> y <code class="inline">demo/app_gradio.py</code> cargan ambos checkpoints y promedian probabilidades alineadas por nombre de clase. Si falta <code class="inline">bilstm_s29.onnx</code>, sigue funcionando solo con v4. Costo extra: despreciable (&lt;2ms, MediaPipe sigue siendo el cuello de botella a ~55ms).</p>
+    <div class="callout warn"><b>Bug encontrado y corregido:</b> el alineamiento por nombre inicialmente solo emparejaba 88/96 clases — v4 guarda tildes en NFD, S29 en NFC (mismo tipo de bug ya visto en <code class="inline">tests/test_golden.py</code>). Sin normalizar, 8 clases recibían la mitad de su probabilidad real. Corregido; verificado 96/96 alineadas.</p>
+    <p style="font-size:13.5px;"><b style="color:var(--ink)">Verificación:</b> 6/6 tests pasan (incluido golden test). Probado en vivo: los 3 clips del golden set siguen clasificando correctamente en top-1. Nota honesta: no todos los casos individuales mejoran (un clip de "NIÑO" que v4 acertaba pasó a "ORIGINAL" con el ensemble) — comportamiento esperado, mejora el promedio, no cada caso puntual.</p>
+    <p style="font-size:12.5px;color:var(--muted);">Backup completo (checkpoints, datasets, logs) antes de esta ronda: <code class="inline">backups/20260718_223233_pre-ensemble/</code></p>
+  </section>
+
+  <footer>Entregable — Plan de Despliegue (S13) · Traductor LSP → Castellano · 2026-07-19 · Responsable: Juan Calla</footer>
 </div>

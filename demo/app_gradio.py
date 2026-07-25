@@ -4,7 +4,7 @@ MediaPipe Holistic + BiLSTM Bidireccional S27 (96 señas LSP, F1=0.4349, Top-5=6
 Tiempo real desde cámara web o video pregrabado.
 """
 
-import json, time, pickle, warnings, tempfile
+import json, time, pickle, warnings, tempfile, unicodedata
 import numpy as np
 import cv2
 from pathlib import Path
@@ -26,6 +26,7 @@ from src.features.landmarks import (
     kp_seq_to_features as kp_seq_to_lstm_features,
     normalize_sample,
     resample_to_n_frames,
+    aplicar_respaldo_manos_y_pose,
 )
 from src.features.segmentacion import SegmentadorPausas
 
@@ -35,6 +36,10 @@ LSTM_ONNX      = "checkpoints/bilstm_s27.onnx"
 RF_CKPT        = "checkpoints/rf_signs.pkl"
 LABEL_PATH     = "data/s27_label2idx.json"
 CLASE_TEXTO_PATH = "data/clase_texto.json"
+# Ensemble (2026-07-19) — ver api/main.py y scripts/validar_ensemble_v4_s29.py
+# para el detalle completo de por qué y cómo se validó.
+LSTM_ONNX_ENSEMBLE  = "checkpoints/bilstm_s29.onnx"
+LABEL_PATH_ENSEMBLE = "data/s29_label2idx.json"
 
 N_FRAMES    = 30
 N_DIMS      = 150   # pose(33×2) + left_hand(21×2) + right_hand(21×2)
@@ -49,12 +54,18 @@ STRIDE      = N_FRAMES // 2   # ventana deslizante 50% overlap
 # ── Buffers globales (webcam) ─────────────────────────────────────────────────
 
 kp_buffer     = deque(maxlen=N_FRAMES)  # solo para el contador "acumulando..." en pantalla
-historial     = deque(maxlen=10)
+# Guarda dicts {seña, confidence, modelo} — igual que translation_parts en el
+# tab de video — para poder armar la transcripción completa con
+# build_translation_text() y ofrecer las mismas opciones (exportar, copiar,
+# leer en voz alta) que el tab de video.
+historial     = deque(maxlen=50)
 segmentador_cam = SegmentadorPausas()
+historial_img = []  # ídem, para el tab de imagen — sin maxlen, se llena solo con cargas manuales
 
 # ── MediaPipe ─────────────────────────────────────────────────────────────────
 
 mp_holistic       = mp.solutions.holistic
+mp_hands          = mp.solutions.hands
 mp_drawing        = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 
@@ -65,6 +76,16 @@ holistic = mp_holistic.Holistic(
     min_tracking_confidence=0.4,
 )
 
+# Respaldo de manos compartido entre cámara en vivo, video e imagen (ver
+# src.features.landmarks.aplicar_respaldo_manos_y_pose y
+# ENTREGABLE_PLAN_DE_DESPLIEGUE_S13.md R14). Instancias persistentes, no se
+# recrean por frame — una en modo tracking (cámara/video, frames seguidos)
+# y otra en modo estático (imagen suelta, sin frame anterior que rastrear).
+hands_fallback     = mp_hands.Hands(static_image_mode=False, model_complexity=1,
+                                     min_detection_confidence=0.3, max_num_hands=2)
+hands_fallback_img = mp_hands.Hands(static_image_mode=True, model_complexity=1,
+                                     min_detection_confidence=0.3, max_num_hands=2)
+
 COLOR_LHAND = (255,  80,  80)
 COLOR_RHAND = ( 80, 200,  80)
 COLOR_POSE  = ( 80, 150, 255)
@@ -72,14 +93,17 @@ COLOR_FACE  = (200, 200, 200)
 
 # ── Modelos ───────────────────────────────────────────────────────────────────
 
-lstm_session = None
+lstm_session          = None
+lstm_session_ensemble = None
 rf_model     = None
 idx2label    = {}
+idx2label_ensemble = {}
+_ens_idx_map = {}    # idx_s29 -> idx_v4 (mismo nombre de clase), precalculado
 clase_texto  = {}   # clase → descripción legible (solo clases sin traducción 1:1, ej. viñetas)
 
 
 def load_models():
-    global lstm_session, rf_model, idx2label, clase_texto
+    global lstm_session, lstm_session_ensemble, rf_model, idx2label, idx2label_ensemble, clase_texto, _ens_idx_map
 
     if Path(LABEL_PATH).exists():
         with open(LABEL_PATH, encoding="utf-8") as f:
@@ -101,6 +125,29 @@ def load_models():
             print(f"BiLSTM S27 ONNX listo — input={inp.name} {inp.shape} — {len(idx2label)} etiquetas")
         except Exception as e:
             print(f"BiLSTM S27 error: {e}")
+
+    if Path(LSTM_ONNX_ENSEMBLE).exists() and Path(LABEL_PATH_ENSEMBLE).exists() and lstm_session is not None:
+        try:
+            avail = ort.get_available_providers()
+            provs = [p for p in ("CoreMLExecutionProvider", "CPUExecutionProvider")
+                     if p in avail]
+            lstm_session_ensemble = ort.InferenceSession(LSTM_ONNX_ENSEMBLE, providers=provs)
+            with open(LABEL_PATH_ENSEMBLE, encoding="utf-8") as f:
+                l2i_ens = json.load(f)
+            idx2label_ensemble = {int(v): k for k, v in l2i_ens.items()}
+            # NFC — v4 guarda tildes en forma decompuesta (NFD), S29 en forma
+            # precompuesta; sin normalizar, 8/96 clases con tilde no alinean
+            # (encontrado en vivo, 2026-07-19 — ver api/main.py).
+            nombre_a_idx_v4 = {unicodedata.normalize("NFC", n): i for i, n in idx2label.items()}
+            _ens_idx_map = {
+                idx_s29: nombre_a_idx_v4[unicodedata.normalize("NFC", nombre)]
+                for idx_s29, nombre in idx2label_ensemble.items()
+                if unicodedata.normalize("NFC", nombre) in nombre_a_idx_v4
+            }
+            print(f"BiLSTM S29 ONNX (ensemble) listo — {len(idx2label_ensemble)} clases "
+                  f"({len(_ens_idx_map)} alineadas con v4)")
+        except Exception as e:
+            print(f"BiLSTM S29 (ensemble) error: {e}")
 
     if Path(RF_CKPT).exists() and lstm_session is None:
         try:
@@ -157,6 +204,7 @@ def _make_detected(results) -> dict:
 def extract_and_draw(frame_rgb: np.ndarray):
     """Ejecuta MediaPipe, dibuja landmarks y devuelve (vis_bgr, kp[75,3], detected)."""
     results = holistic.process(frame_rgb)
+    results = aplicar_respaldo_manos_y_pose(results, frame_rgb, hands_fallback)
     vis = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
     _draw_landmarks(vis, results)
     kp = _results_to_kp(results)
@@ -184,14 +232,27 @@ def run_inference(kp_seq: np.ndarray) -> dict | None:
     if lstm_session is not None:
         feat   = normalize_sample(kp_seq_to_lstm_features(kp_seq))[np.newaxis]   # (1, 30, 150)
         logits = lstm_session.run(None, {"sequence": feat})[0][0]
-        probs  = np.exp(logits - logits.max())
-        probs /= probs.sum()
+        probs_v4 = np.exp(logits - logits.max())
+        probs_v4 /= probs_v4.sum()
+
+        if lstm_session_ensemble is not None:
+            logits_ens = lstm_session_ensemble.run(None, {"sequence": feat})[0][0]
+            probs_ens = np.exp(logits_ens - logits_ens.max())
+            probs_ens /= probs_ens.sum()
+            probs_ens_alineadas = np.zeros_like(probs_v4)
+            for idx_s29, idx_v4 in _ens_idx_map.items():
+                probs_ens_alineadas[idx_v4] = probs_ens[idx_s29]
+            probs = (probs_v4 + probs_ens_alineadas) / 2
+            modelo = "BiLSTM-S27+S29 (ensemble)"
+        else:
+            probs = probs_v4
+            modelo = "BiLSTM-S27"
+
         idx    = int(probs.argmax())
         top3   = [{"clase": idx2label.get(int(i), str(i)), "prob": float(probs[i])}
                   for i in np.argsort(probs)[::-1][:5]]
         seña   = idx2label.get(idx, "?")
         conf   = float(probs[idx])
-        modelo = "BiLSTM-S27"
 
     elif rf_model is not None:
         feat  = kp_seq_to_rf_features(kp_seq).reshape(1, -1)
@@ -359,7 +420,7 @@ last_result = None
 def process_webcam_frame(frame):
     global last_result
     if frame is None:
-        return None, "Sin señal de cámara", "", ""
+        return None, "Sin señal de cámara", "", "", build_translation_text(list(historial))
 
     if frame.ndim == 2:
         frame = np.stack([frame] * 3, axis=-1)
@@ -375,8 +436,8 @@ def process_webcam_frame(frame):
         r = run_inference(kp_seq)
         if r is not None and r["confidence"] >= CONF_UMBRAL and not _es_clase_narrativa(r["seña"]):
             last_result = r
-            if not historial or historial[-1] != r["seña"]:
-                historial.append(r["seña"])
+            if not historial or historial[-1]["seña"] != r["seña"]:
+                historial.append(r)
 
     vis_out = draw_status_bar(vis, detected, last_result)
 
@@ -392,14 +453,13 @@ def process_webcam_frame(frame):
             f"{i+1}. {t['clase']} — {t['prob']*100:.1f}%"
             for i, t in enumerate(r.get("top3", []))
         )
-        hist_md = "**Historial:** " + " › ".join(_texto_legible(s) for s in list(historial)[-8:])
     else:
         result_md = "**Esperando seña… hacé la seña y pausá un instante al terminar**"
         top3_md   = ""
-        hist_md   = ""
 
     estado_md = build_estado_md(detected)
-    return vis_out, result_md, top3_md + "\n\n" + hist_md, estado_md
+    transcript_text = build_translation_text(list(historial))
+    return vis_out, result_md, top3_md, estado_md, transcript_text
 
 
 # ── Handler: video (streaming con ventana deslizante) ────────────────────────
@@ -463,6 +523,7 @@ def process_video_streaming(video_path):
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results   = holistic_vid.process(frame_rgb)
+        results   = aplicar_respaldo_manos_y_pose(results, frame_rgb, hands_fallback)
 
         # Actualizar detecciones acumuladas
         detected = _make_detected(results)
@@ -579,9 +640,14 @@ def export_translation_txt(text: str):
 # ── Handler: imagen estática ──────────────────────────────────────────────────
 
 def process_image(image):
-    """Imagen estática → landmarks + inferencia (keypoints replicados N_FRAMES veces)."""
+    """Imagen estática → landmarks + inferencia (keypoints replicados N_FRAMES veces).
+
+    Cada imagen procesada con confianza suficiente se agrega a `historial_img`
+    para armar una transcripción acumulada — igual que cámara y video — útil
+    para deletrear una palabra subiendo una foto por letra."""
+    transcript_text = build_translation_text(historial_img)
     if image is None:
-        return None, "No se subió ninguna imagen.", "", ""
+        return None, "No se subió ninguna imagen.", "", "", transcript_text
 
     if image.ndim == 2:
         image = np.stack([image] * 3, axis=-1)
@@ -595,7 +661,7 @@ def process_image(image):
 
     h, w = image.shape[:2]
     if h < 64 or w < 64:
-        return None, "Imagen demasiado pequeña.", "", ""
+        return None, "Imagen demasiado pequeña.", "", "", transcript_text
     if max(h, w) > 1920:
         scale = 1920 / max(h, w)
         image = cv2.resize(image, (int(w * scale), int(h * scale)))
@@ -610,6 +676,14 @@ def process_image(image):
     results = holistic_img.process(frame_rgb)
     holistic_img.close()
 
+    # Respaldo de manos (compartido con cámara/video) + descarte de pose sin
+    # rostro (solo aquí, en imagen estática — ver
+    # src.features.landmarks.aplicar_respaldo_manos_y_pose y
+    # ENTREGABLE_PLAN_DE_DESPLIEGUE_S13.md R14/R15 para por qué el descarte
+    # de pose NO se activa en cámara/video/WebSocket).
+    results = aplicar_respaldo_manos_y_pose(results, frame_rgb, hands_fallback_img,
+                                             descartar_pose_sin_rostro=True)
+
     detected = _make_detected(results)
     vis = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
     _draw_landmarks(vis, results)
@@ -618,7 +692,7 @@ def process_image(image):
     if not any(detected.values()):
         vis_rgb   = cv2.cvtColor(vis, cv2.COLOR_BGR2RGB)
         estado_md = build_estado_md(detected)
-        return vis_rgb, "**No se detectó ninguna persona en la imagen.**", "", estado_md
+        return vis_rgb, "**No se detectó ninguna persona en la imagen.**", "", estado_md, transcript_text
 
     kp_seq = np.stack([kp] * N_FRAMES)
     result = run_inference(kp_seq)
@@ -627,7 +701,7 @@ def process_image(image):
     estado_md = build_estado_md(detected)
 
     if result is None:
-        return vis_rgb, "Modelo no disponible.", "", estado_md
+        return vis_rgb, "Modelo no disponible.", "", estado_md, transcript_text
 
     conf = result["confidence"] * 100
     result_md = (
@@ -639,7 +713,10 @@ def process_image(image):
         f"{i+1}. {t['clase']} — {t['prob']*100:.1f}%"
         for i, t in enumerate(result.get("top3", []))
     )
-    return vis_rgb, result_md, top3_md, estado_md
+    if result["confidence"] >= CONF_UMBRAL and not _es_clase_narrativa(result["seña"]):
+        historial_img.append(result)
+    transcript_text = build_translation_text(historial_img)
+    return vis_rgb, result_md, top3_md, estado_md, transcript_text
 
 
 # ── Interfaz Gradio ───────────────────────────────────────────────────────────
@@ -679,6 +756,16 @@ TTS_JS_TEXTAREA = """
 }
 """
 
+# Copiar al portapapeles 100% navegador — mismo patrón que TTS_JS_TEXTAREA.
+COPY_JS_TEXTAREA = """
+() => {
+  const el = document.querySelector('%s');
+  const text = el ? el.value : '';
+  if (!text || !text.trim()) return;
+  navigator.clipboard.writeText(text.trim());
+}
+"""
+
 with gr.Blocks(title="Traductor LSP → Castellano", css=CSS) as demo:
 
     gr.Markdown(f"""
@@ -707,15 +794,39 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
                     result_cam = gr.Markdown("**Esperando señas…**",
                                              elem_id="result_cam",
                                              elem_classes=["traduccion"])
-                    tts_btn_cam = gr.Button("🔊 Leer en voz alta", size="sm")
                     top3_cam   = gr.Markdown("")
 
-            tts_btn_cam.click(fn=None, inputs=None, outputs=None, js=TTS_JS % "#result_cam")
+            gr.Markdown("### 📋 Transcripción completa en tiempo real")
+            with gr.Row():
+                export_text_cam = gr.Textbox(
+                    label="TRADUCCIÓN EN TIEMPO REAL",
+                    placeholder="La traducción aparecerá aquí a medida que hagas señas…",
+                    lines=4,
+                    max_lines=12,
+                    elem_id="export_text_cam",
+                    elem_classes=["transcripcion"],
+                    interactive=False,
+                )
+            with gr.Row():
+                btn_export_cam = gr.Button("💾 Exportar a TXT", variant="secondary", size="sm")
+                btn_copy_cam   = gr.Button("📋 Copiar texto", variant="secondary", size="sm")
+                tts_btn_cam    = gr.Button("🔊 Leer transcripción", variant="secondary", size="sm")
+                file_out_cam   = gr.File(label="Descargar traduccion_lsp.txt")
+
+            tts_btn_cam.click(fn=None, inputs=None, outputs=None,
+                              js=TTS_JS_TEXTAREA % "#export_text_cam textarea")
+            btn_copy_cam.click(fn=None, inputs=None, outputs=None,
+                               js=COPY_JS_TEXTAREA % "#export_text_cam textarea")
+            btn_export_cam.click(
+                fn=export_translation_txt,
+                inputs=[export_text_cam],
+                outputs=[file_out_cam],
+            )
 
             webcam_in.stream(
                 fn=process_webcam_frame,
                 inputs=[webcam_in],
-                outputs=[webcam_out, result_cam, top3_cam, estado_cam],
+                outputs=[webcam_out, result_cam, top3_cam, estado_cam, export_text_cam],
                 time_limit=300,
                 stream_every=0.10,
             )
@@ -766,6 +877,8 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
 
             tts_btn_vid.click(fn=None, inputs=None, outputs=None,
                               js=TTS_JS_TEXTAREA % "#export_text_vid textarea")
+            btn_copy.click(fn=None, inputs=None, outputs=None,
+                           js=COPY_JS_TEXTAREA % "#export_text_vid textarea")
 
             btn_vid.click(
                 fn=process_video_streaming,
@@ -782,6 +895,11 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
 
         # ── Tab 3: Imagen estática ────────────────────────────────────────
         with gr.TabItem("🖼️ Subir imagen"):
+            gr.Markdown(
+                "> Cada imagen se clasifica como una seña aislada (letra o palabra) — "
+                "igual que un frame ya recortado del video. Subir varias imágenes seguidas "
+                "(p. ej. una foto por letra) las va agregando a la misma transcripción."
+            )
             with gr.Row():
                 with gr.Column():
                     image_in = gr.Image(label="Imagen JPG/PNG con seña LSP",
@@ -794,10 +912,37 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
                     top3_img   = gr.Markdown("")
             image_out = gr.Image(label="Landmarks detectados", height=360)
 
+            gr.Markdown("### 📋 Transcripción completa en tiempo real")
+            with gr.Row():
+                export_text_img = gr.Textbox(
+                    label="TRADUCCIÓN EN TIEMPO REAL",
+                    placeholder="La traducción aparecerá aquí a medida que subas imágenes…",
+                    lines=4,
+                    max_lines=12,
+                    elem_id="export_text_img",
+                    elem_classes=["transcripcion"],
+                    interactive=False,
+                )
+            with gr.Row():
+                btn_export_img = gr.Button("💾 Exportar a TXT", variant="secondary", size="sm")
+                btn_copy_img   = gr.Button("📋 Copiar texto", variant="secondary", size="sm")
+                tts_btn_img    = gr.Button("🔊 Leer transcripción", variant="secondary", size="sm")
+                file_out_img   = gr.File(label="Descargar traduccion_lsp.txt")
+
+            tts_btn_img.click(fn=None, inputs=None, outputs=None,
+                              js=TTS_JS_TEXTAREA % "#export_text_img textarea")
+            btn_copy_img.click(fn=None, inputs=None, outputs=None,
+                               js=COPY_JS_TEXTAREA % "#export_text_img textarea")
+            btn_export_img.click(
+                fn=export_translation_txt,
+                inputs=[export_text_img],
+                outputs=[file_out_img],
+            )
+
             btn_img.click(
                 fn=process_image,
                 inputs=[image_in],
-                outputs=[image_out, result_img, top3_img, estado_img],
+                outputs=[image_out, result_img, top3_img, estado_img, export_text_img],
             )
 
         # ── Tab 4: Pipeline ───────────────────────────────────────────────
