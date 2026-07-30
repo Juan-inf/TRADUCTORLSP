@@ -1,0 +1,274 @@
+{
+  "holdout": [
+    {
+      "eaf": "data/Glosas/ATARDECER/ATARDECER_ORACION_3.eaf",
+      "mp4": "data/Glosas/ATARDECER/ATARDECER_ORACION_3.mp4",
+      "glosas": [
+        [
+          824,
+          1049,
+          "YO"
+        ],
+        [
+          1049,
+          2157,
+          "CAMINAR-PERSONA"
+        ],
+        [
+          2161,
+          3614,
+          "ATARDECER"
+        ],
+        [
+          3619,
+          4347,
+          "CAMINAR-PERSONA"
+        ],
+        [
+          4357,
+          5138,
+          "ANOCHECER"
+        ]
+      ]
+    },
+    {
+      "eaf": "data/Glosas/BUS/BUS_ORACION_1.eaf",
+      "mp4": "data/Glosas/BUS/BUS_ORACION_1.mp4",
+      "glosas": [
+        [
+          1103,
+          1971,
+          "BUS"
+        ],
+        [
+          1971,
+          3285,
+          "VIA-DOBLE-SENTIDO"
+        ]
+      ]
+    },
+    {
+      "eaf": "data/Glosas/COMBI/COMBI_ORACION_1.eaf",
+      "mp4": "data/Glosas/COMBI/COMBI_ORACION_1.mp4",
+      "glosas": [
+        [
+          945,
+          2497,
+          "COMBI"
+        ],
+        [
+          2497,
+          3671,
+          "VIA-DOBLE-SENTIDO"
+        ]
+      ]
+    },
+    {
+      "eaf": "data/Glosas/DESPUES/DESPUES_ORACION_1.eaf",
+      "mp4": "data/Glosas/DESPUES/DESPUES_ORACION_1.mp4",
+      "glosas": [
+        [
+          477,
+          764,
+          "DESPUES"
+        ],
+        [
+          764,
+          906,
+          "YO"
+        ],
+        [
+          910,
+          1440,
+          "DAR"
+        ]
+      ]
+    },
+    {
+      "eaf": "data/Glosas/DIECISEIS/DIECISEIS_ORACION_1.eaf",
+      "mp4": "data/Glosas/DIECISEIS/DIECISEIS_ORACION_1.mp4",
+      "glosas": [
+        [
+          990,
+          1520,
+          "SILLA"
+        ],
+        [
+          1520,
+          2110,
+          "CUANTO"
+        ],
+        [
+          2110,
+          2410,
+          "YA"
+        ],
+        [
+          2410,
+          2800,
+          "IX"
+        ],
+        [
+          2800,
+          3960,
+          "DIECISEIS"
+        ]
+      ]
+    },
+    {
+      "eaf": "data/Glosas/DIFICIL/DIFICIL_ORACION_2.eaf",
+      "mp4": "data/Glosas/DIFICIL/DIFICIL_ORACION_2.mp4",
+      "glosas": [
+        [
+          710,
+          1320,
+          "FUTBOL"
+        ],
+        [
+          1320,
+          2560,
+          "DIFICIL"
+        ]
+      ]
+    },
+    {
+      "eaf": "data/Glosas/ENGORDAR/ENGORDAR_ORACION_1.eaf",
+      "mp4": "data/Glosas/ENGORDAR/ENGORDAR_ORACION_1.mp4",
+      "glosas": [
+        [
+          730,
+          840,
+          "IX"
+        ],
+        [
+          840,
+          1430,
+          "CAMBIAR"
+        ],
+        [
+          1430,
+          1970,
+          "ENGORDAR"
+        ]
+      ]
+    },
+    {
+      "eaf": "data/Glosas/GORDO/GORDO_ORACION_1.eaf",
+      "mp4": "data/Glosas/GORDO/GORDO_ORACION_1.mp4",
+      "glosas": [
+        [
+          530,
+          810,
+          "WOW"
+        ],
+        [
+          830,
+          1050,
+          "IX"
+        ],
+        [
+          1060,
+          1440,
+          "GORDO"
+        ]
+      ]
+    },
+    {
+      "eaf": "data/Glosas/HOMBRE/HOMBRE_ORACION_1.eaf",
+      "mp4": "data/Glosas/HOMBRE/HOMBRE_ORACION_1.mp4",
+      "glosas": [
+        [
+          990,
+          1160,
+          "YO"
+        ],
+        [
+          1170,
+          1930,
+          "VER"
+        ],
+        [
+          1930,
+          2366,
+          "UNO"
+        ],
+        [
+          2366,
+          2980,
+          "HOMBRE"
+        ],
+        [
+          2980,
+          3660,
+          "CAMINAR-PERSONA"
+        ],
+        [
+          3660,
+          4790,
+          "PLAYA"
+        ]
+      ]
+    },
+    {
+      "eaf": "data/Glosas/MALO/MALO_ORACION_2.eaf",
+      "mp4": "data/Glosas/MALO/MALO_ORACION_2.mp4",
+      "glosas": [
+        [
+          453,
+          1080,
+          "AMIGO"
+        ],
+        [
+          1093,
+          2066,
+          "CONTAR"
+        ],
+        [
+          2086,
+          2700,
+          "QUE"
+        ],
+        [
+          2713,
+          3306,
+          "NO"
+        ],
+        [
+          3306,
+          3826,
+          "ALEJAR-DE-LA PERSONA"
+        ],
+        [
+          3840,
+          4320,
+          "AGRUPAR"
+        ],
+        [
+          4320,
+          4793,
+          "DECIR"
+        ],
+        [
+          4793,
+          4913,
+          "IX"
+        ],
+        [
+          4920,
+          5566,
+          "VER"
+        ],
+        [
+          5580,
+          6673,
+          "MALO"
+        ],
+        [
+          6673,
+          7493,
+          "PERSONA"
+        ]
+      ]
+    }
+  ]
+}

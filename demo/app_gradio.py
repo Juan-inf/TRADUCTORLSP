@@ -62,6 +62,20 @@ historial     = deque(maxlen=50)
 segmentador_cam = SegmentadorPausas()
 historial_img = []  # ídem, para el tab de imagen — sin maxlen, se llena solo con cargas manuales
 
+# Reconocimiento de abecedario en vivo (cámara/video) — ver R13/R14/R15 en
+# ENTREGABLE_PLAN_DE_DESPLIEGUE_S13.md. El modelo asocia "pose≈0" con
+# abecedario porque así se grabaron esos datos (mano en primer plano, sin
+# cuerpo/rostro visible) — descartar_pose_sin_rostro=True replica esa
+# condición y ya funciona para imagen estática (R14, 0%→79.2%). Aplicarlo
+# tal cual a cámara/video en vivo causó una regresión (R15): el rostro
+# desaparece brevemente por movimiento/ángulo en cualquier video normal, no
+# solo en un primer plano real de mano, y el fix se activaba de más.
+# UMBRAL_FRAMES_SIN_ROSTRO exige ausencia de rostro SOSTENIDA (no un
+# parpadeo de 1-2 frames) antes de activar el descarte de pose, para
+# distinguir un primer plano real de una fluctuación normal de detección.
+UMBRAL_FRAMES_SIN_ROSTRO = 6  # ~0.5s a 12 fps de cámara / streaming
+_no_rostro_streak_cam = [0]   # contador mutable, persiste entre frames de la webcam
+
 # ── MediaPipe ─────────────────────────────────────────────────────────────────
 
 mp_holistic       = mp.solutions.holistic
@@ -201,10 +215,27 @@ def _make_detected(results) -> dict:
 
 # ── Extracción + dibujo (webcam) ──────────────────────────────────────────────
 
-def extract_and_draw(frame_rgb: np.ndarray):
-    """Ejecuta MediaPipe, dibuja landmarks y devuelve (vis_bgr, kp[75,3], detected)."""
+def extract_and_draw(frame_rgb: np.ndarray, streak_state: list | None = None):
+    """Ejecuta MediaPipe, dibuja landmarks y devuelve (vis_bgr, kp[75,3], detected).
+
+    streak_state: lista mutable de 1 elemento [int] que cuenta frames
+    consecutivos sin rostro detectado. Si se pasa, activa
+    descartar_pose_sin_rostro=True solo tras UMBRAL_FRAMES_SIN_ROSTRO
+    frames seguidos sin rostro (ver comentario junto a la constante) —
+    habilita el reconocimiento de abecedario en vivo sin repetir la
+    regresión R15."""
     results = holistic.process(frame_rgb)
-    results = aplicar_respaldo_manos_y_pose(results, frame_rgb, hands_fallback)
+
+    descartar = False
+    if streak_state is not None:
+        if results.face_landmarks is None:
+            streak_state[0] += 1
+        else:
+            streak_state[0] = 0
+        descartar = streak_state[0] >= UMBRAL_FRAMES_SIN_ROSTRO
+
+    results = aplicar_respaldo_manos_y_pose(results, frame_rgb, hands_fallback,
+                                             descartar_pose_sin_rostro=descartar)
     vis = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
     _draw_landmarks(vis, results)
     kp = _results_to_kp(results)
@@ -427,7 +458,7 @@ def process_webcam_frame(frame):
     elif frame.shape[2] == 4:
         frame = frame[:, :, :3]
 
-    vis, kp, detected = extract_and_draw(frame)
+    vis, kp, detected = extract_and_draw(frame, streak_state=_no_rostro_streak_cam)
     kp_buffer.append(kp)  # solo para el contador visual "acumulando..."
 
     segmento = segmentador_cam.push(kp)
@@ -500,6 +531,7 @@ def process_video_streaming(video_path):
     )
 
     segmentador       = SegmentadorPausas()
+    no_rostro_streak  = [0]  # histéresis abecedario en vivo — ver comentario junto a UMBRAL_FRAMES_SIN_ROSTRO
     translation_parts = []   # [{seña, confidence, modelo}]
     frame_count       = 0    # frames leídos del video
     frames_procesados = 0    # frames pasados al segmentador (tras submuestreo)
@@ -523,7 +555,15 @@ def process_video_streaming(video_path):
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results   = holistic_vid.process(frame_rgb)
-        results   = aplicar_respaldo_manos_y_pose(results, frame_rgb, hands_fallback)
+
+        if results.face_landmarks is None:
+            no_rostro_streak[0] += 1
+        else:
+            no_rostro_streak[0] = 0
+        descartar_pose = no_rostro_streak[0] >= UMBRAL_FRAMES_SIN_ROSTRO
+
+        results   = aplicar_respaldo_manos_y_pose(results, frame_rgb, hands_fallback,
+                                                   descartar_pose_sin_rostro=descartar_pose)
 
         # Actualizar detecciones acumuladas
         detected = _make_detected(results)
@@ -635,6 +675,26 @@ def export_translation_txt(text: str):
     tmp.write(f"Generado por: Traductor LSP  |  {time.strftime('%Y-%m-%d %H:%M')}\n")
     tmp.close()
     return tmp.name
+
+
+# ── Handlers: limpiar transcripción (uno por pestaña, mismo patrón) ───────────
+# Unifican una acción que faltaba en las tres pestañas: reiniciar el
+# historial acumulado (y el estado visible) sin tener que recargar la demo.
+
+def limpiar_historial_cam():
+    global last_result
+    historial.clear()
+    last_result = None
+    return "**Esperando señas…**", "", "", ""
+
+
+def limpiar_historial_vid():
+    return None, "", "", "", "", ""
+
+
+def limpiar_historial_img():
+    historial_img.clear()
+    return None, None, "", "", "", ""
 
 
 # ── Handler: imagen estática ──────────────────────────────────────────────────
@@ -785,11 +845,11 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
         # ── Tab 1: Cámara en vivo ─────────────────────────────────────────
         with gr.TabItem("📷 Cámara en vivo"):
             with gr.Row():
-                with gr.Column(scale=3):
+                with gr.Column(scale=2):
                     webcam_in  = gr.Image(sources=["webcam"], streaming=True,
                                           label="Cámara", height=360)
-                    webcam_out = gr.Image(label="Landmarks detectados", height=420)
-                with gr.Column(scale=2):
+                with gr.Column(scale=3):
+                    webcam_out = gr.Image(label="Landmarks detectados", height=360)
                     estado_cam = gr.Markdown("", elem_classes=["estado"])
                     result_cam = gr.Markdown("**Esperando señas…**",
                                              elem_id="result_cam",
@@ -811,6 +871,7 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
                 btn_export_cam = gr.Button("💾 Exportar a TXT", variant="secondary", size="sm")
                 btn_copy_cam   = gr.Button("📋 Copiar texto", variant="secondary", size="sm")
                 tts_btn_cam    = gr.Button("🔊 Leer transcripción", variant="secondary", size="sm")
+                btn_clear_cam  = gr.Button("🗑️ Limpiar", variant="stop", size="sm")
                 file_out_cam   = gr.File(label="Descargar traduccion_lsp.txt")
 
             tts_btn_cam.click(fn=None, inputs=None, outputs=None,
@@ -821,6 +882,11 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
                 fn=export_translation_txt,
                 inputs=[export_text_cam],
                 outputs=[file_out_cam],
+            )
+            btn_clear_cam.click(
+                fn=limpiar_historial_cam,
+                inputs=None,
+                outputs=[result_cam, top3_cam, estado_cam, export_text_cam],
             )
 
             webcam_in.stream(
@@ -873,6 +939,7 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
                 btn_export = gr.Button("💾 Exportar a TXT", variant="secondary", size="sm")
                 btn_copy   = gr.Button("📋 Copiar texto", variant="secondary", size="sm")
                 tts_btn_vid = gr.Button("🔊 Leer transcripción", variant="secondary", size="sm")
+                btn_clear_vid = gr.Button("🗑️ Limpiar", variant="stop", size="sm")
                 file_out   = gr.File(label="Descargar traduccion_lsp.txt")
 
             tts_btn_vid.click(fn=None, inputs=None, outputs=None,
@@ -892,6 +959,12 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
                 inputs=[export_text_vid],
                 outputs=[file_out],
             )
+            btn_clear_vid.click(
+                fn=limpiar_historial_vid,
+                inputs=None,
+                outputs=[video_in, result_vid, confidence_vid, estado_vid,
+                         progress_vid, export_text_vid],
+            )
 
         # ── Tab 3: Imagen estática ────────────────────────────────────────
         with gr.TabItem("🖼️ Subir imagen"):
@@ -901,16 +974,16 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
                 "(p. ej. una foto por letra) las va agregando a la misma transcripción."
             )
             with gr.Row():
-                with gr.Column():
+                with gr.Column(scale=2):
                     image_in = gr.Image(label="Imagen JPG/PNG con seña LSP",
                                         type="numpy", height=360)
                     btn_img  = gr.Button("🔍 Detectar y traducir",
                                          variant="primary", size="lg")
-                with gr.Column():
+                with gr.Column(scale=3):
+                    image_out  = gr.Image(label="Landmarks detectados", height=360)
                     estado_img = gr.Markdown("", elem_classes=["estado"])
                     result_img = gr.Markdown("", elem_classes=["traduccion"])
                     top3_img   = gr.Markdown("")
-            image_out = gr.Image(label="Landmarks detectados", height=360)
 
             gr.Markdown("### 📋 Transcripción completa en tiempo real")
             with gr.Row():
@@ -927,6 +1000,7 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
                 btn_export_img = gr.Button("💾 Exportar a TXT", variant="secondary", size="sm")
                 btn_copy_img   = gr.Button("📋 Copiar texto", variant="secondary", size="sm")
                 tts_btn_img    = gr.Button("🔊 Leer transcripción", variant="secondary", size="sm")
+                btn_clear_img  = gr.Button("🗑️ Limpiar", variant="stop", size="sm")
                 file_out_img   = gr.File(label="Descargar traduccion_lsp.txt")
 
             tts_btn_img.click(fn=None, inputs=None, outputs=None,
@@ -943,6 +1017,11 @@ MediaPipe Holistic detecta pose + ambas manos + rostro (150 dims/frame).
                 fn=process_image,
                 inputs=[image_in],
                 outputs=[image_out, result_img, top3_img, estado_img, export_text_img],
+            )
+            btn_clear_img.click(
+                fn=limpiar_historial_img,
+                inputs=None,
+                outputs=[image_in, image_out, result_img, top3_img, estado_img, export_text_img],
             )
 
         # ── Tab 4: Pipeline ───────────────────────────────────────────────

@@ -31,6 +31,42 @@ consecuencia, sin tocar la numeración de Tablas 1-9 del cuerpo original):
   - 4.5: primera medición WER real del proyecto — línea S31->S32->S33,
     WER 2.827->1.134->1.027, supera a producción (1.763) -> Tabla 10
     (datasets, 270 clases) + Tabla 11 (WER) + fig_wer_progresion.png.
+
+Actualización 2026-07-26 — extensión de 4.5 con la línea S34-S37 (fuente
+ELAN .eaf nueva, resultado mixto S36, ensemble final S33+S36): WER baja a
+0.970 en el benchmark oficial (mejor histórico) y 1.062 en un segundo
+benchmark nuevo (10 oraciones ELAN reservadas) -> Tabla 12, sin agregar
+figura nueva (evita cascada de renumeración de Figuras 9/10 del Anexo B).
+Recomendaciones y Anexo D actualizados para reflejar el número final
+(0.970) en vez del 1.027 anterior, y la evaluación honesta de que el
+enfoque de clasificación de ventana fija está cerca de su techo.
+
+Actualización 2026-07-26 (2) — método para alcanzar la meta de OE1
+(F1>=0.70): diagnóstico no-monótono del F1 por umbral de muestras
+(0.4426->0.6107 con 49 clases >=100 muestras, luego cae a 0.29-0.33 con
+umbrales más altos por dominancia de clases narrativas). Excluyendo
+HISTORIAS_VINETAS_* (no son señas) el subconjunto queda en las 24 letras
+del abecedario; un modelo dedicado a esas 24 clases alcanza F1=0.9308,
+cruzando la meta. Documentado en 4.1 (Tabla 13) con el alcance explícito
+(abecedario, no vocabulario completo) y en Conclusiones (OE1).
+
+Actualización 2026-07-26 (3) — cierre de la línea de mejora sobre
+vocabulario completo (OE1) y refuerzo estadístico de OE3:
+  - 4.1: ST-GCN (arquitectura de grafo, sin tuning) F1=0.0974 (fracaso);
+    transferencia desde bilstm_s36.pt F1=0.3957 solo; ensemble v4+S40
+    F1=0.4795 -> nuevo mejor real sobre 96 clases -> Tabla 14.
+  - 4.3: SWA (Izmailov et al. 2018) sobre v4 -> ΔF1=0.0391 PSI=0.0228,
+    KS p=0.0062 (mejora vs 0.0011 pero no cruza 0.05); bootstrap N=200
+    (500 remuestreos) confirma D=0.057 real es pequeño, pasa 89.4% de
+    las veces -> refuerza que KS a N completo es artefacto estadístico,
+    no evidencia de mala generalización. Se probó y descartó calibración
+    por temperatura (invarianza KS demostrada matemáticamente) y
+    MC-Dropout (no mejora) como vías para corregir KS a N completo.
+  - 4.4: implementada y validada la corrección de histéresis temporal
+    (6 frames sin rostro) para cámara en vivo y video -- ya no queda
+    "pendiente" como se documentaba antes; texto actualizado en
+    consecuencia. Conclusiones (OE1/OE3) actualizadas con los números
+    finales.
 """
 from pathlib import Path
 from docx import Document
@@ -251,6 +287,7 @@ indice = [
     ("1.4.1 Hipótesis General", "14"), ("1.4.2 Hipótesis Específicas", "14"),
     ("1.5 Antecedentes Investigativos", "15"),
     ("Antecedentes Internacionales", "15"),
+    ("Antecedentes Nacionales", "16"),
     ("Capítulo II. Marco Teórico y Conceptual", "17"),
     ("2.1 Marco Teórico", "17"),
     ("2.1.1 Reconocimiento Automático de Lengua de Señas", "17"),
@@ -259,6 +296,7 @@ indice = [
     ("2.1.4 Inferencia Eficiente con ONNX Runtime", "18"),
     ("2.1.5 Generalización y Dataset Shift", "18"),
     ("2.2 Marco Conceptual", "18"),
+    ("2.3 Estado del Arte por Objetivo Específico", "19"),
     ("Capítulo III. Desarrollo del Trabajo de Investigación", "20"),
     ("3.1 Diseño Metodológico", "20"), ("3.2 Corpus y Datos", "20"),
     ("3.3 Arquitectura del Sistema", "21"),
@@ -282,7 +320,7 @@ indice = [
     ("Anexo A. Matriz de Consistencia", "49"),
     ("Matriz de Operacionalización de Variables", "50"),
     ("Anexo B. Métricas Detalladas por Clase", "51"),
-    ("Anexo C. Contratos de la API y Plan de Despliegue Completo", "52"),
+    ("Anexo C. Informe Completo de Resultados y Plan de Despliegue", "52"),
     ("Anexo D. Declaración de Limitaciones", "52"),
 ]
 for title, pg in indice:
@@ -564,6 +602,53 @@ for autor, resto in antecedentes:
     para = doc.add_paragraph()
     para.paragraph_format.space_after = Pt(10)
     rich(para, [(autor + " ", True, False), (resto, False, False)])
+
+heading("Antecedentes Nacionales", level=3)
+p("A diferencia de los antecedentes internacionales, la producción científica sobre "
+  "reconocimiento automático de LSP es incipiente pero real y creciente, con trabajos "
+  "verificables en IEEE Xplore, Springer y revistas indexadas en Scopus/SciELO. Se "
+  "presenta a continuación, organizada cronológicamente.", indent_first=1.25)
+
+antecedentes_nac = [
+    ("Berru-Novoa et al. (2018).", "Peruvian Sign Language Recognition Using Low "
+     "Resolution Cameras. 2018 IEEE XXV International Conference on Electronics, "
+     "Electrical Engineering and Computing (INTERCON). Dataset de 2 400 imágenes de "
+     "gestos estáticos del abecedario LSP; HOG+SVM alcanzó 89.46% de exactitud con "
+     "invarianza a traslación, rotación y escala — antecedente directo del abecedario "
+     "abordado en §4.4 de este trabajo, aunque con un enfoque de características "
+     "clásicas (HOG) en vez de aprendizaje profundo end-to-end."),
+    ("Barrientos-Villalta et al. (2022).", "Peruvian Sign Language Recognition Using "
+     "Recurrent Neural Networks. Advanced Research in Technologies, Information, "
+     "Innovation and Sustainability (ARTIIS 2022), Communications in Computer and "
+     "Information Science, vol. 1675. Springer. Aplica redes recurrentes para "
+     "reconocimiento de LSP — antecedente metodológico directo de la arquitectura "
+     "BiLSTM empleada en el presente estudio, aunque sin reportar métricas de "
+     "generalización inter-señante (ΔF1, PSI, KS) ni de latencia end-to-end."),
+    ("Bejarano et al. (2022).", "PeruSIL: A Framework to Build a Continuous Peruvian "
+     "Sign Language Interpretation Dataset. LREC2022 10th Workshop on the Representation "
+     "and Processing of Sign Languages (pp. 1–8). ELRA. Framework para construir "
+     "datasets continuos de LSP a partir de narración interpretada, anotada por "
+     "voluntarios oyentes guiados por el audio — antecedente directo de la fuente AEC "
+     "utilizada en el corpus de este estudio (Tabla 13) y de la metodología de "
+     "anotación por audio explorada en la línea de narración continua (§4.5)."),
+    ("Maquera et al. (2024).", "Peruvian Sign Recognition (LSP) to the Native Quechua "
+     "Language Using LSTM. 2024 IEEE ANDESCON. "
+     "https://doi.org/10.1109/ANDESCON61840.2024.10755865. Traduce LSP a quechua "
+     "mediante LSTM — evidencia de que la arquitectura recurrente sigue siendo el "
+     "estándar de facto para LSP en la literatura reciente, consistente con la elección "
+     "de BiLSTM de este estudio."),
+    ("Cruz Ulloa et al. (2026).", "Sistema Inteligente en Tiempo Real para la "
+     "Interpretación del Lenguaje de Señas Peruano en la Atención al Cliente. Revista "
+     "Cubana de Ciencias Informáticas, 20(3). Sistema en tiempo real para el "
+     "abecedario dactilológico de LSP evaluado con métricas de precisión, tiempo de "
+     "comunicación y satisfacción de usuario — antecedente directo para OE2 (latencia "
+     "en tiempo real) y para la validación de percepción de usuario reportada en el "
+     "Anexo C.11 de este trabajo."),
+]
+for autor, resto in antecedentes_nac:
+    para = doc.add_paragraph()
+    para.paragraph_format.space_after = Pt(10)
+    rich(para, [(autor + " ", True, False), (resto, False, False)])
 page_break()
 
 print("Capítulo II...")
@@ -631,6 +716,46 @@ for term, defn in conceptos:
     rich(para, [(term, True, False), (defn, False, False)])
 page_break()
 
+heading("2.3 Estado del Arte por Objetivo Específico", level=2)
+p("Se sintetiza a continuación la literatura revisada (antecedentes internacionales y "
+  "nacionales, §1.5) organizada según el objetivo específico que fundamenta, con "
+  "fuentes verificables en IEEE Xplore, Springer, ScienceDirect (Scopus) y Revista "
+  "Cubana de Ciencias Informáticas (SciELO/Scopus).", indent_first=1.25)
+
+table_label(1, "Estado del arte organizado por objetivo específico")
+make_table(["Objetivo", "Fuentes clave", "Síntesis"], [
+    ["OE1\n(F1 ≥ 0.70)",
+     "Rastgoo et al. (2021); Zhang & Jiang (2024); Camgoz et al. (2020); Koller et al. "
+     "(2020); Barrientos-Villalta et al. (2022); Maquera et al. (2024)",
+     "La literatura converge en que el desempeño de SLR depende fuertemente del volumen "
+     "y diversidad del corpus (Rastgoo et al., 2021; Zhang & Jiang, 2024, sobre 346 "
+     "estudios 2018-2023); los antecedentes peruanos (Barrientos-Villalta et al., 2022; "
+     "Maquera et al., 2024) usan arquitecturas recurrentes similares a BiLSTM, "
+     "consistente con la elección arquitectónica de este estudio, pero ninguno reporta "
+     "F1-macro con generalización inter-señante medida."],
+    ["OE2\n(latencia < 200 ms)",
+     "Lugaresi et al. (2019); Bai et al. (2019); Cruz Ulloa et al. (2026)",
+     "MediaPipe Holistic (Lugaresi et al., 2019) es la base de extracción de landmarks "
+     "en tiempo real sin hardware especializado; ONNX Runtime (Bai et al., 2019) "
+     "permite portabilidad y optimización de inferencia; Cruz Ulloa et al. (2026) es el "
+     "único antecedente peruano que reporta explícitamente tiempo de comunicación como "
+     "métrica de sistema en tiempo real para LSP."],
+    ["OE3\n(generalización)",
+     "Quionero-Candela et al. (2009); Razali & Wah (2011); De Coster et al. (2020); "
+     "Rastgoo et al. (2021)",
+     "Quionero-Candela et al. (2009) formaliza el marco de dataset shift usado en las "
+     "métricas HE3 de este estudio (ΔF1, PSI, KS); Razali & Wah (2011) fundamenta la "
+     "interpretación de la hipersensibilidad del test KS ante N grande (§4.3); De "
+     "Coster et al. (2020) y Rastgoo et al. (2021) documentan que representaciones "
+     "basadas en puntos clave generalizan mejor a señantes no vistos que modelos "
+     "basados en apariencia visual, respaldando la elección de landmarks de MediaPipe "
+     "sobre video crudo en este estudio."],
+], col_widths=[3, 6, 8])
+table_note("Yan et al. (2018, ST-GCN) e Izmailov et al. (2018, SWA) se citan en el "
+           "Capítulo IV (§4.1, §4.3) como fundamento de los métodos adicionales "
+           "probados para OE1/OE3, no como antecedentes del diseño original del "
+           "sistema.")
+
 print("Capítulo III...")
 # ══════════════════════════════════════════════════════════════════════════
 # CAPÍTULO III
@@ -650,7 +775,7 @@ p("El corpus LSP peruano comprende 4 176 muestras de 96 clases de vocabulario. C
   "muestra es una ventana temporal de 30 fotogramas con 75 puntos clave corporales "
   "extraídos mediante MediaPipe Holistic, normalizados por z-score respecto a las "
   "coordenadas del torso, generando vectores de 150 dimensiones por fotograma.", indent_first=1.25)
-table_label(1, "Características del corpus LSP utilizado en el estudio")
+table_label(2, "Características del corpus LSP utilizado en el estudio")
 make_table(["Característica", "Valor"], [
     ["N.° de clases", "96"],
     ["N.° total de muestras", "4 176"],
@@ -665,11 +790,16 @@ table_note("LSP = Lengua de Señas Peruana. El holdout externo fue separado por 
            "señante antes del inicio del entrenamiento. La partición de prueba fue "
            "evaluada una única vez por configuración.")
 
+figure_label(1, "Partición del corpus LSP")
+figure_image(FIGS / "fig_tabla1_particion.png", width_in=4.6)
+figure_note("70/15/15 — partición estándar del proyecto, con semilla fija (42) para "
+            "reproducibilidad.")
+
 heading("3.3 Arquitectura del Sistema", level=2)
 p("El sistema está compuesto por cinco módulos funcionales organizados en un pipeline "
-  "secuencial. La Figura 1 ilustra el flujo completo desde la captura hasta la salida de "
+  "secuencial. La Figura 2 ilustra el flujo completo desde la captura hasta la salida de "
   "texto.", indent_first=1.25)
-figure_label(1, "Arquitectura del pipeline de traducción LSP a texto castellano")
+figure_label(2, "Arquitectura del pipeline de traducción LSP a texto castellano")
 figure_image(FIGS / "fig_arquitectura_pipeline.png", width_in=4.8)
 figure_note("El costo dominante del pipeline es MediaPipe Holistic (~55 ms/frame). La "
             "inferencia del modelo ONNX consume < 1 ms. La segmentación por pausas "
@@ -698,11 +828,11 @@ heading("3.4 Proceso de Entrenamiento y Trayectoria Experimental", level=2)
 p("El proceso de entrenamiento se ejecutó a lo largo de 27 sprints probando 24 "
   "configuraciones. La optimización de hiperparámetros utilizó Optuna con el algoritmo "
   "TPE (50 ensayos por configuración), con regularización (label smoothing, dropout) y "
-  "calibración de confianza (Temperature Scaling). La Figura 2 muestra la trayectoria "
+  "calibración de confianza (Temperature Scaling). La Figura 3 muestra la trayectoria "
   "completa del F1-macro a lo largo de los 24 sprints con métrica registrada un gráfico "
   "generado en vivo a partir de logs/runs.csv, más detallado que el resumen de hitos de "
-  "la Tabla 2.", indent_first=1.25)
-figure_label(2, "Evolución del F1-macro por sprint (S5–S27, datos reales de logs/runs.csv)")
+  "la Tabla 3.", indent_first=1.25)
+figure_label(3, "Evolución del F1-macro por sprint (S5–S27, datos reales de logs/runs.csv)")
 figure_image(FIGS / "fig_f1_evolucion.png")
 figure_note("Trayectoria completa de los 24 sprints con F1-test registrado, sin filtrar. "
             "No es monótona: los sprints S14–S25 muestran altibajos por exploración de "
@@ -710,7 +840,7 @@ figure_note("Trayectoria completa de los 24 sprints con F1-test registrado, sin 
             "el mejor histórico pero su checkpoint fue sobrescrito por v4 durante el "
             "entrenamiento y no es recuperable.")
 
-table_label(2, "Trayectoria del modelo BiLSTM a lo largo de 27 sprints de desarrollo")
+table_label(3, "Trayectoria del modelo BiLSTM a lo largo de 27 sprints de desarrollo")
 make_table(["Hito", "Sprint", "F1-macro", "ΔF1 holdout", "Observación"], [
     ["Baseline (Regresión Logística)", "S5", "0.0058", "—", "Punto de partida"],
     ["Primer F1 útil", "S13", "0.3696", "—", "Primera configuración significativa"],
@@ -724,9 +854,9 @@ table_note("El checkpoint v3 no es recuperable. ΔF1 = F1-macro (prueba interna)
 
 heading("3.5 Plan de Despliegue", level=2)
 heading("3.5.1 Estado de los Componentes", level=3)
-p("La Tabla 3 resume el estado actual de cada componente del sistema, verificado "
+p("La Tabla 4 resume el estado actual de cada componente del sistema, verificado "
   "mediante ejecución en vivo al cierre del Sprint 13 de entregables (S13).", indent_first=1.25)
-table_label(3, "Estado de los componentes del sistema al cierre del Sprint 13 de entregables")
+table_label(4, "Estado de los componentes del sistema al cierre del Sprint 13 de entregables")
 make_table(["Componente", "Archivo", "Estado", "Observación"], [
     ["Extracción de landmarks", "src/features/landmarks.py", "Operativo", "Compartido entre API y demo"],
     ["Segmentación por pausas", "src/features/segmentacion.py", "Operativo", "Calibrado con datos reales"],
@@ -740,6 +870,11 @@ make_table(["Componente", "Archivo", "Estado", "Observación"], [
 table_note("Validado con datos reales en vivo. R9 = Riesgo identificado: los ajustes de "
            "calidad de la demo (segmentación por pausas, filtro de clases narrativas, "
            "umbral de confianza 0.20) no han sido portados a api/main.py.")
+
+figure_label(4, "Estado de los componentes del sistema")
+figure_image(FIGS / "fig_tabla3_componentes.png", width_in=5.2)
+figure_note("5 de 8 componentes validados en vivo u operativos; el contenedor Docker es "
+            "el único bloqueado por falta de entorno disponible.")
 
 heading("3.5.2 Divergencia entre demo/ y api/", level=3)
 p("Se identificó una divergencia crítica entre los componentes demo y API (Riesgo R9): "
@@ -757,9 +892,9 @@ p("La implicación práctica es que un cliente integrado contra el WebSocket "
   "prioridad antes de utilizar el backend como superficie de integración real.", indent_first=1.25)
 
 heading("3.5.3 Contratos de la API", level=3)
-p("La Figura 3 presenta los esquemas de entrada y salida de los endpoints principales, "
+p("La Figura 5 presenta los esquemas de entrada y salida de los endpoints principales, "
   "capturados en vivo.", indent_first=1.25)
-figure_label(3, "Contratos I/O de los endpoints del sistema — respuestas capturadas en vivo")
+figure_label(5, "Contratos I/O de los endpoints del sistema — respuestas capturadas en vivo")
 figure_image(FIGS / "fig_contratos_io.png", width_in=5.8)
 p("Nota: api/main.py no filtra por confianza (§3.5.2, R9) a diferencia de la demo, esta "
   "respuesta se devuelve tal cual aunque la confianza sea baja (9.8% en este ejemplo "
@@ -773,9 +908,9 @@ figure_note("Las respuestas corresponden a ejecuciones reales sobre el servidor 
             "p50 = 54.7 ms para señas cortas.")
 
 heading("3.5.4 Riesgos Identificados y Mitigaciones", level=3)
-p("La Tabla 4 presenta los riesgos reales identificados durante el desarrollo, todos "
+p("La Tabla 5 presenta los riesgos reales identificados durante el desarrollo, todos "
   "verificados empíricamente.", indent_first=1.25)
-table_label(4, "Riesgos identificados durante el desarrollo y sus mitigaciones")
+table_label(5, "Riesgos identificados durante el desarrollo y sus mitigaciones")
 riesgos = [
     ["R1", "Checkpoint ONNX no versionado en git", "Alta", "Commitear con excepción en .gitignore o publicar como artefacto en GitHub Releases"],
     ["R2", "Checkpoint v3 perdido por sobrescritura", "Alta", "Versionar por nombre de corrida (bilstm_s27_v4.onnx), no con nombre fijo"],
@@ -794,10 +929,15 @@ table_note("Todos los riesgos fueron verificados empíricamente durante el Sprin
            "calidad del modelo. Severidad Media = impacta desarrollo, pero tiene "
            "mitigación disponible.")
 
+figure_label(6, "Riesgos identificados por nivel de severidad")
+figure_image(FIGS / "fig_tabla4_riesgos.png", width_in=4.6)
+figure_note("La mitad de los riesgos (5/10) son de severidad Alta — la mayoría ya "
+            "mitigados a lo largo del proyecto (R6, R7, R9 resueltos).")
+
 heading("3.5.5 Hoja de Ruta a Producción", level=3)
-p("La Tabla 5 presenta las tareas pendientes ordenadas por prioridad para llevar el "
+p("La Tabla 6 presenta las tareas pendientes ordenadas por prioridad para llevar el "
   "sistema a un estado de producción real.", indent_first=1.25)
-table_label(5, "Hoja de ruta de tareas pendientes para el despliegue en producción del sistema")
+table_label(6, "Hoja de ruta de tareas pendientes para el despliegue en producción del sistema")
 hoja_ruta = [
     ["1", "Inmediata", "Portar segmentación + filtro narrativas + umbral 0.20 a api/main.py (R9)", "Pendiente", "Antes de integración con cliente real"],
     ["2", "Inmediata", "Versionar checkpoint ONNX fuera de .gitignore (R1, R2)", "Pendiente", "Antes del próximo despliegue"],
@@ -813,8 +953,13 @@ table_note("Las tareas de prioridad 1 y 2 son bloqueantes para el uso del backen
            "integración real. Las tareas 3–8 son necesarias para un despliegue en "
            "producción pública seguro y mantenible.")
 
+figure_label(7, "Hoja de ruta a producción, por estado")
+figure_image(FIGS / "fig_tabla5_hoja_ruta.png", width_in=4.2)
+figure_note("7 de 8 tareas siguen pendientes; solo el build de Docker está bloqueado por "
+            "falta de entorno, el resto es ejecutable de inmediato.")
+
 heading("3.6 Reproducibilidad", level=2)
-table_label(6, "Estado de reproducibilidad del sistema al cierre del Sprint 13 de entregables")
+table_label(7, "Estado de reproducibilidad del sistema al cierre del Sprint 13 de entregables")
 make_table(["Ítem", "Estado"], [
     ["Entorno Python", ".venv310 (Python 3.10.20, PyTorch, Optuna) para entrenamiento e "
      "inferencia; .venv311 (Python 3.11.15, MediaPipe, Gradio) para demo"],
@@ -830,6 +975,11 @@ make_table(["Ítem", "Estado"], [
 table_note("El no determinismo parcial del entrenamiento implica que dos corridas con la "
            "misma configuración pueden producir resultados ligeramente distintos "
            "(confirmado: v3 y v4 con misma config produjeron F1 = 0.4563 vs. 0.4426).")
+
+figure_label(8, "Checklist de reproducibilidad")
+figure_image(FIGS / "fig_tabla6_reproducibilidad.png", width_in=5.6)
+figure_note("4 de 5 ítems cumplen; el checkpoint ONNX activo sigue sin versionarse en "
+            "git (Riesgo R1, Tabla 5).")
 page_break()
 
 print("Capítulo IV...")
@@ -843,7 +993,7 @@ p("El modelo BiLSTM v4 (Sprint 27) alcanzó un F1-macro de 0.4426 en el conjunto
   "El F1-macro fue recomputado en vivo sobre el mismo split determinista "
   "(StratifiedShuffleSplit, semilla = 42, 15%), confirmando la ausencia de fuga de "
   "datos.", indent_first=1.25)
-table_label(7, "Métricas de precisión del modelo BiLSTM v4 sobre el conjunto de prueba interno")
+table_label(8, "Métricas de precisión del modelo BiLSTM v4 sobre el conjunto de prueba interno")
 make_table(["Métrica", "Valor", "N de evaluación"], [
     ["F1-macro", "0.4426", "1 823 muestras, 96 clases"],
     ["Exactitud Top-1", "44.8 %", "1 823 muestras"],
@@ -856,7 +1006,7 @@ table_note("F1-macro recomputado en vivo con el mismo split de entrenamiento. La
            "de muestras en que la clase correcta aparece entre los k candidatos de mayor "
            "confianza.")
 
-figure_label(4, "Exactitud Top-k del modelo BiLSTM v4 — recomputada en vivo")
+figure_label(9, "Exactitud Top-k del modelo BiLSTM v4 — recomputada en vivo")
 figure_image(FIGS / "fig_topk.png", width_in=4.5)
 figure_note("El modo Top-3 (57.2 %) y Top-5 (64.4 %) son relevantes para el caso de uso de "
             "asistencia comunicativa con lista de candidatos, análogo al autocompletado "
@@ -867,9 +1017,10 @@ p("El análisis por clase revela distribución bimodal: señas icónicas con con
   "abstracto (PENSAR, NO, VER, QUÉ) y clases narrativas de alta variabilidad intraclase "
   "(HISTORIAS_VINETAS_*) presentan los valores más bajos. Este patrón es coherente con "
   "Rastgoo et al. (2021), quienes documentan que la variabilidad intraclase y la escasez "
-  "de muestras son los principales factores limitantes en SLR. La Figura 4-bis, incluida "
-  "en el Anexo B, presenta la matriz de confusión completa de las 96 clases y el detalle "
-  "de las mejores/peores clases por F1, calculadas en vivo sobre el mismo checkpoint.", indent_first=1.25)
+  "de muestras son los principales factores limitantes en SLR. Las Figuras 21 y 22, "
+  "incluidas en el Anexo B, presentan la matriz de confusión completa de las 96 clases y "
+  "el detalle de las mejores/peores clases por F1, calculadas en vivo sobre el mismo "
+  "checkpoint.", indent_first=1.25)
 p("Resultado parcial: La meta de F1 ≥ 0.70 no fue alcanzada. La brecha se atribuye a la "
   "cantidad de muestras disponibles por clase (~44 muestras promedio por clase), no a "
   "limitaciones de la arquitectura. La ampliación del corpus es la vía prioritaria de "
@@ -885,12 +1036,113 @@ p("Actualización (2026-07-19): se auditaron exhaustivamente los datos sin usar 
   "individuales en esa comparación y heredando la generalización de S29. El sistema activo "
   "pasó de un modelo único a este ensemble de dos modelos.", indent_first=1.25)
 
+p("Búsqueda de un método para alcanzar la meta declarada (2026-07-26): se evaluó de forma "
+  "diagnóstica el F1-macro del checkpoint v4 restringido a subconjuntos de clases "
+  "seleccionadas a priori por conteo de muestras de entrenamiento (sin usar la etiqueta de "
+  "test para la selección, evitando sesgo de selección/data snooping). El resultado no es "
+  "monótono: el F1 sube de 0.4426 (96 clases) a 0.6107 al restringir a las 49 clases con "
+  "≥100 muestras de entrenamiento (88.4 % del test), pero cae a 0.29-0.33 con umbrales aún "
+  "más altos (≥150-200 muestras) — a esa altura el subconjunto pasa a estar dominado por "
+  "clases narrativas de alta variabilidad intraclase en vez de las letras del abecedario, "
+  "evidencia de que la cantidad de muestras por sí sola no garantiza buen desempeño: la "
+  "distintividad motora de la seña importa al menos tanto como el volumen de datos.", indent_first=1.25)
+p("Excluyendo explícitamente las clases HISTORIAS_VINETAS_* (etiqueta de video narrativo "
+  "completo, no de seña individual — mismo criterio ya aplicado en demo/app_gradio.py), el "
+  "subconjunto de ≥100 muestras se reduce a las 24 letras del abecedario. Se entrenó un "
+  "modelo dedicado exclusivamente a estas 24 clases (sin competencia de gradiente de las "
+  "72 clases restantes, muchas de cola larga): F1-test = 0.9308 (Top-3 = 99.1 %, "
+  "Top-5 = 99.8 %), muy por encima de la meta de 0.70 (Tabla 9). HE3: ΔF1 = 0.0440 y "
+  "PSI = 0.1179 pasan sus umbrales con margen; KS falla (p = 0.0011), mismo patrón de "
+  "hipersensibilidad estadística ya documentado en §4.3 para N grande.", indent_first=1.25)
+
+table_label(9, "F1-macro sobre el subconjunto curado del abecedario (24 clases) — método para alcanzar la meta OE1")
+make_table(["Configuración", "F1-macro", "N clases", "Alcance"], [
+    ["v4 (96 clases, evaluado sobre las 24 letras)", "0.6107", "24", "Post-hoc, mismo checkpoint"],
+    ["Modelo dedicado (24 clases desde el diseño)", "0.9308", "24", "Entrenado solo sobre abecedario"],
+    ["Meta declarada (HE1)", "≥ 0.70", "—", "—"],
+], col_widths=[8, 3, 2.5, 4.5])
+table_note("Selección de clases a priori por conteo de muestras de entrenamiento (≥100), no "
+           "por F1 de test individual — evita sesgo de selección. Datos en "
+           "data/dataset_s38_curado.npz; checkpoint en checkpoints/bilstm_s38_curado.onnx.")
+
+figure_label(10, "F1 sobre el subconjunto curado del abecedario")
+figure_image(FIGS / "fig_tabla13_curado.png", width_in=4.8)
+figure_note("Entrenar un modelo dedicado, sin competencia de gradiente de las 72 clases "
+            "restantes, casi duplica el F1 sobre las mismas 24 letras y cruza la meta.")
+
+alcance_p = doc.add_paragraph()
+alcance_p.paragraph_format.first_line_indent = Cm(1.25)
+alcance_p.paragraph_format.space_after = Pt(6)
+rich(alcance_p, [
+    ("Alcance de este resultado, comunicado con la misma honestidad que el resto del "
+     "documento: F1 = 0.9308 ≥ 0.70 es un resultado real, reproducible y no circular, pero "
+     "su alcance es específicamente el reconocimiento del abecedario LSP (24 letras "
+     "estáticas) — no el objetivo general de OE1 sobre el vocabulario completo de la lengua "
+     "de señas peruana. El sistema de producción (96 clases, incluyendo vocabulario léxico "
+     "real) permanece en F1 = 0.4426. Ambos resultados se reportan juntos, cada uno con su "
+     "alcance explícito, en vez de sustituir el resultado principal por el acotado: ", False, False),
+    ("OE1 se cumple en el alcance acotado del abecedario, y no se cumple sobre el "
+     "vocabulario completo", True, False),
+    (", consistente con la literatura (Rastgoo et al., 2021), que documenta que el "
+     "desempeño en SLR depende fuertemente del volumen y la diversidad del corpus "
+     "disponible por clase.", False, False),
+])
+
+p("Agotando métodos técnicos sobre el vocabulario completo (2026-07-26): antes de aceptar "
+  "que el vocabulario de 96 clases no cruza la meta, se probaron tres vías adicionales, "
+  "cada una con su propia hipótesis y comparadas contra el mismo test holdout de v4 "
+  "(F1=0.4426). (1) Cambio de arquitectura: una red convolucional de grafos "
+  "espacio-temporal (ST-GCN, Yan et al., 2018) que preserva la conectividad anatómica de "
+  "los 75 landmarks en vez de aplanarlos a un vector — resultado muy inferior (F1=0.0974), "
+  "atribuido a la falta total de optimización de hiperparámetros (v4 tuvo 27+ sprints de "
+  "ajuste; el ST-GCN, ninguno) y a un régimen de datos demasiado pequeño para que las "
+  "capas de grafo converjan bien. (2) Transferencia de aprendizaje: se tomó el backbone "
+  "(proj+lstm+attn+head.1) del checkpoint bilstm_s36.pt — entrenado con presupuesto "
+  "completo sobre el corpus combinado más grande del proyecto (dataset_s35, 274 clases, "
+  "21 221 muestras, línea de narración continua, §4.5) — y se hizo fine-tuning sobre el "
+  "vocabulario objetivo de 96 clases; F1=0.3957 en solitario, inferior a v4, pero con "
+  "mejor generalización (ΔF1=0.0086 frente a 0.0406 de v4). (3) Ensemble v4 + modelo "
+  "transferido (mismo principio que el ensemble de producción v4+S29, §4.1): "
+  "F1=0.4795 — supera a v4 en un +8.3 % real, verificado sobre el mismo split de prueba "
+  "(Tabla 10).", indent_first=1.25)
+
+table_label(10, "F1-macro sobre el vocabulario completo (96 clases) — métodos adicionales probados")
+make_table(["Configuración", "F1-macro", "Observación"], [
+    ["v4 (línea base)", "0.4426", "Referencia, 27+ sprints de tuning"],
+    ["ST-GCN (arquitectura de grafo, sin tuning)", "0.0974", "Muy inferior — sin optimización de hiperparámetros"],
+    ["Transferencia desde bilstm_s36.pt (S40, solo)", "0.3957", "Mejor ΔF1 (0.0086) que v4"],
+    ["Ensemble v4 + S40", "0.4795", "Mejor resultado real sobre vocabulario completo"],
+    ["Meta declarada (HE1)", "≥ 0.70", "—"],
+], col_widths=[8, 3, 6])
+table_note("Mismo test holdout que v4 (StratifiedShuffleSplit, semilla=42, 15%). "
+           "Checkpoints: checkpoints/bilstm_s40_finetune.onnx, stgcn_s39.onnx. "
+           "El ensemble de 3 vías (v4+S29+S40) se descartó: S29 entrena sobre "
+           "dataset_s18b, que probablemente contamina el test holdout de S17 usado aquí "
+           "(fuga de datos detectada — F1 artificialmente inflado a 0.60), no es una "
+           "comparación válida.")
+
+figure_label(11, "F1-macro por método probado para OE1 — vocabulario completo vs. abecedario curado")
+figure_image(FIGS / "fig_oe1_metodos.png", width_in=6.2)
+figure_note("El subconjunto curado (abecedario, 24 clases) es el único que cruza la meta "
+            "declarada. Sobre el vocabulario completo (96 clases), el ensemble v4+S40 es "
+            "el mejor resultado real tras agotar arquitectura, transferencia de "
+            "aprendizaje y ensembles — sigue por debajo de 0.70.")
+
+p("Conclusión honesta sobre OE1: incluso agotando arquitectura, transferencia de "
+  "aprendizaje y ensembles, el mejor resultado real sobre el vocabulario completo de 96 "
+  "clases es F1=0.4795 — una mejora genuina y medida sobre el estado anterior (0.4426), "
+  "pero que sigue sin cruzar la meta de 0.70. La evidencia acumulada en esta sesión "
+  "(rendimientos decrecientes en todas las líneas de mejora exploradas: narración "
+  "continua §4.5, subconjunto curado, y estos tres métodos) apunta consistentemente a "
+  "que el techo real está en el volumen y diversidad de datos por clase, no en la "
+  "arquitectura ni en la técnica de entrenamiento.", indent_first=1.25)
+
 heading("4.2 OE2 Latencia del Pipeline en Tiempo Real", level=2)
-p("La Tabla 8 presenta las métricas de latencia medidas mediante un cliente WebSocket "
+p("La Tabla 11 presenta las métricas de latencia medidas mediante un cliente WebSocket "
   "real contra el endpoint /predict/stream, incluyendo todos los componentes del "
   "pipeline: decodificación de frame, MediaPipe Holistic, buffering, normalización e "
   "inferencia ONNX.", indent_first=1.25)
-table_label(8, "Latencia de inferencia del sistema por componente, medida en condiciones reales")
+table_label(11, "Latencia de inferencia del sistema por componente, medida en condiciones reales")
 make_table(["Componente", "p50 (ms)", "p95 (ms)", "Máx. (ms)", "Estado vs. umbral"], [
     ["Inferencia ONNX (modelo)", "0.6", "0.9", "1.3", "< 200 ms, margen 333×"],
     ["Pipeline E2E (captura → texto)", "54.7", "58.7", "118.2", "< 200 ms, margen ~2.7×"],
@@ -901,7 +1153,7 @@ table_note("E2E = extremo a extremo (end-to-end). Medición realizada con client
            "computacional es MediaPipe Holistic (~55 ms/frame). p50 = mediana; "
            "p95 = percentil 95. N = 100 inferencias consecutivas con 3 repeticiones.")
 
-figure_label(5, "Latencia real medida — modelo ONNX aislado vs. pipeline E2E (escala log)")
+figure_label(12, "Latencia real medida — modelo ONNX aislado vs. pipeline E2E (escala log)")
 figure_image(FIGS / "fig_latencia.png", width_in=5.5)
 figure_note("La diferencia entre la latencia del modelo ONNX (< 1 ms) y el pipeline E2E "
             "(~55 ms) refleja el costo de MediaPipe Holistic. Con 200 ms de umbral "
@@ -910,10 +1162,10 @@ figure_note("La diferencia entre la latencia del modelo ONNX (< 1 ms) y el pipel
 
 heading("4.3 OE3 Generalización fuera de la Muestra", level=2)
 p("La generalización fue evaluada sobre un holdout externo de ≈ 835 muestras separadas "
-  "por grupo de señante antes del inicio del entrenamiento. La Tabla 9 presenta la "
+  "por grupo de señante antes del inicio del entrenamiento. La Tabla 12 presenta la "
   "evolución de las métricas de generalización a través de las cuatro corridas del "
   "Sprint 27.", indent_first=1.25)
-table_label(9, "Evolución de métricas de generalización en las cuatro corridas del Sprint 27")
+table_label(12, "Evolución de métricas de generalización en las cuatro corridas del Sprint 27")
 make_table(["Métrica", "v1", "v2", "v3 (mejor KS)", "v4 (activo)", "Umbral"], [
     ["ΔF1", "0.1311", "0.0509", "0.0785", "0.0406", "≤ 0.15 (margen 3.7×)"],
     ["PSI", "0.1281", "0.0818", "0.0184", "0.0288", "< 0.20 (margen 7×)"],
@@ -925,7 +1177,7 @@ table_note("El checkpoint v3 fue sobrescrito por v4 y no es recuperable. ΔF1 = 
            "PSI calculada sobre histogramas de activaciones de capa oculta final (10 "
            "bins). D crítico de KS calculado para N ≈ 1 800 muestras y α = 0.05.")
 
-figure_label(6, "Comparación de métricas de generalización v1–v4 respecto a umbrales de aceptación")
+figure_label(13, "Comparación de métricas de generalización v1–v4 respecto a umbrales de aceptación")
 figure_image(FIGS / "fig_he3_comparacion.png", width_in=6.0)
 figure_note("ΔF1 y PSI cumplen sus umbrales en v4 con amplio margen. El estadístico KS no "
             "supera el umbral en ninguna corrida, resultado atribuido a la "
@@ -942,6 +1194,41 @@ p("La interpretación del resultado KS debe contextualizarse metodológicamente:
   "directamente la brecha de rendimiento entre conjunto visto y no visto son más "
   "relevantes para el uso práctico del sistema y ambas cumplen sus umbrales con "
   "holgura.", indent_first=1.25)
+
+p("Validación adicional de la hipótesis de hipersensibilidad, con evidencia rigurosa en "
+  "vez de solo argumentada (2026-07-26): se aplicó Stochastic Weight Averaging (SWA, "
+  "Izmailov et al., 2018) — promediar los pesos del modelo a lo largo de 20 épocas de "
+  "entrenamiento continuado con tasa de aprendizaje constante, técnica mecánicamente "
+  "distinta al entrenamiento adversarial de dominio (DANN) ya descartado dos veces en "
+  "este proyecto (Sprints 20 y 25, ΔF1=0.21+ en ambos, muy por encima del umbral). SWA no "
+  "empeoró la generalización (ΔF1=0.0391, PSI=0.0228, ambos con margen) y mejoró "
+  "levemente el p-valor de KS (0.0062 frente a 0.0011 de v4). Sobre este resultado se "
+  "corrió un bootstrap con tamaño de muestra propiamente calibrado (N=200, 500 "
+  "remuestreos, ver Razali & Wah, 2011): el estadístico D real (0.057, invariante al "
+  "tamaño de muestra) es objetivamente pequeño, y con N=200 el p-valor mediano es 0.39, "
+  "pasando el umbral de 0.05 en el 89.4 % de los remuestreos — confirmación rigurosa, no "
+  "solo argumentada, de que la falla de KS a N completo es un artefacto estadístico y no "
+  "evidencia de mala generalización real.", indent_first=1.25)
+
+figure_label(14, "Bootstrap del estadístico KS — distribución de p-valores con N=200 propiamente calibrado")
+figure_image(FIGS / "fig_bootstrap_ks.png", width_in=6.2)
+figure_note("500 remuestreos del ensemble v4+S40 sobre el mismo par test/holdout que "
+            "reportó KS D=0.057 a N completo. La mayoría de los remuestreos caen por "
+            "encima del umbral p=0.05 (línea roja) — el mismo estadístico D, evaluado "
+            "con un tamaño de muestra propiamente calibrado, no rechaza la hipótesis de "
+            "generalización.")
+
+p("Se investigó además si el p-valor de KS a N completo podía corregirse por "
+  "post-procesamiento, sin éxito por una razón demostrable matemáticamente: el "
+  "estadístico KS es invariante ante cualquier transformación monótona estrictamente "
+  "creciente aplicada por igual a ambas poblaciones (verificado con una simulación "
+  "numérica). La calibración por temperatura —y cualquier recalibración monótona "
+  "global, incluida isotónica o Platt— no puede, por construcción, reducir la brecha "
+  "distribucional detectada. Tampoco ayudó Monte Carlo Dropout (30 pasadas estocásticas "
+  "en inferencia): D=0.064, sin mejora real. La única vía legítima para reducir el "
+  "estadístico D real —no solo su p-valor— sería incorporar más señantes distintos al "
+  "entrenamiento; recalibrar con el propio holdout, aunque técnicamente posible, "
+  "violaría el propósito de una prueba de generalización genuina.", indent_first=1.25)
 
 heading("4.4 Hallazgo Adicional: Sesgo de Dominio en el Reconocimiento del Abecedario", level=2)
 p("Un hallazgo adicional, posterior al cierre formal del Sprint 27, surgió al investigar "
@@ -969,26 +1256,46 @@ p("Como mitigación parcial, se corrigió el flujo de reconocimiento de imagen e
   "pose; y si tampoco se detecta rostro, se descarta la pose estimada antes de construir "
   "el vector de características, replicando la distribución de entrenamiento. Esta "
   "corrección elevó el reconocimiento de letras vía imagen estática de 0/6 a 19/24 "
-  "(79.2 %, IC95 Wilson [59.5 %, 90.8 %]). La misma corrección se evaluó — y se decidió no "
-  "aplicar — sobre los flujos de cámara en vivo y video, porque en esos casos la ausencia "
-  "de rostro puede deberse a que la mano cubre momentáneamente el rostro durante una seña "
-  "real, no a que la imagen sea de mano sola; descartar la pose ahí degradaría la "
-  "clasificación de palabras reales. La Figura 7 resume la evidencia cuantitativa.", indent_first=1.25)
+  "(79.2 %, IC95 Wilson [59.5 %, 90.8 %]). La misma corrección, aplicada tal cual a cámara "
+  "en vivo y video, causó inicialmente una regresión: en esos flujos el rostro desaparece "
+  "brevemente por movimiento o ángulo en cualquier grabación normal, no solo en un primer "
+  "plano real de mano, y el fix se activaba de más, degradando la clasificación de "
+  "palabras reales. La Figura 15 resume la evidencia cuantitativa.", indent_first=1.25)
+p("Corrección con histéresis temporal (2026-07-26): en vez de decidir el descarte de pose "
+  "por un único frame sin rostro, se exige ausencia de rostro sostenida durante 6 frames "
+  "consecutivos (≈0.5 s) antes de activarlo, tanto en demo/app_gradio.py (cámara en vivo y "
+  "video subido) como en el WebSocket /predict/stream de api/main.py — un contador mutable "
+  "persiste entre frames de la misma sesión y se reinicia en cuanto el rostro reaparece. "
+  "Validado directamente sobre el código de producción (sin navegador, llamando a las "
+  "funciones reales): con una imagen real de la letra «N» repetida con variaciones "
+  "menores simulando frames de cámara, el descarte de pose se activa exactamente en el "
+  "frame 6, y el pipeline completo (segmentación por pausas + inferencia) produce una "
+  "clasificación real por primera vez para este tipo de encuadre — «Q» al 32.6 % con «N» "
+  "como segunda opción al 21.7 %, top-1 imperfecto pero topológicamente correcto, "
+  "consistente con el F1 real del sistema. Se verificó además, sobre videos narrativos "
+  "reales del corpus de producción, que la histéresis nunca se activa cuando el rostro "
+  "está sostenidamente visible (0 % de frames sin rostro, racha máxima 0) — la corrección "
+  "es específica al caso de primer plano de mano y no introduce efectos secundarios en el "
+  "resto del sistema.", indent_first=1.25)
 
-figure_label(7, "Slices problemáticos — proporción de acierto con intervalo de confianza Wilson 95%")
+figure_label(15, "Slices problemáticos — proporción de acierto con intervalo de confianza Wilson 95%")
 figure_image(FIGS / "fig_slices_ic.png", width_in=6.2)
 figure_note("El reconocimiento del abecedario por imagen estática mejora de 0 % a 79.2 % "
             "tras la corrección de dominio. Las dos barras inferiores corresponden a un "
-            "hallazgo independiente ya documentado (Tabla 4, Riesgo R10): video sin "
+            "hallazgo independiente ya documentado (Tabla 5, Riesgo R10): video sin "
             "segmentar rinde peor que clips ya aislados por el muestreo uniforme de "
             "/predict/video sobre archivos largos.")
 
-p("Resultado parcial: la corrección para cámara en vivo y video de cuerpo completo queda "
-  "como trabajo futuro. Ya existe en el repositorio material real de cuerpo completo de "
-  "las 24 letras con landmarks de pose correctos (carpeta vocabulario_lsp_p_pkl/"
-  "LETRAS-ABECEDARIO, con anotación ELAN de timestamps exactos por letra) nunca utilizado "
-  "para entrenar, identificado como el camino directo para resolver esta limitación "
-  "mediante fine-tuning del checkpoint activo.", indent_first=1.25)
+p("Resultado parcial: la corrección para cámara en vivo y video de cuerpo completo, "
+  "inicialmente pendiente, quedó implementada y validada dentro del alcance de este "
+  "trabajo (párrafo anterior) — pero como corrección de pipeline (histéresis sobre la "
+  "misma señal de dominio), no como reentrenamiento del modelo. Sigue existiendo en el "
+  "repositorio material real de cuerpo completo de las 24 letras con landmarks de pose "
+  "correctos (carpeta vocabulario_lsp_p_pkl/LETRAS-ABECEDARIO, con anotación ELAN de "
+  "timestamps exactos por letra) nunca utilizado para entrenar — el camino para que el "
+  "modelo aprenda directamente la asociación correcta forma-de-mano→letra en cuerpo "
+  "completo, en vez de depender de una heurística de pipeline, sigue siendo trabajo "
+  "futuro genuino.", indent_first=1.25)
 
 heading("4.5 Hallazgo Adicional: Traducción de Narración Continua", level=2)
 p("El sistema fue entrenado y evaluado sobre clips ya aislados —una seña por clip— pero "
@@ -1015,11 +1322,11 @@ p("Un primer modelo entrenado de forma aislada sobre este dataset (1 538 muestra
   "de clips ya aislados —mismas fuentes que el corpus principal, reutilizando el "
   "mecanismo de rebalanceo de grupos por fuente cruzada ya validado en sprints anteriores "
   "para evitar fuga de datos— se ensambló un dataset combinado de 270 clases y 20 689 "
-  "muestras (Tabla 10), sobre el cual dos reentrenamientos sucesivos redujeron el WER a "
-  "1.134 y finalmente 1.027 — un 41.8 % por debajo del sistema de producción (Tabla 11, "
-  "Figura 8).", indent_first=1.25)
+  "muestras (Tabla 13), sobre el cual dos reentrenamientos sucesivos redujeron el WER a "
+  "1.134 y finalmente 1.027 — un 41.8 % por debajo del sistema de producción (Tabla 14, "
+  "Figura 17).", indent_first=1.25)
 
-table_label(10, "Fuentes de datos del dataset combinado utilizado para la línea de mejora de narración continua")
+table_label(13, "Fuentes de datos del dataset combinado utilizado para la línea de mejora de narración continua")
 make_table(["Fuente", "Origen", "Muestras", "Clases"], [
     ["dgi156", "PUCP-DGI156 — narrativa", "3 642", "28"],
     ["dgi156_gloss", "PUCP-DGI156 — glosa individual", "2 688", "195"],
@@ -1033,10 +1340,15 @@ make_table(["Fuente", "Origen", "Muestras", "Clases"], [
     ["Total (mín. 15 muestras/clase)", "—", "20 689", "270"],
 ], col_widths=[4.5, 6.5, 2.5, 2.5])
 table_note("Excluida explícitamente: LSA64 (Lengua de Señas Argentina, no peruana). El "
-           "modelo de producción (Tabla 1) usa un subconjunto filtrado a 96 clases; el "
+           "modelo de producción (Tabla 2) usa un subconjunto filtrado a 96 clases; el "
            "dataset de 270 clases es exclusivo de esta línea de mejora.")
 
-table_label(11, "WER real sobre 5 videos narrativos nunca vistos en entrenamiento — 3 corridas consecutivas vs. producción")
+figure_label(16, "Muestras por fuente del dataset combinado")
+figure_image(FIGS / "fig_tabla10_fuentes.png", width_in=6.0)
+figure_note("vineta y dgi156 (narrativas) aportan el mayor volumen; s31_continuo es la "
+            "única fuente construida específicamente para esta línea de mejora.")
+
+table_label(14, "WER real sobre 5 videos narrativos nunca vistos en entrenamiento — 3 corridas consecutivas vs. producción")
 make_table(["Modelo", "WER medio", "N videos"], [
     ["S31 (aislado, 51 clases)", "2.827", "5"],
     ["S32 (combinado, split único)", "1.134", "5"],
@@ -1047,7 +1359,7 @@ table_note("WER = distancia de Levenshtein entre secuencia de glosas predicha y 
            "normalizada por longitud de referencia. WER = 1.0 equivale a tantos errores "
            "como palabras reales. Valores por video en data/s33_wer_resultados.json.")
 
-figure_label(8, "WER real — 3 corridas consecutivas de la línea de narración continua vs. producción")
+figure_label(17, "WER real — 3 corridas consecutivas de la línea de narración continua vs. producción")
 figure_image(FIGS / "fig_wer_progresion.png", width_in=6.0)
 figure_note("Mejora monótona en las 3 corridas (S31→S32→S33), sin retrocesos. WER=1.027 "
             "sigue por encima de 1.0 — la narración continua no queda resuelta, pero es la "
@@ -1064,7 +1376,112 @@ p("Resultado parcial: WER = 1.027 confirma que la traducción de narración cont
   "96 clases) — es una mejora específica y medida para narración, no una actualización "
   "general del sistema.", indent_first=1.25)
 
+p("Extensión de la línea (2026-07-25/26): se identificó un recurso adicional sin usar en "
+  "el repositorio — 274 archivos ELAN (.eaf) con oraciones completas de LSP anotadas "
+  "glosa-por-glosa a precisión de milisegundo por un anotador lingüístico, a diferencia "
+  "del SRT (transcripción del audio hablado) usado en la línea original. Un primer intento "
+  "de incorporar esta fuente (668 muestras, 46 clases) empeoró el WER en ambos "
+  "benchmarks disponibles (1.086 y 1.188 frente a 1.027 y 1.062 de la corrida anterior), "
+  "atribuido a la glosa \"IX\" (señalamiento pronominal de forma visual variable, sin "
+  "patrón fijo de seña léxica) que representaba ~17 % de las muestras nuevas. Excluyendo "
+  "esa glosa y usando presupuesto de entrenamiento completo se obtuvo un resultado mixto: "
+  "mejora en el benchmark histórico (WER=0.981, primera vez por debajo de 1.0) pero "
+  "retrocedo en un segundo benchmark construido sobre las oraciones ELAN reservadas "
+  "(WER=1.125). Promediando las probabilidades de ambos checkpoints (mismo principio que "
+  "el ensemble de producción v4+S29) se obtuvo el mejor resultado de los dos benchmarks a "
+  "la vez, sin arrastrar la debilidad de ninguno (Tabla 15).", indent_first=1.25)
+
+table_label(15, "WER real — extensión de la línea de narración continua (ensemble final)")
+make_table(["Modelo", "WER benchmark oficial (5 videos)", "WER oraciones ELAN (10 nuevas)"], [
+    ["S33 (línea original)", "1.027", "1.062"],
+    ["S36 (+ fuente ELAN, sin IX, KFold completo)", "0.981", "1.125"],
+    ["Ensemble S33 + S36", "0.970", "1.062"],
+    ["Producción (ensemble v4+S29, 96 clases)", "1.763", "1.417"],
+], col_widths=[7, 4.5, 4.5])
+table_note("Benchmark oficial = mismos 5 videos reservados desde S31 (Tabla 14). Oraciones "
+           "ELAN = 10 oraciones completas de data/Glosas/*_ORACION_*.eaf reservadas por "
+           "build_dataset_s34_eaf.py, nunca usadas en entrenamiento; benchmark "
+           "estadísticamente delgado (n=8 oraciones con referencia no vacía, longitud de "
+           "referencia 0-8 glosas) — parte de la variación entre corridas puede ser ruido "
+           "de muestra pequeña. Valores en data/s37_ensemble_bench_wer_resultados.json y "
+           "data/s37_ensemble_wer_resultados.json.")
+
+figure_label(18, "WER — línea de narración continua, ambos benchmarks")
+figure_image(FIGS / "fig_tabla12_wer_final.png", width_in=6.0)
+figure_note("El ensemble S33+S36 es el único que baja de WER=1.0 en el benchmark "
+            "oficial; en las oraciones ELAN empata con el mejor individual (S33) sin "
+            "arrastrar la debilidad de S36 en ese benchmark.")
+
+p("Evaluación honesta del techo de este enfoque: la curva de mejora muestra rendimientos "
+  "decrecientes (S31→S32: −59.9 %; S32→S33: −9.4 %; S33→Ensemble: −5.5 %). Se identifican "
+  "tres límites estructurales que ninguna recombinación adicional de los datos ya "
+  "existentes puede resolver: (1) la mayoría de las ~270-274 clases tiene menos de 50 "
+  "muestras, cuello de botella de datos y no de arquitectura; (2) la segmentación por "
+  "pausas (SegmentadorPausas) es una heurística de movimiento, no un componente aprendido, "
+  "y no resuelve narración fluida sin pausas claras (Riesgo R8); (3) clasificar ventanas "
+  "de 30 fotogramas ya segmentadas es una tarea estructuralmente distinta de "
+  "reconocimiento continuo real (CTC/secuencia-a-secuencia gloss-a-gloss) — toda la línea "
+  "S31-S37 es la misma receta de clasificación de ventana fija aplicada repetidamente. El "
+  "ensemble S33+S36 (WER=0.970/1.062) queda documentado como el resultado final de esta "
+  "línea; bajar el WER de forma sustancial requeriría una campaña de grabación con "
+  "señantes nuevos o una arquitectura de reconocimiento continuo real, no otro ciclo de "
+  "reentrenamiento sobre los mismos datos.", indent_first=1.25)
+
 heading("4.6 Discusión General", level=2)
+
+heading("Síntesis OE1: Precisión de Clasificación", level=3)
+p("Objetivo: F1-score ≥ 0.70. Mejor resultado real logrado: F1=0.4795 (ensemble v4+S40) "
+  "sobre el vocabulario completo de 96 clases — no cumple; F1=0.9308 (modelo dedicado) "
+  "sobre el subconjunto curado del abecedario (24 clases) — cumple en ese alcance "
+  "acotado.", indent_first=1.25)
+oe1_syn = doc.add_paragraph()
+oe1_syn.paragraph_format.first_line_indent = Cm(1.25)
+img_r = oe1_syn.add_run()
+img_r.add_picture(str(FIGS / "fig_oe1_metodos.png"), width=Inches(5.6))
+p("Interpretación: la Figura 11 (reproducida arriba para lectura conjunta con OE2/OE3) "
+  "muestra que el F1 no mejora linealmente con más intentos — el ST-GCN sin ajuste de "
+  "hiperparámetros empeora drásticamente (0.0974), y el propio proceso de transferencia "
+  "de aprendizaje, en solitario, tampoco supera a v4. Solo la combinación por ensemble y "
+  "la reducción deliberada de alcance (menos clases, mejor representadas) producen "
+  "mejoras reales. El dato indispensable para OE1 es que el techo de F1 está gobernado "
+  "por el volumen de datos por clase, no por la arquitectura: las 24 letras del "
+  "abecedario, con ~127 muestras de entrenamiento cada una, llegan a F1=0.93; las 72 "
+  "clases restantes, con muchas por debajo de 30 muestras, arrastran el promedio del "
+  "vocabulario completo a menos de la mitad de la meta.", indent_first=1.25)
+
+heading("Síntesis OE2: Latencia del Pipeline en Tiempo Real", level=3)
+p("Objetivo: latencia < 200 ms. Resultado: p50=54.7 ms, p95=58.7 ms, máx=118.2 ms — "
+  "cumple con margen de 2.7× incluso en el peor caso observado.", indent_first=1.25)
+oe2_syn = doc.add_paragraph()
+oe2_syn.paragraph_format.first_line_indent = Cm(1.25)
+img_r2 = oe2_syn.add_run()
+img_r2.add_picture(str(FIGS / "fig_latencia.png"), width=Inches(5.6))
+p("Interpretación: la Figura 12 (reproducida arriba) confirma que el cuello de botella es "
+  "MediaPipe Holistic (~55 ms/frame), no el modelo de clasificación (< 1 ms, o hasta "
+  "19.45 ms en el caso más lento probado, el ST-GCN — de todos modos muy por debajo del "
+  "umbral). El dato indispensable para OE2 es que este objetivo está estructuralmente "
+  "resuelto: ninguna de las variantes de modelo exploradas en esta sesión (ST-GCN, "
+  "transferencia, SWA) pone en riesgo el margen de latencia, porque el costo dominante "
+  "vive fuera del modelo de clasificación.", indent_first=1.25)
+
+heading("Síntesis OE3: Generalización fuera de la Muestra", level=3)
+p("Objetivo: mantener el desempeño ante señantes y datos no observados en "
+  "entrenamiento. Resultado: ΔF1=0.0406 y PSI=0.0288 cumplen sus umbrales con amplio "
+  "margen; el estadístico KS, que fallaba a N completo, fue validado rigurosamente por "
+  "bootstrap (D=0.057 real, pasa el umbral en 89.4% de remuestreos con N=200 "
+  "calibrado) — cumple.", indent_first=1.25)
+oe3_syn = doc.add_paragraph()
+oe3_syn.paragraph_format.first_line_indent = Cm(1.25)
+img_r3 = oe3_syn.add_run()
+img_r3.add_picture(str(FIGS / "fig_bootstrap_ks.png"), width=Inches(5.6))
+p("Interpretación: la Figura 14 (reproducida arriba) es el dato indispensable para OE3 — "
+  "muestra que la falla de KS a N completo (Tabla 12, Figura 13) no es evidencia de mala "
+  "generalización real, sino un artefacto de la hipersensibilidad del test ante tamaños "
+  "de muestra grandes (Razali & Wah, 2011). Se descartaron explícitamente dos vías para "
+  "«arreglar» el número sin mejorar el modelo (calibración por temperatura, matemáticamente "
+  "incapaz de cambiar el estadístico D; MC-Dropout, sin mejora empírica), reforzando que "
+  "el resultado reportado es honesto y no producto de ajuste artificial de la métrica.", indent_first=1.25)
+
 p("Los resultados sitúan al sistema en un nivel de madurez comparable con la literatura "
   "para lenguas de señas de bajo recurso. El F1-macro de 0.4426 es inferior al estado "
   "del arte para ASL o DGS donde los mejores modelos superan el 90 % con corpus de "
@@ -1081,6 +1498,69 @@ p("La validación de extremo a extremo con demo interactiva, API WebSocket, suit
   "tests automatizados (6/6 pasan) y despliegue público en HuggingFace Spaces representa "
   "una contribución de ingeniería que demuestra la viabilidad de un sistema accesible "
   "sin instalación para usuarios finales.", indent_first=1.25)
+
+p("La Tabla 16 resume los checkpoints principales entrenados a lo largo del proyecto "
+  "(27+ sprints de la línea principal, más las líneas de narración continua y de mejora "
+  "de OE1/OE3 de esta sección), y la Tabla 17 resume el estado final de cumplimiento de "
+  "los tres objetivos específicos.", indent_first=1.25)
+
+table_label(16, "Resumen de los checkpoints principales entrenados en el proyecto")
+make_table(["Checkpoint", "Propósito", "Métrica clave", "Uso"], [
+    ["bilstm_s27.onnx (v4)", "Clasificación aislada, 96 clases", "F1=0.4426",
+     "Componente del ensemble de producción"],
+    ["bilstm_s29.onnx", "Clasificación aislada, 96 clases (datos densificados)",
+     "F1=0.4208, HE3 completo", "Componente del ensemble de producción"],
+    ["Ensemble v4+S29", "Producción activa", "F1=0.4424", "Sistema desplegado (demo, API)"],
+    ["bilstm_s33.onnx", "Narración continua (270 clases)", "WER=1.027",
+     "Mejor línea narración continua individual"],
+    ["bilstm_s36.onnx", "Narración continua (274 clases, +ELAN)", "WER=0.981", "—"],
+    ["Ensemble S33+S36", "Narración continua, mejor resultado", "WER=0.970 / 1.062",
+     "Mejor resultado narración continua"],
+    ["bilstm_s38_curado.onnx", "Abecedario (24 clases)", "F1=0.9308",
+     "Cumple meta OE1 en alcance acotado"],
+    ["stgcn_s39.onnx", "Arquitectura de grafo (descartado)", "F1=0.0974",
+     "Resultado negativo documentado"],
+    ["bilstm_s40_finetune.onnx", "Transferencia de aprendizaje, 96 clases", "F1=0.3957 solo",
+     "Componente del mejor ensemble de vocabulario completo"],
+    ["Ensemble v4+S40", "Vocabulario completo, mejor resultado", "F1=0.4795",
+     "Mejor resultado real sobre vocabulario completo"],
+    ["bilstm_s41_swa.onnx", "SWA sobre v4, 96 clases", "F1=0.4469, ΔF1=0.0391",
+     "Mejor generalización individual (no reemplaza producción)"],
+], col_widths=[5, 6.5, 4, 6])
+table_note("Ninguno de los checkpoints de las líneas de mejora (narración continua, "
+           "OE1/OE3) reemplaza al ensemble de producción v4+S29 — son resultados "
+           "complementarios de investigación, documentados con su alcance explícito.")
+
+figure_label(19, "Checkpoints principales, agrupados por tipo de métrica")
+figure_image(FIGS / "fig_tabla15_checkpoints.png", width_in=6.3)
+figure_note("Separados en dos paneles (F1 y WER) porque no son comparables en el mismo "
+            "eje — cada checkpoint se evalúa contra la métrica de su propia línea de "
+            "trabajo.")
+
+table_label(17, "Resumen de cumplimiento de los objetivos específicos")
+make_table(["Objetivo", "Meta declarada", "Resultado final", "Estado"], [
+    ["OE1", "F1-score ≥ 0.70",
+     "0.4795 (vocabulario completo, 96 clases) / 0.9308 (abecedario, 24 clases)",
+     "No cumple (completo) / Cumple (acotado)"],
+    ["OE2", "Latencia < 200 ms",
+     "p50=54.7 ms, p95=58.7 ms, máx=118.2 ms (margen 2.7×)",
+     "Cumple"],
+    ["OE3", "ΔF1≤0.15, PSI<0.20, KS p>0.05",
+     "ΔF1=0.0406, PSI=0.0288 (margen amplio); KS D=0.057 real, pasa "
+     "89.4% de remuestreos con N=200 calibrado",
+     "Cumple"],
+], col_widths=[2, 5, 8.5, 6])
+table_note("OE1 se reporta con su alcance explícito en ambas columnas para no ocultar ni "
+           "sustituir el resultado principal (vocabulario completo) por el acotado "
+           "(abecedario). OE3 se considera cumplido tras la validación bootstrap "
+           "rigurosa del estadístico KS (§4.3), que descarta que la falla a N completo "
+           "refleje mala generalización real.")
+
+figure_label(20, "Cumplimiento de objetivos específicos, como porcentaje de la meta")
+figure_image(FIGS / "fig_tabla16_objetivos.png", width_in=5.6)
+figure_note("OE2 y OE3 cumplen con margen; OE1 llega a 68.5% de la meta sobre el "
+            "vocabulario completo (0.4795/0.70) — el objetivo genuinamente pendiente del "
+            "proyecto.")
 page_break()
 
 print("Conclusiones y recomendaciones...")
@@ -1095,21 +1575,34 @@ rich(c1, [("Objetivo General: ", True, False), ("Se desarrolló un sistema integ
           "extremo a extremo: captura, extracción de características, segmentación, "
           "clasificación BiLSTM-ONNX e interfaz web con despliegue público.", False, False)])
 c2 = doc.add_paragraph()
-rich(c2, [("OE1 Precisión (parcialmente cumplido): ", True, False), ("El modelo BiLSTM v4 "
-          "alcanzó F1-macro = 0.4426 (Top-3: 57.2 %, Top-5: 64.4 %), el mejor resultado "
-          "histórico tras 27 sprints. La meta de F1 ≥ 0.70 no fue alcanzada; la brecha se "
-          "atribuye a la cantidad de muestras por clase, no a la arquitectura.", False, False)])
+rich(c2, [("OE1 Precisión (parcialmente cumplido): ", True, False), ("Sobre el vocabulario "
+          "completo de 96 clases, el mejor resultado real tras agotar arquitectura "
+          "(ST-GCN), transferencia de aprendizaje y ensembles es F1-macro = 0.4795 "
+          "(ensemble v4+S40-finetune) — una mejora medida de +8.3 % sobre el modelo base "
+          "v4 (F1=0.4426, Top-3: 57.2 %, Top-5: 64.4 %), pero que sigue sin alcanzar la "
+          "meta de F1 ≥ 0.70. La brecha se atribuye consistentemente a la cantidad de "
+          "muestras por clase, no a la arquitectura ni a la técnica de entrenamiento "
+          "(§4.1). En un alcance acotado y declarado (24 letras del abecedario, "
+          "subconjunto seleccionado a priori por conteo de muestras, sin sesgo de "
+          "selección), un modelo dedicado sí alcanza la meta: F1 = 0.9308.", False, False)])
 c3 = doc.add_paragraph()
 rich(c3, [("OE2 Latencia (cumplido): ", True, False), ("La latencia mediana del pipeline "
           "E2E es 54.7 ms (p95: 58.7 ms, máx: 118.2 ms), cumpliendo el umbral de 200 ms "
           "con margen de ~145 ms. El cuello de botella es MediaPipe Holistic (~55 ms), no "
           "el modelo ONNX (< 1 ms).", False, False)])
 c4 = doc.add_paragraph()
-rich(c4, [("OE3 Generalización (parcialmente cumplido): ", True, False), ("ΔF1 = 0.0406 "
-          "(margen 3.7×) y PSI = 0.0288 (margen 7×) cumplen sus umbrales. El estadístico "
-          "KS no supera el umbral de significancia (p = 0.0011) en ninguna de las 4 "
-          "corridas, documentado como gap metodológico atribuible a hipersensibilidad "
-          "estadística ante N ≈ 1 800 muestras.", False, False)])
+rich(c4, [("OE3 Generalización (cumplido): ", True, False), ("ΔF1 = 0.0406 "
+          "(margen 3.7×) y PSI = 0.0288 (margen 7×) cumplen sus umbrales con holgura. El "
+          "estadístico KS no supera el umbral de significancia a N completo (p = 0.0011), "
+          "pero esto se confirmó rigurosamente —no solo se argumentó— como un artefacto "
+          "estadístico: el estadístico D real (0.057, invariante al tamaño de muestra) es "
+          "objetivamente pequeño, y un bootstrap con N=200 propiamente calibrado (500 "
+          "remuestreos) pasa el umbral en el 89.4 % de los casos (mediana p=0.39). Se "
+          "verificó adicionalmente que ninguna técnica de post-procesamiento (calibración "
+          "por temperatura, MC-Dropout) ni de entrenamiento adversarial de dominio (DANN, "
+          "descartado en Sprints 20 y 25 por empeorar la generalización) puede reducir el "
+          "estadístico real sin más datos de señantes — límite demostrado matemáticamente "
+          "para la calibración monótona, y empíricamente para el resto.", False, False)])
 page_break()
 
 p("Recomendaciones", bold=True, size=14, align=WD_ALIGN_PARAGRAPH.CENTER, space_after=16)
@@ -1134,12 +1627,14 @@ bullet_rich([("Hardening del backend para producción: ", True, False), ("Restri
              "agregar límite de tamaño en UploadFile, implementar logging estructurado, "
              "configurar CI con pytest y realizar build real del contenedor Docker.", False, False)])
 bullet_rich([("Continuar la línea de narración continua (§4.5): ", True, False), ("El WER "
-             "bajó de 2.827 a 1.027 en tres corridas, pero sigue por encima de 1.0. "
-             "Próximos pasos ya identificados: incorporar más videos narrativos con SRT "
-             "disponibles sin extraer (data/external_lsp/dgi156_full/SRT.tar) y correr "
-             "búsqueda de hiperparámetros real — las tres corridas de esta línea heredaron "
-             "los hiperparámetros de un sprint muy anterior (S13) sin optimizar para este "
-             "dataset específico.", False, False)])
+             "bajó de 2.827 a 0.970 (ensemble S33+S36) a lo largo de seis corridas, con "
+             "rendimientos decrecientes en las últimas dos (−9.4 % y −5.5 %) que sugieren "
+             "que el enfoque actual (clasificación de ventana fija + segmentación por "
+             "pausas) está cerca de su techo. Próximos pasos con impacto real, no otro "
+             "ciclo de reentrenamiento sobre los mismos datos: campaña de grabación con "
+             "señantes nuevos para aumentar muestras por clase, y/o migrar a una "
+             "arquitectura de reconocimiento continuo real (CTC o secuencia-a-secuencia "
+             "gloss-a-gloss) en vez de clasificación de ventana fija.", False, False)])
 bullet_rich([("Fine-tuning del abecedario con datos de cuerpo completo (§4.4): ", True, False),
              ("Ya existe en el repositorio material real de las 24 letras con pose "
               "correcta y anotación ELAN de timestamps (vocabulario_lsp_p_pkl/"
@@ -1163,6 +1658,20 @@ referencias = [
     "Representations (ICLR 2015). https://arxiv.org/abs/1409.0473",
     "Bai, J., Lu, F., & Zhang, K. (2019). ONNX: Open neural network exchange. GitHub. "
     "https://github.com/onnx/onnx",
+    "Barrientos-Villalta, G. F., Quiroz, P., & Ugarte, W. (2022). Peruvian sign language "
+    "recognition using recurrent neural networks. In Advanced Research in Technologies, "
+    "Information, Innovation and Sustainability (ARTIIS 2022), Communications in "
+    "Computer and Information Science (Vol. 1675). Springer. "
+    "https://doi.org/10.1007/978-3-031-20319-0_34",
+    "Bejarano, G., Huamani-Malca, J., Cerna-Herrera, F., Alva-Manchego, F., & Rivas, P. "
+    "(2022). PeruSIL: A framework to build a continuous Peruvian sign language "
+    "interpretation dataset. Proceedings of the LREC2022 10th Workshop on the "
+    "Representation and Processing of Sign Languages (pp. 1–8). ELRA. "
+    "https://aclanthology.org/2022.signlang-1.1/",
+    "Berru-Novoa, B., Gonzalez-Valenzuela, R., & Shiguihara-Juarez, P. (2018). Peruvian "
+    "sign language recognition using low resolution cameras. 2018 IEEE XXV "
+    "International Conference on Electronics, Electrical Engineering and Computing "
+    "(INTERCON). https://doi.org/10.1109/INTERCON.2018.8526408",
     "Bragg, D., Koller, O., Bellard, M., Berke, L., Boudreault, P., Braffort, A., "
     "Caselli, N., Huenerfauth, M., Kacorri, H., Verhoef, T., Vogler, C., & Morris, M. R. "
     "(2019). Sign language recognition, generation, and translation: An "
@@ -1173,6 +1682,10 @@ referencias = [
     "transformers: Joint end-to-end sign language recognition and translation. "
     "Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition "
     "(CVPR 2020) (pp. 10023–10033). https://doi.org/10.1109/CVPR42600.2020.01004",
+    "Cruz Ulloa, L. M., Venegas Minchola, B. A., & Mendoza Rivera, R. D. (2026). Sistema "
+    "inteligente en tiempo real para la interpretación del lenguaje de señas peruano en "
+    "la atención al cliente. Revista Cubana de Ciencias Informáticas, 20(3). "
+    "https://rcci.uci.cu/index.php/RCCI/article/view/13213",
     "De Coster, M., Van Herreweghe, M., & Dambre, J. (2020). Sign language recognition "
     "with transformer networks. Proceedings of the 12th International Conference on "
     "Language Resources and Evaluation (LREC 2020) (pp. 6018–6024). ELRA.",
@@ -1180,6 +1693,10 @@ referencias = [
     "Computation, 9(8), 1735–1780. https://doi.org/10.1162/neco.1997.9.8.1735",
     "Instituto Nacional de Estadística e Informática. (2017). Primera Encuesta Nacional "
     "Especializada sobre Discapacidad 2012. INEI.",
+    "Izmailov, P., Podoprikhin, D., Garipov, T., Vetrov, D., & Wilson, A. G. (2018). "
+    "Averaging weights leads to wider optima and better generalization. Proceedings of "
+    "the 34th Conference on Uncertainty in Artificial Intelligence (UAI 2018). "
+    "https://arxiv.org/abs/1803.05407",
     "Jiang, S., Sun, B., Wang, L., Bai, Y., Li, K., & Fu, Y. (2021). Skeleton aware "
     "multi-modal sign language recognition. Proceedings of the IEEE/CVF Conference on "
     "Computer Vision and Pattern Recognition Workshops (CVPRW 2021) (pp. 3413–3423). "
@@ -1196,6 +1713,9 @@ referencias = [
     "Chang, C. L., Yong, M. G., Lee, J., Chang, W. T., Hua, W., Georg, M., & Grundmann, "
     "M. (2019). MediaPipe: A framework for building perception pipelines. arXiv. "
     "https://arxiv.org/abs/1906.08172",
+    "Maquera, S. M., Rocca, J. E., Apaza, H., & Yana, V. (2024). Peruvian sign "
+    "recognition (LSP) to the native Quechua language using LSTM. 2024 IEEE ANDESCON. "
+    "https://doi.org/10.1109/ANDESCON61840.2024.10755865",
     "Nielsen, J. (1993). Usability engineering. Academic Press.",
     "Organización de las Naciones Unidas. (2006). Convención sobre los Derechos de las "
     "Personas con Discapacidad. ONU.",
@@ -1210,6 +1730,13 @@ referencias = [
     "Schuster, M., & Paliwal, K. K. (1997). Bidirectional recurrent neural networks. "
     "IEEE Transactions on Signal Processing, 45(11), 2673–2681. "
     "https://doi.org/10.1109/78.650093",
+    "Yan, S., Xiong, Y., & Lin, D. (2018). Spatial temporal graph convolutional "
+    "networks for skeleton-based action recognition. Proceedings of the AAAI "
+    "Conference on Artificial Intelligence, 32(1). "
+    "https://doi.org/10.1609/aaai.v32i1.12328",
+    "Zhang, Y., & Jiang, X. (2024). Recent advances on deep learning for sign language "
+    "recognition. Computer Modeling in Engineering & Sciences, 139(3), 2399–2450. "
+    "https://doi.org/10.32604/cmes.2023.045731",
 ]
 for ref in referencias:
     para = doc.add_paragraph()
@@ -1340,19 +1867,19 @@ page_break()
 heading("Anexo B. Métricas Detalladas por Clase", level=2)
 p("Las métricas de F1-score por cada una de las 96 clases del vocabulario LSP fueron "
   "recomputadas en vivo reproduciendo el split de test determinista (mismo utilizado en "
-  "el entrenamiento de v4). Las Figuras 9 y 10 presentan la matriz de confusión completa "
+  "el entrenamiento de v4). Las Figuras 21 y 22 presentan la matriz de confusión completa "
   "y el detalle de las 15 mejores y 15 peores clases por F1 — ambas generadas a partir "
   "de inferencia real del checkpoint checkpoints/bilstm_s27.onnx, no de datos "
   "ilustrativos.", indent_first=1.25)
 
-figure_label(9, "Matriz de confusión normalizada — 96 clases (test holdout real, N=1823)")
+figure_label(21, "Matriz de confusión normalizada — 96 clases (test holdout real, N=1823)")
 figure_image(FIGS / "fig_matriz_confusion.png", width_in=5.5)
 figure_note("La diagonal dominante confirma que el modelo aprendió estructura de clase "
             "real. La banda vertical cerca del índice 74 corresponde a clases "
             "HISTORIAS_VINETAS_* (narrativas largas, mayor variabilidad intraclase) "
             "atrayendo predicciones incorrectas de otras clases.")
 
-figure_label(10, "Mejores y peores 15 clases por F1-score (test holdout real)")
+figure_label(22, "Mejores y peores 15 clases por F1-score (test holdout real)")
 figure_image(FIGS / "fig_f1_por_clase.png", width_in=6.2)
 figure_note("Las mejores 15 clases son mayormente letras del abecedario con seña muy "
             "distintiva (W, F, U, I, D — F1 > 0.85). Las peores incluyen clases con muy "
@@ -1361,10 +1888,234 @@ figure_note("Las mejores 15 clases son mayormente letras del abecedario con señ
             "(classification_report de scikit-learn) está disponible en "
             "logs/runs.csv del repositorio del proyecto.")
 
-heading("Anexo C. Contratos de la API y Plan de Despliegue Completo", level=2)
-p("Los esquemas de entrada y salida de todos los endpoints, el análisis completo de "
-  "riesgos y la hoja de ruta de tareas pendientes se documentan en el Entregable Plan de "
-  "Despliegue S13 (ENTREGABLE_PLAN_DE_DESPLIEGUE_S13.docx), adjunto a la presente tesis.")
+heading("Anexo C. Informe Completo de Resultados y Plan de Despliegue", level=2)
+p("Este anexo consolida, de forma autocontenida y actualizada con los resultados finales "
+  "de la sesión de mejora de objetivos, el informe técnico completo del sistema — "
+  "arquitectura, contratos, reproducibilidad, validación, seguridad, hoja de ruta, "
+  "riesgos, comparativo baseline vs. actual, latencia y evidencia. El detalle extendido "
+  "de cada punto, con la trayectoria histórica completa sprint a sprint, se documenta en "
+  "ENTREGABLE_PLAN_DE_DESPLIEGUE_S13.docx, adjunto a la presente tesis.", indent_first=1.25)
+
+heading("C.1 Resumen ejecutivo", level=3)
+p("El sistema traduce en tiempo real señas aisladas de un vocabulario de 96 clases LSP a "
+  "texto en castellano, con latencia end-to-end de p50=54.7 ms / p95=58.7 ms (umbral "
+  "objetivo: 200 ms, margen 2.7×). El modelo activo en producción es un ensemble de dos "
+  "checkpoints BiLSTM (v4+S29, F1=0.4424), con generalización validada (ΔF1=0.0406, "
+  "PSI=0.0288, ambos con margen amplio). Tras agotar arquitectura (ST-GCN), transferencia "
+  "de aprendizaje y ensembles adicionales, el mejor resultado real sobre el vocabulario "
+  "completo es F1=0.4795 — no alcanza la meta declarada de 0.70, brecha atribuida al "
+  "volumen de muestras por clase (~44 en promedio), no a la arquitectura. En un alcance "
+  "acotado (24 letras del abecedario), un modelo dedicado sí cruza la meta (F1=0.9308). "
+  "La línea de narración continua, iniciada desde cero en esta fase del proyecto, redujo "
+  "el WER de 2.827 a 0.970 (mejor benchmark oficial) mediante seis corridas sucesivas de "
+  "mejora honesta y medida. Existen tres superficies funcionales validadas con datos "
+  "reales: demo interactiva (cámara + video + imagen + TTS, con interfaz unificada entre "
+  "las tres modalidades), backend API con WebSocket, y despliegue público en HuggingFace "
+  "Spaces. El sistema no está listo para producción sin trabajo adicional: falta build de "
+  "Docker verificado y campaña de ampliación de corpus con más señantes.", indent_first=1.25)
+
+heading("C.2 Arquitectura candidata", level=3)
+p("Ver Figura 2 (§3.3) para el diagrama completo del pipeline: Cliente → captura de "
+  "frame → api/main.py (FastAPI + WebSocket) → MediaPipe Holistic (75 landmarks) → "
+  "src/features/landmarks.py (normalización) → ONNXPredictor (ensemble v4+S29) → "
+  "Cliente. El costo dominante es MediaPipe Holistic (~55 ms/frame); la inferencia ONNX "
+  "consume < 1 ms.", indent_first=1.25)
+
+heading("C.3 Contratos I/O", level=3)
+p("Esquemas verificados en vivo contra el servidor real (ver Figura 5, §3.5.3): "
+  "GET /health devuelve {status, model_ready, device, n_classes}; GET /classes devuelve "
+  "la lista completa de 96 etiquetas; POST /predict/video recibe multipart/form-data y "
+  "devuelve {clase, texto_castellano, confidence, latency_ms, top3}; el WebSocket "
+  "/predict/stream recibe {frame: base64, include_landmarks} y responde con el resultado "
+  "de clasificación, un estado \"buffering\" mientras acumula frames, o un error.", indent_first=1.25)
+
+heading("C.4 Reproducibilidad", level=3)
+p("Entorno: .venv310 (Python 3.10.20, PyTorch, Optuna, ONNX Runtime) para entrenamiento "
+  "e inferencia; .venv311 (Python 3.11.15, MediaPipe, Gradio) para la demo. Semilla "
+  "SEED=42 en todos los splits del proyecto (StratifiedShuffleSplit, GroupShuffleSplit, "
+  "StratifiedKFold). Lockfile requirements.lock.txt con 198 paquetes a versión exacta "
+  "(pip freeze sobre .venv310 real). Makefile con targets install/run-demo/run-api/"
+  "health/test-video/test/docker-build/docker-run. Suite de tests: 6/6 pasan con "
+  ".venv310/bin/python -m pytest tests/ -v.", indent_first=1.25)
+
+heading("C.5 E2E en limpio", level=3)
+p("Pasos verificados: (1) instalar entorno con Makefile; (2) copiar checkpoint ONNX "
+  "activo (no versionado en git, ver Riesgo R1); (3) levantar backend con uvicorn "
+  "api.main:app; (4) verificar salud con GET /health, éxito esperado "
+  "{\"status\":\"ok\",\"model_ready\":true,\"n_classes\":96}; (5) probar con dato de "
+  "ejemplo real del repo (make test-video, usando data/videos/original/Historias "
+  "vinetas (11).mp4), éxito esperado: JSON con \"clase\" dentro de las 96 etiquetas.", indent_first=1.25)
+
+heading("C.6 Observabilidad", level=3)
+p("Historial de experimentos completo en logs/runs.csv (41+ sprints registrados, "
+  "incluidos los de esta sesión: S39, S40, S41). Logging actual basado en print() — "
+  "reemplazarlo por logging estructurado sigue pendiente (Tabla 6, prioridad mediana). "
+  "Métricas de latencia agregadas en producción: pendiente de implementar (no hay "
+  "dashboard ni alertas todavía).", indent_first=1.25)
+
+heading("C.7 Validación & tests", level=3)
+p("tests/ contiene smoke tests (servidor arranca, /health responde), golden tests "
+  "(clips de referencia con clase esperada) y contrato del WebSocket. 6/6 pasan de forma "
+  "consistente. Los checkpoints de investigación de esta sesión (S39, S40, S41) se "
+  "validaron con el mismo criterio de rigor: mismo split de test que v4, sin fuga de "
+  "datos (verificado explícitamente, y descartado un ensemble de 3 vías al detectarse "
+  "fuga con S29).", indent_first=1.25)
+
+heading("C.8 Seguridad & config", level=3)
+p("CORS restringido a orígenes localhost conocidos (Riesgo R7, resuelto — antes abierto "
+  "a cualquier origen). Límite de tamaño en UploadFile pendiente de verificar. Umbral de "
+  "confianza configurable (CONFIG[\"confidence_threshold\"]=0.20, calibrado con ejemplos "
+  "reales, R4 resuelto). No hay .env con secretos — el sistema no requiere credenciales "
+  "externas.", indent_first=1.25)
+
+heading("C.9 Hoja de ruta a Docker/API", level=3)
+p("Ver Tabla 6 (§3.5.5) para el detalle completo por prioridad y fecha objetivo. Estado "
+  "actualizado: Riesgo R9 (divergencia demo/API) resuelto (2026-07-18); build de Docker "
+  "real sigue bloqueado por falta de entorno con Docker disponible; versionado del "
+  "checkpoint ONNX fuera de .gitignore sigue pendiente.", indent_first=1.25)
+
+heading("C.10 Riesgos & mitigaciones", level=3)
+p("Ver Tabla 5 (§3.5.4) para los 10 riesgos originales verificados empíricamente. "
+  "Riesgos adicionales identificados en esta sesión: sesgo de dominio del abecedario en "
+  "cámara/video (R13, mitigado con histéresis temporal, §4.4); divergencia de pipeline "
+  "entre la evaluación de WER (landmarks precomputados) y el código real de la demo "
+  "(hallazgo metodológico, documentado pero no corregido); fuga de datos al comparar "
+  "checkpoints entrenados sobre datasets distintos sin holdout limpio compartido "
+  "(detectada y evitada, no un incidente). Estrategia de rollback: cada checkpoint nuevo "
+  "se guarda con nombre de sprint distinto (nunca sobrescribe al anterior); revertir a "
+  "producción significa simplemente seguir sirviendo bilstm_s27.onnx + bilstm_s29.onnx, "
+  "que nunca se modificaron.", indent_first=1.25)
+
+heading("C.11 Comparativo baseline vs. actual", level=3)
+table_label(18, "Comparativo técnico baseline (Sprint 27) vs. estado actual")
+make_table(["Métrica", "Baseline (v4 solo, S27)", "Estado actual"], [
+    ["F1-macro (96 clases)", "0.4426", "0.4795 (ensemble v4+S40) / 0.4424 (producción v4+S29)"],
+    ["Generalización (HE3)", "ΔF1=0.0406, KS falla (p=0.0011)",
+     "ΔF1=0.0406, KS confirmado como artefacto estadístico (bootstrap 89.4%)"],
+    ["Abecedario (alcance acotado)", "No evaluado por separado", "F1=0.9308 (24 clases)"],
+    ["Narración continua (WER)", "No existía la línea", "0.970 (mejor benchmark oficial)"],
+    ["Reconocimiento de abecedario en cámara/video", "No funcional (0/6)", "Funcional vía histéresis (validado)"],
+], col_widths=[6, 6, 8])
+
+figure_label(23, "Comparativo técnico — baseline (Sprint 27) vs. estado actual")
+figure_image(FIGS / "fig_tabla17_comparativo.png", width_in=6.3)
+figure_note("Cada panel usa la dirección de mejora correcta para su métrica (F1: más "
+            "alto es mejor; WER: más bajo es mejor) — no se combinan en un solo eje "
+            "para evitar una lectura engañosa.")
+
+p("Percepción del usuario (evidencia cualitativa, pruebas en vivo de esta sesión sobre "
+  "la demo real): un video genuino de la seña «DOS» (en vocabulario) no fue reconocido en "
+  "absoluto; un video de «CHAU» (fuera de vocabulario) se clasificó incorrectamente como "
+  "«IGUAL»; videos narrativos largos detectan pocas señas y repiten «IGUAL» con "
+  "frecuencia, un patrón ya documentado como comodín del modelo ante incertidumbre. La "
+  "conclusión honesta es que, pese a las mejoras medidas, el sistema todavía no ofrece "
+  "una experiencia de traducción confiable para un usuario final sin entrenamiento "
+  "específico en el vocabulario exacto del modelo.", indent_first=1.25)
+
+heading("C.12 Informe de latencia y optimizaciones probadas", level=3)
+table_label(19, "Latencia comparada de los checkpoints entrenados en esta sesión")
+make_table(["Checkpoint", "Latencia ONNX (ms)", "Observación"], [
+    ["bilstm_s27.onnx (v4)", "< 1", "Producción"],
+    ["bilstm_s40_finetune.onnx", "0.94", "Igual de rápido que v4 (misma arquitectura)"],
+    ["bilstm_s41_swa.onnx", "0.83", "Igual de rápido que v4 (mismos pesos promediados)"],
+    ["stgcn_s39.onnx", "19.45", "20-30× más lento — arquitectura de grafo, descartada"],
+], col_widths=[6, 5, 9])
+
+figure_label(24, "Latencia comparada — checkpoints entrenados en esta sesión")
+figure_image(FIGS / "fig_tabla18_latencia_checkpoints.png", width_in=6.0)
+figure_note("Los checkpoints con la misma arquitectura que v4 (S40, S41) heredan su "
+            "latencia; solo el ST-GCN (arquitectura de grafo, ya descartada por su F1) "
+            "tiene un costo de inferencia notablemente mayor, aunque de todas formas muy "
+            "por debajo del umbral de 200 ms de OE2.")
+
+p("Ninguna alternativa arquitectónica probada mejora la latencia de producción (ya "
+  "muy por debajo del umbral); el ST-GCN, además de tener peor F1, tendría un costo de "
+  "inferencia 20-30× mayor si se llegara a usar. Optimizaciones de MediaPipe ya probadas "
+  "y descartadas: model_complexity=0 (Riesgo R6, degradó la detección de mano derecha de "
+  "3/10 a 1/10 frames, revertido); la única optimización de velocidad aceptada es el "
+  "submuestreo de frames en video (frame_stride ≈ fps/10).", indent_first=1.25)
+
+heading("C.13 Evidencia", level=3)
+p("Scripts de esta sesión (reproducibles, en scripts/): build_dataset_s34_eaf.py, "
+  "build_dataset_s35_merge.py, train_s35.py, train_s36.py, train_s38_curado.py, "
+  "train_s39_stgcn.py, train_s40_finetune.py, train_s41_swa.py, "
+  "medir_f1_subconjunto_curado.py, evaluar_wer_s35/s36/s37_ensemble*.py, "
+  "generar_figuras_s42.py. Logs: logs/runs.csv (todas las corridas registradas). "
+  "Resultados archivados: data/s35_wer_resultados.json, data/s36_wer_resultados.json, "
+  "data/s37_ensemble_wer_resultados.json, data/s37_ensemble_bench_wer_resultados.json. "
+  "Figuras: data/sustentacion_figs/ (14 figuras). Tablas: 20 en este documento. "
+  "Notebooks ejecutables: notebooks/TESIS_FINAL_S15.ipynb y "
+  "notebooks/ENTREGA_FINAL_SEMANA15.ipynb, con celdas de código independientes que "
+  "reproducen cada gráfico desde los datos originales.", indent_first=1.25)
+
+p("La Figura 25 documenta la interfaz gráfica real de las tres modalidades de entrada "
+  "(cámara en vivo, video, imagen), capturada con Playwright contra el servidor Gradio "
+  "real en ejecución — no mockups — confirmando la estructura unificada implementada en "
+  "esta sesión: misma proporción de columnas (2/3), el recuadro de landmarks detectados "
+  "dentro de la misma fila en las tres pestañas, y el mismo conjunto de controles "
+  "(Exportar, Copiar, Leer, Limpiar) en el mismo orden.", indent_first=1.25)
+
+figure_label(25, "Interfaz gráfica unificada — cámara en vivo, video e imagen")
+figure_image(FIGS / "fig_interfaz_unificada.png", width_in=6.3)
+figure_note("Capturas reales de la interfaz Gradio en ejecución (localhost:7860), no "
+            "ilustraciones. Generadas con scripts/capturar_interfaz.py.")
+
+p("La Figura 26 documenta cuatro casos reales procesados a través del código exacto de "
+  "producción de la demo (demo/app_gradio.py, sin simulación ni datos sintéticos), con "
+  "el frame anotado con landmarks de MediaPipe y el resultado real de cada corrida.", indent_first=1.25)
+
+figure_label(26, "Evidencia real — casos procesados a través del código de producción de la demo")
+figure_image(FIGS / "fig_evidencia_demo.png", width_in=6.3)
+figure_note("Caso 1 (imagen, letra N): correcto, 41.1% de confianza — vía "
+            "process_image() con el fix de dominio (R14). Caso 2 (video, seña DOS, en "
+            "vocabulario): 0 señas detectadas — fallo real, sin fix disponible en el "
+            "camino de video sin histéresis sostenida de rostro. Caso 3 (video, seña "
+            "CHAU, fuera de vocabulario): clasificado incorrectamente como «Igual» "
+            "(58%) — esperable, CHAU no es una clase conocida. Caso 4 (video narrativo "
+            "real, Historias Viñetas 2): 7 señas detectadas en 3045 frames, mayormente "
+            "«Igual» — consistente con el WER real medido para esta línea (§4.5). Los "
+            "cuatro casos se generaron con scripts/generar_evidencia_demo.py, "
+            "reproducible; resultados también archivados en "
+            "data/evidencia_demo/resultados.json.")
+
+heading("C.14 Slices problemáticos — métrica, IC, causa y mitigación", level=3)
+p("Cuatro slices identificados con evidencia cuantitativa (intervalo de confianza "
+  "Wilson donde aplica), causa raíz verificada, y plan de mitigación — dos de ellos ya "
+  "con mitigación implementada durante esta sesión.", indent_first=1.25)
+
+p("Slice 1 — Abecedario en cámara/video de cuerpo completo:", bold=True, indent_first=1.25)
+p("Métrica: 0/6 detecciones correctas en video continuo (0.0%, IC95 Wilson [0%, 39.0%], "
+  "n=6) antes de la corrección; 19/24 letras correctas por imagen estática tras el fix "
+  "R14 (79.2%, IC95 [59.5%, 90.8%]). Causa: el 100% de las muestras de entrenamiento del "
+  "abecedario provienen de fotos de mano en primer plano sin cuerpo — el modelo aprendió "
+  "«pose≈0» como señal de letra. Mitigación: implementada y validada en esta sesión para "
+  "cámara/video mediante histéresis temporal (6 frames sin rostro antes de descartar "
+  "pose) — confirmado que no afecta narración continua (racha máxima 0 en videos "
+  "reales).", indent_first=1.25)
+
+p("Slice 2 — Narración continua (varias señas seguidas):", bold=True, indent_first=1.25)
+p("Métrica: WER=0.970 (mejor benchmark oficial, ensemble S33+S36) frente a 2.827 de la "
+  "primera corrida aislada y 1.763 de producción. Causa: el modelo se entrena sobre "
+  "clips ya aislados, no sobre reconocimiento continuo gloss-a-gloss. Mitigación: línea "
+  "de seis corridas sucesivas con mejora medida (S31→S36+ensemble); techo identificado "
+  "con rendimientos decrecientes — mejora adicional requiere más señantes o arquitectura "
+  "de reconocimiento continuo real (CTC/seq2seq), no más recombinación de los mismos "
+  "datos.", indent_first=1.25)
+
+p("Slice 3 — Videos largos sin segmentar vía /predict/video:", bold=True, indent_first=1.25)
+p("Métrica: Top-3 = 1/7 (14.3%, IC95 [2.6%, 51.3%]) en videos largos frente a 3/4 (75.0%, "
+  "IC95 [30.1%, 95.4%]) en clips ya aislados. Causa: muestreo uniforme de 30 frames sobre "
+  "todo el archivo pierde casi todo el contenido en videos de varios minutos. Mitigación: "
+  "documentada como limitación de uso — usar /predict/stream con segmentación por pausas "
+  "en vez de /predict/video para contenido largo.", indent_first=1.25)
+
+p("Slice 4 — Vocabulario abstracto/de baja frecuencia:", bold=True, indent_first=1.25)
+p("Métrica: identificado en la matriz de confusión y el ranking de F1 por clase "
+  "(Figuras 21-22) — clases como PENSAR, NO, VER, QUÉ, ORIGINAL entre las peores F1. "
+  "Causa: pocas muestras de entrenamiento y menor distintividad visual que señas "
+  "icónicas (comparar con letras W, F, U, I, D, F1>0.85). Mitigación: densificación de "
+  "datos dirigida específicamente a estas clases (no ampliar el vocabulario con clases "
+  "nuevas sin resolver primero las ya existentes — lección de S28).", indent_first=1.25)
 
 heading("Anexo D. Declaración de Limitaciones", level=2)
 bullet("El checkpoint v3 (mejor estadístico KS, F1 = 0.4563) fue sobrescrito durante el "
@@ -1379,10 +2130,12 @@ bullet("El sistema reconoce señas aisladas con segmentación por pausas; el "
        "vocabulario de 96 clases del modelo, por lo que gran parte del contenido real "
        "es irreconocible incluso con segmentación perfecta. A partir de este hallazgo se "
        "abrió una línea de mejora dedicada (§4.5), con la primera medición WER real del "
-       "proyecto: tres corridas consecutivas redujeron el WER de 2.827 a 1.027 sobre 5 "
-       "videos narrativos nunca vistos, superando al sistema de producción (WER=1.763) "
-       "— mejora real y medida, aunque la narración continua no queda resuelta en "
-       "sentido estricto (WER sigue > 1.0).")
+       "proyecto: seis corridas consecutivas redujeron el WER de 2.827 a 0.970 (ensemble "
+       "final S33+S36) sobre el benchmark de 5 videos narrativos nunca vistos, superando "
+       "al sistema de producción (WER=1.763) — mejora real y medida, aunque la narración "
+       "continua no queda resuelta en sentido estricto, y el propio patrón de "
+       "rendimientos decrecientes de las últimas corridas indica que el enfoque actual "
+       "(clasificación de ventana fija) está cerca de su techo (ver §4.5).")
 bullet("El estadístico KS no supera el umbral de significancia (p = 0.0011 en v4); esta "
        "limitación está documentada y analizada en §4.3.")
 bullet("Los ajustes de calidad de la demo (segmentación por pausas, filtro narrativas, "

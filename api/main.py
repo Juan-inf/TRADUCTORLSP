@@ -84,6 +84,13 @@ hands_fallback = mp.solutions.hands.Hands(
     min_detection_confidence=0.3, max_num_hands=2,
 )
 
+# Reconocimiento de abecedario en vivo por /predict/stream (mismo criterio
+# que demo/app_gradio.py, ver R13/R14/R15 en ENTREGABLE_PLAN_DE_DESPLIEGUE_S13.md):
+# exige ausencia de rostro sostenida por N frames consecutivos antes de
+# descartar pose, para no repetir la regresión R15 (parpadeos normales de
+# detección de rostro en streaming activando el fix de más).
+UMBRAL_FRAMES_SIN_ROSTRO = 6  # ~0.5s a 12 fps de streaming
+
 # ── Estado global del predictor ──────────────────────────────────────────────
 
 predictor:            Optional[ONNXPredictor] = None
@@ -299,6 +306,12 @@ async def websocket_predict(websocket: WebSocket):
     """
     await websocket.accept()
     segmentador = SegmentadorPausas()
+    # Reconocimiento de abecedario en vivo (R13/R14/R15, ver
+    # ENTREGABLE_PLAN_DE_DESPLIEGUE_S13.md y demo/app_gradio.py): solo se
+    # descarta pose tras UMBRAL_FRAMES_SIN_ROSTRO frames CONSECUTIVOS sin
+    # rostro, para no repetir la regresión R15 (parpadeos normales de
+    # detección de rostro en streaming activando el fix de más).
+    no_rostro_streak = 0
 
     try:
         while True:
@@ -318,7 +331,15 @@ async def websocket_predict(websocket: WebSocket):
             # Extraer landmarks del frame y pasarlos al segmentador por pausas
             frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
             results = holistic.process(frame_rgb)
-            results = aplicar_respaldo_manos_y_pose(results, frame_rgb, hands_fallback)
+
+            if results.face_landmarks is None:
+                no_rostro_streak += 1
+            else:
+                no_rostro_streak = 0
+            descartar_pose = no_rostro_streak >= UMBRAL_FRAMES_SIN_ROSTRO
+
+            results = aplicar_respaldo_manos_y_pose(results, frame_rgb, hands_fallback,
+                                                     descartar_pose_sin_rostro=descartar_pose)
             kp = results_to_kp(results)
 
             segmento = segmentador.push(kp)

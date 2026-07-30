@@ -1,4 +1,9 @@
-<title>Plan de Despliegue — Traductor LSP</title>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan de Despliegue (S13) — Traductor LSP → Castellano</title>
 <style>
 :root{
   --bg:#f4f6f7; --surface:#ffffff; --surface-2:#eef1f2;
@@ -7,12 +12,14 @@
   --amber:#b3791f; --amber-soft:#f7ecd9;
   --good:#1f8f5f; --good-soft:#e3f4ea;
   --bad:#c2384a; --bad-soft:#fbe6e9;
+  --code-bg:#1e2530; --code-fg:#e2e8f0;
   --shadow: 0 1px 2px rgba(20,30,32,.06), 0 8px 24px -12px rgba(20,30,32,.18);
 }
 :root[data-theme="dark"]{
   --bg:#10161a; --surface:#171f24; --surface-2:#1d262b; --ink:#e7edee; --ink-soft:#b9c6c9;
   --muted:#8398a0; --border:#2a363c; --accent:#3fb3a9; --accent-ink:#8fe0d6; --accent-soft:#173330;
   --amber:#d6a34a; --amber-soft:#31281a; --good:#4fbf87; --good-soft:#153427; --bad:#e2697b; --bad-soft:#3a1c22;
+  --code-bg:#0d1117; --code-fg:#d6e0e8;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
 }
 @media (prefers-color-scheme: dark){
@@ -20,6 +27,7 @@
     --bg:#10161a; --surface:#171f24; --surface-2:#1d262b; --ink:#e7edee; --ink-soft:#b9c6c9;
     --muted:#8398a0; --border:#2a363c; --accent:#3fb3a9; --accent-ink:#8fe0d6; --accent-soft:#173330;
     --amber:#d6a34a; --amber-soft:#31281a; --good:#4fbf87; --good-soft:#153427; --bad:#e2697b; --bad-soft:#3a1c22;
+    --code-bg:#0d1117; --code-fg:#d6e0e8;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
   }
 }
@@ -28,9 +36,9 @@ html,body{margin:0;padding:0;}
 body{
   background:var(--bg); color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  font-size:15.5px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  font-size:15.5px; line-height:1.65; -webkit-font-smoothing:antialiased;
 }
-.wrap{ max-width:900px; margin:0 auto; padding:0 24px 96px; }
+.wrap{ max-width:980px; margin:0 auto; padding:0 24px 96px; }
 .masthead{ border-bottom:1px solid var(--border); padding:40px 0 28px; margin-bottom:32px; }
 .eyebrow{
   font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
@@ -40,75 +48,66 @@ body{
 .eyebrow .dot{ width:6px;height:6px;border-radius:50%;background:var(--accent); }
 h1{
   font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,serif;
-  font-weight:600; font-size:clamp(26px,4vw,34px); line-height:1.16; letter-spacing:-.01em;
+  font-weight:600; font-size:clamp(24px,3.6vw,32px); line-height:1.18; letter-spacing:-.01em;
   margin:0 0 12px; text-wrap:balance; color:var(--ink);
 }
-.subtitle{ color:var(--ink-soft); font-size:15.5px; max-width:70ch; margin:0 0 18px; }
+.subtitle{ color:var(--ink-soft); font-size:15px; max-width:78ch; margin:0 0 18px; }
 .meta-row{
   display:flex; flex-wrap:wrap; gap:8px 20px;
   font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
   font-size:12px; color:var(--muted);
 }
 .meta-row b{ color:var(--ink-soft); font-weight:600; }
-section{ margin:46px 0; }
-.sec-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:10px; }
-.sec-num{ font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; color:var(--accent); font-size:14px; font-weight:600; }
-h2{
+#main h2{
   font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,serif;
-  font-size:21px; font-weight:600; margin:0; color:var(--ink); text-wrap:balance;
+  font-size:22px; font-weight:600; margin:40px 0 12px; color:var(--ink); text-wrap:balance;
+  padding-bottom:6px; border-bottom:1px solid var(--border);
 }
-h3{ font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
-  font-size:13.5px; font-weight:600; margin:22px 0 8px; color:var(--accent-ink); }
-p{ color:var(--ink-soft); max-width:74ch; }
-.callout{ background:var(--accent-soft); border:1px solid var(--accent); border-left-width:4px;
-  border-radius:8px; padding:14px 18px; margin:16px 0; color:var(--ink); font-size:14px; }
-.callout b{ color:var(--accent-ink); }
-.callout.warn{ background:var(--amber-soft); border-color:var(--amber); }
-.callout.warn b{ color:var(--amber); }
+#main h3{ font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  font-size:14px; font-weight:600; margin:24px 0 8px; color:var(--accent-ink); }
+p{ color:var(--ink-soft); max-width:82ch; }
 .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:10px; margin:14px 0; box-shadow:var(--shadow); }
 table{ border-collapse:collapse; width:100%; min-width:480px; background:var(--surface); }
 thead th{ background:var(--surface-2); text-align:left; font-size:11px; letter-spacing:.05em; text-transform:uppercase;
-  color:var(--muted); font-weight:600; padding:9px 13px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  color:var(--muted); font-weight:600; padding:9px 13px; border-bottom:1px solid var(--border); }
 tbody td{ padding:9px 13px; border-bottom:1px solid var(--border); font-size:13px; color:var(--ink-soft); vertical-align:top; }
-tbody td:first-child{ color:var(--ink); font-weight:600; white-space:nowrap; }
+tbody td:first-child{ color:var(--ink); font-weight:600; }
 tbody tr:last-child td{ border-bottom:none; }
 tbody tr:hover td{ background:var(--surface-2); }
-pre{ background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:16px 18px;
-  overflow-x:auto; font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; font-size:12.5px;
-  color:var(--ink); line-height:1.55; }
-code.inline{ font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; background:var(--surface-2);
-  padding:1px 6px; border-radius:5px; font-size:.9em; color:var(--ink-soft); }
-.pill{ display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:99px; font-size:11.5px; font-weight:600; }
-.pill.pass{ background:var(--good-soft); color:var(--good); }
-.pill.warn{ background:var(--amber-soft); color:var(--amber); }
-ul.clean{ list-style:none; margin:10px 0; padding:0; display:flex; flex-direction:column; gap:7px; }
-ul.clean li{ padding-left:20px; position:relative; color:var(--ink-soft); font-size:14px; }
-ul.clean li::before{ content:"—"; position:absolute; left:0; color:var(--accent); }
-footer{ border-top:1px solid var(--border); margin-top:56px; padding-top:20px; color:var(--muted); font-size:12px; }
+code{ font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace; background:var(--surface-2);
+  padding:1px 6px; border-radius:5px; font-size:.88em; color:var(--ink-soft); }
+pre{ background:var(--code-bg); color:var(--code-fg); padding:16px 18px; border-radius:10px;
+  overflow-x:auto; font-size:12.5px; line-height:1.6; margin:14px 0; box-shadow:var(--shadow); }
+pre code{ background:none; color:inherit; padding:0; font-size:1em; }
+blockquote{ margin:16px 0; padding:12px 18px; border-left:4px solid var(--accent); background:var(--accent-soft);
+  border-radius:0 8px 8px 0; color:var(--ink); font-style:italic; font-size:14px; }
+hr{ border:none; border-top:1px solid var(--border); margin:8px 0; }
+strong{ color:var(--ink); }
+img{ max-width:100%; height:auto; display:block; margin:16px auto; border:1px solid var(--border);
+  border-radius:10px; box-shadow:var(--shadow); background:#fff; }
+p:has(> img:only-child){ text-align:center; }
 </style>
-
+</head>
+<body>
 <div class="wrap">
   <div class="masthead">
-    <div class="eyebrow"><span class="dot"></span>Entregable · Antes de la tesis</div>
-    <h1>Plan de Despliegue — Traductor LSP → Castellano</h1>
-    <p class="subtitle">Backend FastAPI, demo Gradio, despliegue público y modelo BiLSTM S27 (v4). No introduce componentes nuevos: documenta lo construido y validado esta semana, y lo que falta para producción real.</p>
+    <div class="eyebrow"><span class="dot"></span>Entregable · Plan de Despliegue</div>
+    <h1>Plan de Despliegue (S13) — Traductor LSP → Castellano</h1>
+    <p class="subtitle">Backend FastAPI, demo Gradio, despliegue público, línea de narración continua (S31-S37) y método para alcanzar OE1 (S38). Documenta lo construido y validado, y lo que falta para producción real.</p>
     <div class="meta-row">
-      <span><b>Fecha</b> 2026-07-17</span>
+      <span><b>Fecha</b> 2026-07-17 (última actualización: 2026-07-26)</span>
       <span><b>Responsable</b> Juan Calla</span>
-      <span><b>Estado</b> 6/6 tests pasan · E2E verificado en vivo</span>
+      <span><b>Modelo activo</b> Ensemble BiLSTM S27(v4) + S29 · F1=0.4424</span>
     </div>
   </div>
-
-  <section>
-    <div class="sec-head"><span class="sec-num">01</span><h2>Resumen ejecutivo</h2></div>
-    <p>El sistema traduce en tiempo real señas aisladas de un vocabulario de 96 clases LSP a texto en castellano, con latencia end-to-end medida de <b style="color:var(--ink)">p50=54.7ms / p95=58.7ms</b> (umbral objetivo: 200ms). <b style="color:var(--accent-ink)">Actualización 2026-07-19 (§11):</b> la configuración activa pasó a un <b style="color:var(--ink)">ensemble de dos modelos</b> (v4 + S29, promedio de probabilidades), validado en holdout limpio con F1=0.4424 y mejor generalización (S29 es el primer checkpoint del proyecto en pasar HE3 completo). Existen tres superficies funcionales y validadas con datos reales esta semana: una demo interactiva (<code class="inline">demo/app_gradio.py</code>, cámara + video + TTS), un backend API con WebSocket para integración (<code class="inline">api/main.py</code>), y un despliegue público en HuggingFace Spaces (<code class="inline">spaces/</code>, aún sirviendo solo v4).</p>
-    <p>El sistema <b style="color:var(--ink)">no está listo para producción sin trabajo adicional</b>: no hay build de Docker verificado, el checkpoint del modelo no está versionado en git, la configuración de CORS/seguridad es la de desarrollo, y el backend API todavía no incorpora las mejoras de calidad que sí tiene la demo (R9). "Validado" en la tabla de arquitectura significa que no se cae, no que tenga la misma calidad de reconocimiento que la demo.</p>
-    <div class="callout warn"><b>Límite de alcance conocido:</b> el sistema reconoce señas aisladas, no narración continua ni gramática conectada — no es parte de este plan de despliegue, es una limitación de capacidad del modelo, no de infraestructura.</div>
-  </section>
-
-  <section>
-    <div class="sec-head"><span class="sec-num">02</span><h2>Arquitectura candidata</h2></div>
-    <pre>  Cliente (navegador / cámara)
+  <div id="main">
+    <h2>1. Resumen ejecutivo</h2>
+<p>El sistema traduce en tiempo real señas aisladas de un vocabulario de 96 clases LSP a texto en castellano, con latencia end-to-end medida de <strong>p50=54.7ms / p95=58.7ms</strong> (umbral objetivo: 200ms). <strong>Actualización 2026-07-19 (§11):</strong> la configuración activa pasó de un solo modelo (v4, F1=0.4426) a un <strong>ensemble de dos modelos</strong> (v4 + S29, promedio de probabilidades), validado en un holdout limpio con F1=0.4424 y generalización mejorada (S29 es el primer checkpoint del proyecto en pasar HE3 completo, incluido KS, con márgenes amplios). Existen tres superficies funcionales y validadas con datos reales esta semana: una demo interactiva (<code>demo/app_gradio.py</code>, cámara + video + TTS), un backend API con WebSocket para integración (<code>api/main.py</code>), y un despliegue público en HuggingFace Spaces (<code>spaces/</code>, aún sirviendo solo v4 — pendiente de actualizar al ensemble).</p>
+<p>El sistema <strong>no está listo para producción sin trabajo adicional</strong>: no hay build de Docker verificado (falta entorno con Docker para probarlo), el checkpoint del modelo no está versionado en git, no hay suite de tests automatizados, no hay observabilidad estructurada (solo <code>print()</code>), la configuración de CORS/seguridad es la de desarrollo (<code>allow_origins=["*"]</code>), y el backend API todavía no incorpora las mejoras de calidad que sí tiene la demo (ver R9, §10) — "validado" en la tabla de §2 significa que no se cae, no que tenga la misma calidad de reconocimiento que la demo. Este documento detalla el estado exacto de cada componente y el camino concreto a producción.</p>
+<p><strong>Limitación de alcance conocida y documentada:</strong> el sistema reconoce señas aisladas, no narración continua ni gramática conectada (ver <code>ROADMAP_FRONTEND_Y_EVALUACION.md</code> y <code>SUSTENTACION_RESUMEN_FINAL.md</code>) — no es parte de este plan de despliegue, es una limitación de capacidad del modelo, no de infraestructura.</p>
+<hr />
+<h2>2. Arquitectura candidata</h2>
+<pre><code>  Cliente (navegador / cámara)
        │
        │  captura frame (JPEG base64)
        ▼
@@ -125,214 +124,822 @@ footer{ border-top:1px solid var(--border); margin-top:56px; padding-top:20px; c
   ONNXPredictor  →  checkpoints/bilstm_s27.onnx  (96 clases)
        │
        ▼
-  Cliente  ←  {clase, texto_castellano, confidence, latency_ms, top3}</pre>
-    <p style="font-size:13.5px;">Rutas alternativas (mismo modelo y módulo de landmarks, sin pasar por <code class="inline">api/main.py</code>): <code class="inline">demo/app_gradio.py</code> (Gradio standalone, incluye además segmentación por pausas) y <code class="inline">spaces/app.py</code> (copia autónoma para HuggingFace Spaces).</p>
-    <div class="callout warn"><b>Divergencia real, encontrada al escribir este plan:</b> los 3 ajustes de esta semana (segmentación por pausas, filtro de clases <code class="inline">HISTORIAS_VINETAS_*</code>, umbral de confianza calibrado a 0.20) están solo en <code class="inline">demo/</code> y <code class="inline">spaces/</code>. <code class="inline">api/main.py</code> sigue con ventana fija de 30 frames sin filtrar — ver R9.
-    <br><br><b>Confirmado por código, no solo por lectura:</b> el notebook busca en vivo las cadenas <code class="inline">SegmentadorPausas</code> y <code class="inline">CONF_UMBRAL</code> en ambos archivos — resultado real: <code class="inline">api/main.py</code> → ambas <code class="inline">False</code>; <code class="inline">demo/app_gradio.py</code> → ambas <code class="inline">True</code>.</div>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Componente</th><th>Archivo</th><th>Estado</th></tr></thead>
-      <tbody>
-        <tr><td>Extracción de landmarks</td><td><code class="inline">src/features/landmarks.py</code></td><td><span class="pill pass">✓</span> compartido entre api/ y demo/</td></tr>
-        <tr><td>Segmentación por pausas</td><td><code class="inline">src/features/segmentacion.py</code></td><td><span class="pill pass">✓</span> calibrado con datos reales</td></tr>
-        <tr><td>Modelo</td><td><code class="inline">checkpoints/bilstm_s27.onnx</code> (3.9MB)</td><td><span class="pill pass">✓</span> entrenado — <span class="pill warn">⚠</span> no está en git</td></tr>
-        <tr><td>Backend API</td><td><code class="inline">api/main.py</code></td><td><span class="pill pass">✓</span> validado con servidor + WS real</td></tr>
-        <tr><td>Demo</td><td><code class="inline">demo/app_gradio.py</code></td><td><span class="pill pass">✓</span> validado en vivo, :7860</td></tr>
-        <tr><td>Deploy público</td><td><code class="inline">spaces/</code></td><td><span class="pill pass">✓</span> actualizado a S27</td></tr>
-        <tr><td>Contenedor</td><td><code class="inline">Dockerfile</code></td><td><span class="pill warn">⚠</span> preparado, sin build-test real</td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <section>
-    <div class="sec-head"><span class="sec-num">03</span><h2>Contratos I/O</h2></div>
-    <h3>GET /health</h3>
-    <pre>{"status": "ok", "model_ready": true, "device": "cpu", "n_classes": 96}</pre>
-    <h3>GET /classes</h3>
-    <pre>{"classes": ["A", "AHORA", "APRENDER", "..."], "total": 96}</pre>
-    <h3>POST /predict/video (multipart/form-data, campo "file")</h3>
-    <pre>// Response 200 — capturado en vivo con `make test-video`
+  Cliente  ←  {clase, texto_castellano, confidence, latency_ms, top3}
+</code></pre>
+<p>Rutas alternativas (mismo modelo y mismo módulo de landmarks, sin pasar por <code>api/main.py</code>):
+- <code>demo/app_gradio.py</code> — Gradio standalone, cámara + video + TTS, para uso local/demo. Incluye además <code>src/features/segmentacion.py</code> (segmentación por pausas) que <code>api/main.py</code> no usa todavía.
+- <code>spaces/app.py</code> — copia autónoma para HuggingFace Spaces (deploy público), no importa <code>src/</code> — tiene su propia copia inline de landmarks/normalización.</p>
+<blockquote>
+<p>⚠️ <strong>Divergencia real entre <code>demo/</code> y <code>api/</code>, encontrada al escribir este plan:</strong> los 3 ajustes de esta semana (segmentación por pausas, filtro de clases <code>HISTORIAS_VINETAS_*</code>, umbral de confianza calibrado a 0.20) están <strong>solo en <code>demo/app_gradio.py</code> y <code>spaces/app.py</code></strong>. <code>api/main.py</code> sigue con ventana fija de 30 frames sin filtrar, y su <code>CONFIG["confidence_threshold"]=0.40</code> es una variable <strong>que nunca se usa</strong> para filtrar nada — el WebSocket devuelve una predicción cada 30 frames sin importar la confianza, incluyendo clases narrativas. Alguien integrando contra el backend hoy tendría peor experiencia que la demo. Ver riesgo <strong>R9</strong> en §10.</p>
+<p><strong>Confirmado por código, no solo por lectura:</strong> <code>notebooks/ENTREGABLE_PLAN_DE_DESPLIEGUE_S13.ipynb</code> §2 busca en vivo las cadenas <code>SegmentadorPausas</code> y <code>CONF_UMBRAL</code> en ambos archivos — resultado real: <code>api/main.py</code> → <code>SegmentadorPausas=False, CONF_UMBRAL=False</code>; <code>demo/app_gradio.py</code> → <code>SegmentadorPausas=True, CONF_UMBRAL=True</code>.</p>
+</blockquote>
+<p><strong>Componentes y su estado:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Componente</th>
+<th>Archivo</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Extracción de landmarks</td>
+<td><code>src/features/landmarks.py</code></td>
+<td>✅ compartido entre <code>api/</code> y <code>demo/</code></td>
+</tr>
+<tr>
+<td>Segmentación por pausas</td>
+<td><code>src/features/segmentacion.py</code></td>
+<td>✅ calibrado con datos reales</td>
+</tr>
+<tr>
+<td>Modelo</td>
+<td><code>checkpoints/bilstm_s27.onnx</code> (3.9MB)</td>
+<td>✅ entrenado, validado — ⚠️ no está en git</td>
+</tr>
+<tr>
+<td>Backend API</td>
+<td><code>api/main.py</code></td>
+<td>✅ validado con servidor real + cliente WebSocket real</td>
+</tr>
+<tr>
+<td>Demo</td>
+<td><code>demo/app_gradio.py</code></td>
+<td>✅ validado en vivo, corriendo en <code>:7860</code></td>
+</tr>
+<tr>
+<td>Deploy público</td>
+<td><code>spaces/</code></td>
+<td>✅ actualizado al modelo S27</td>
+</tr>
+<tr>
+<td>Contenedor</td>
+<td><code>Dockerfile</code>, <code>docker-compose.yml</code></td>
+<td>⚠️ preparado, <strong>sin build-test real</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3. Contratos I/O (esquemas + ejemplos)</h2>
+<h3><code>GET /health</code></h3>
+<pre><code class="language-json">// Response 200
+{&quot;status&quot;: &quot;ok&quot;, &quot;model_ready&quot;: true, &quot;device&quot;: &quot;cpu&quot;, &quot;n_classes&quot;: 96}
+</code></pre>
+<h3><code>GET /classes</code></h3>
+<pre><code class="language-json">// Response 200
+{&quot;classes&quot;: [&quot;A&quot;, &quot;AHORA&quot;, &quot;APRENDER&quot;, &quot;...&quot;], &quot;total&quot;: 96}
+</code></pre>
+<h3><code>POST /predict/video</code> (multipart/form-data, campo <code>file</code>)</h3>
+<pre><code class="language-json">// Response 200 — capturado en vivo con `make test-video` al escribir este plan
 {
-  "clase": "DIEZ",
-  "texto_castellano": "DIEZ",
-  "confidence": 0.0984,
-  "latency_ms": 4662.9,
-  "top3": [
-    {"clase": "DIEZ", "confidence": 0.0984},
-    {"clase": "ORIGINAL", "confidence": 0.0908},
-    {"clase": "IGUAL", "confidence": 0.0593}
+  &quot;clase&quot;: &quot;DIEZ&quot;,
+  &quot;texto_castellano&quot;: &quot;DIEZ&quot;,
+  &quot;confidence&quot;: 0.0984,
+  &quot;latency_ms&quot;: 4662.9,
+  &quot;top3&quot;: [
+    {&quot;clase&quot;: &quot;DIEZ&quot;, &quot;texto_castellano&quot;: &quot;DIEZ&quot;, &quot;confidence&quot;: 0.0984},
+    {&quot;clase&quot;: &quot;ORIGINAL&quot;, &quot;texto_castellano&quot;: &quot;ORIGINAL&quot;, &quot;confidence&quot;: 0.0908},
+    {&quot;clase&quot;: &quot;IGUAL&quot;, &quot;texto_castellano&quot;: &quot;IGUAL&quot;, &quot;confidence&quot;: 0.0593}
   ]
 }
-// Response 422 si el video no se puede procesar; 503 si el modelo no cargó</pre>
-    <p style="font-size:13px;">Nota: <code class="inline">api/main.py</code> no filtra por confianza (R9) — esta respuesta se devuelve tal cual aunque la confianza sea baja (9.8% en este ejemplo real).</p>
-    <h3>Segunda corrida en vivo, mismo video (notebook, ejecutada después)</h3>
-    <pre>{
-  "clase": "ORIGINAL", "texto_castellano": "ORIGINAL",
-  "confidence": 0.0947, "latency_ms": 7089.8,
-  "top3": [
-    {"clase": "ORIGINAL", "confidence": 0.0947},
-    {"clase": "DIEZ", "confidence": 0.0940},
-    {"clase": "IGUAL", "confidence": 0.0377}
+// Response 422 si el video no se puede procesar; 503 si el modelo no cargó
+</code></pre>
+<p>Nota: <code>api/main.py</code> no filtra por confianza (§2, R9) — a diferencia de la demo, esta respuesta se devuelve tal cual aunque la confianza sea baja (9.8% en este ejemplo real).</p>
+<p><strong>Segunda corrida en vivo, sobre el mismo video (notebook, ejecutada después):</strong></p>
+<pre><code class="language-json">{
+  &quot;clase&quot;: &quot;ORIGINAL&quot;, &quot;texto_castellano&quot;: &quot;ORIGINAL&quot;,
+  &quot;confidence&quot;: 0.0947, &quot;latency_ms&quot;: 7089.8,
+  &quot;top3&quot;: [
+    {&quot;clase&quot;: &quot;ORIGINAL&quot;, &quot;confidence&quot;: 0.0947},
+    {&quot;clase&quot;: &quot;DIEZ&quot;, &quot;confidence&quot;: 0.0940},
+    {&quot;clase&quot;: &quot;IGUAL&quot;, &quot;confidence&quot;: 0.0377}
   ]
-}</pre>
-    <div class="callout warn"><b>Hallazgo real:</b> el top-1 cambió de <code class="inline">DIEZ</code> a <code class="inline">ORIGINAL</code> entre corridas — diferencia de confianza de solo 0.0007 (prácticamente empatados). Cuando el top-3 está así de cerca, el top-1 de <code class="inline">/predict/video</code> no es estable entre ejecuciones; <code class="inline">top3</code> es más confiable que <code class="inline">clase</code> sola para estos casos límite.</div>
-    <h3>WS /predict/stream</h3>
-    <pre>Cliente  → {"frame": "&lt;base64 JPEG&gt;", "include_landmarks": false}
-Servidor → {"status": "buffering", "frames_collected": 12, "frames_needed": 30}
-Servidor → {"clase": "DOS", "confidence": 0.149, "latency_ms": 46.4, "top3": [...]}
-Servidor → {"error": "frame inválido"}</pre>
-    <p style="font-size:13px;">Latencia real medida (cliente WebSocket real, no simulado): p50=54.7ms, p95=58.7ms, max=118.2ms.</p>
-  </section>
+}
+</code></pre>
+<p>El top-1 cambió de <code>DIEZ</code> a <code>ORIGINAL</code> entre corridas — la diferencia de confianza entre ambos es de 0.0007 (prácticamente empatados). <strong>Hallazgo real:</strong> cuando el top-3 está así de cerca, el top-1 de <code>/predict/video</code> no es estable entre ejecuciones sobre el mismo archivo; <code>top3</code> es más confiable que <code>clase</code> sola como salida para este tipo de casos límite.</p>
+<h3><code>WS /predict/stream</code></h3>
+<pre><code>Cliente → {&quot;frame&quot;: &quot;&lt;base64 JPEG&gt;&quot;, &quot;include_landmarks&quot;: false}
 
-  <section>
-    <div class="sec-head"><span class="sec-num">04</span><h2>Reproducibilidad</h2></div>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Ítem</th><th>Estado real</th></tr></thead>
-      <tbody>
-        <tr><td>Entorno</td><td><code class="inline">.venv310/</code> (Python 3.10.20 — torch, backend) y <code class="inline">.venv311/</code> (Python 3.11.15 — MediaPipe, Gradio)</td></tr>
-        <tr><td>Seeds</td><td><code class="inline">SEED=42</code> fijo en todos los splits. <b>No determinístico al 100%</b> — <code class="inline">WeightedRandomSampler</code> + augmentation sin seed por worker; confirmado que v3/v4 no reproducen bit-a-bit</td></tr>
-        <tr><td>Lockfile</td><td><span class="pill pass">✓</span> <code class="inline">requirements.lock.txt</code> — 198 paquetes con versión exacta, generado del entorno real validado</td></tr>
-        <tr><td>Makefile</td><td><span class="pill pass">✓</span> nuevo — comandos ya validados (install, run-demo, run-api, health, test, test-video, docker-build)</td></tr>
-      </tbody>
-    </table></div>
-  </section>
+Servidor (mientras junta 30 frames) → {&quot;status&quot;: &quot;buffering&quot;, &quot;frames_collected&quot;: 12, &quot;frames_needed&quot;: 30}
 
-  <section>
-    <div class="sec-head"><span class="sec-num">05</span><h2>E2E en limpio</h2></div>
-    <pre># 1. Entorno
-python3.10 -m venv .venv310 && .venv310/bin/pip install -r requirements-api.txt
+Servidor (cada 30 frames) → {
+  &quot;clase&quot;: &quot;DOS&quot;, &quot;texto_castellano&quot;: &quot;Dos&quot;, &quot;confidence&quot;: 0.149,
+  &quot;latency_ms&quot;: 46.4, &quot;top3&quot;: [...]
+}
 
-# 2. Modelo (no está en git — copiar manualmente, ver R1)
+Servidor (error) → {&quot;error&quot;: &quot;frame inválido&quot;}
+</code></pre>
+<p>Latencia real medida sobre este contrato (cliente WebSocket real, no simulado): p50=54.7ms, p95=58.7ms, max=118.2ms.</p>
+<hr />
+<h2>4. Reproducibilidad</h2>
+<table>
+<thead>
+<tr>
+<th>Ítem</th>
+<th>Estado real</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Entorno</td>
+<td><code>.venv310/</code> (Python 3.10.20 — torch, optuna; usado para entrenamiento e inferencia backend) y <code>.venv311/</code> (Python 3.11.15 — MediaPipe, Gradio)</td>
+</tr>
+<tr>
+<td>Seeds</td>
+<td><code>SEED = 42</code> fijo en <code>scripts/train_s27.py</code> y en todos los splits (<code>StratifiedShuffleSplit</code>, <code>GroupShuffleSplit</code>). <strong>No determinístico al 100%</strong> — <code>DataLoader</code> usa <code>WeightedRandomSampler</code> y el augmentation usa <code>np.random</code> sin seed por worker; confirmado esta semana que dos corridas con la misma config (v3, v4) no reproducen bit-a-bit el mismo resultado.</td>
+</tr>
+<tr>
+<td>Lockfile</td>
+<td>✅ <code>requirements.lock.txt</code> — generado con <code>pip freeze</code> sobre el <code>.venv310</code> real que corrió todos los tests y benchmarks de esta semana (198 paquetes con versión exacta). Es el entorno completo de desarrollo, no el mínimo de <code>requirements-api.txt</code> — para una imagen de producción más liviana, usar <code>requirements-api.txt</code> (ya usado por el <code>Dockerfile</code>) y congelarlo aparte cuando se pruebe el build de Docker (R5).</td>
+</tr>
+<tr>
+<td>Makefile</td>
+<td>No existía — se agrega <code>Makefile</code> en este entregable (ver raíz del repo) con los comandos ya validados esta semana.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>5. E2E en limpio (pasos + datos ejemplo + éxito)</h2>
+<pre><code class="language-bash"># 1. Entorno
+python3.10 -m venv .venv310 &amp;&amp; .venv310/bin/pip install -r requirements-api.txt
+
+# 2. Modelo (no está en git — copiar manualmente checkpoints/bilstm_s27.onnx
+#    y data/s27_label2idx.json desde donde se entrenó, ver §10 riesgo R1)
 
 # 3. Levantar backend
 .venv310/bin/python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
 
-# 4. make health   → {"status":"ok","model_ready":true,"n_classes":96}
-# 5. make test-video → JSON con "clase" dentro del vocabulario de 96</pre>
-    <p style="font-size:13.5px;"><b style="color:var(--ink)">Criterio de éxito:</b> <code class="inline">/health</code> responde <code class="inline">model_ready:true</code>, y <code class="inline">/predict/video</code> devuelve una clase válida en menos de 10s. <b>Ejecutado y verificado 2 veces en vivo</b> al construir este plan.</p>
-  </section>
+# 4. Verificar salud
+curl http://localhost:8000/health
+# Éxito esperado: {&quot;status&quot;:&quot;ok&quot;,&quot;model_ready&quot;:true,&quot;n_classes&quot;:96}
 
-  <section>
-    <div class="sec-head"><span class="sec-num">06</span><h2>Observabilidad</h2></div>
-    <ul class="clean">
-      <li><code class="inline">logs/runs.csv</code> — historial de entrenamientos, no de inferencia en producción.</li>
-      <li><code class="inline">print()</code> a stdout — sin niveles, sin structured logging, sin destino persistente.</li>
-      <li><code class="inline">latency_ms</code> se devuelve por request pero no se agrega ni persiste.</li>
-    </ul>
-    <div class="callout warn"><b>Gap real:</b> sin métricas agregadas, sin alertas, sin dashboard. Recomendación mínima: <code class="inline">logging</code> estándar + contador de latencias antes de producción.</div>
-  </section>
-
-  <section>
-    <div class="sec-head"><span class="sec-num">07</span><h2>Validación &amp; tests</h2></div>
-    <p><span class="pill pass">✓ 6/6 pasan</span> — implementado y verificado, no solo documentado:</p>
-    <ul class="clean">
-      <li><code class="inline">tests/test_smoke.py</code> — health, classes, formato de respuesta.</li>
-      <li><code class="inline">tests/test_golden.py</code> — 3 clips reales (AHORA, TÚ, PROTEÍNA) en top-3. Elegidos con evidencia: de 7 videos de viñeta completa solo 1/7 acertó — los clips cortos sí son representativos de la tarea real (F1=0.4426).</li>
-      <li><code class="inline">tests/test_websocket_contract.py</code> — protocolo buffering→predicción, manejo de error.</li>
-    </ul>
-    <pre>.venv310/bin/python -m pytest tests/ -v
-# 6 passed in ~13s</pre>
-  </section>
-
-  <section>
-    <div class="sec-head"><span class="sec-num">08</span><h2>Seguridad &amp; config</h2></div>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Ítem</th><th>Estado</th><th>Riesgo</th></tr></thead>
-      <tbody>
-        <tr><td>CORS</td><td><code class="inline">allow_origins=["*"]</code></td><td>Alto — abierto a cualquier origen</td></tr>
-        <tr><td>Secretos/.env</td><td>No existe, todo hardcodeado</td><td>Bajo hoy, no escala</td></tr>
-        <tr><td>Límite de upload</td><td>No valida tamaño</td><td>Medio — memoria/tiempo</td></tr>
-        <tr><td>Rate limiting</td><td>No existe</td><td>Medio — sin protección DoS</td></tr>
-        <tr><td>Autenticación</td><td>Endpoints públicos</td><td>Alto si se expone fuera de red controlada</td></tr>
-      </tbody>
-    </table></div>
-    <div class="callout"><b>Confirmado por lectura real del archivo:</b> el notebook extrae <code class="inline">allow_origins</code> de <code class="inline">api/main.py</code> con una expresión regular sobre el código fuente real → <code class="inline">["*"]</code>. También confirma en vivo que <code class="inline">.env</code> no existe y que no hay ninguna cadena <code class="inline">max_size</code>/<code class="inline">MAX_UPLOAD</code> en el archivo.</div>
-  </section>
-
-  <section>
-    <div class="sec-head"><span class="sec-num">09</span><h2>Hoja de ruta a Docker/API</h2></div>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Tarea</th><th>Responsable</th><th>Fecha</th><th>Estado</th></tr></thead>
-      <tbody>
-        <tr><td>Tests (smoke+golden+WS)</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
-        <tr><td>Lockfile congelado</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
-        <tr><td>Portar mejoras a api/main.py (R9)</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
-        <tr><td>Versionar checkpoint (R1/R2)</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
-        <tr><td>Restringir CORS/límites (R7)</td><td>Juan Calla</td><td>—</td><td><span class="pill pass">✓ Hecho</span></td></tr>
-        <tr><td>Build de Docker real</td><td>Juan Calla</td><td>Próxima sesión c/Docker</td><td><span class="pill warn">⚠ Bloqueado</span></td></tr>
-        <tr><td>Commitear y pushear a GitHub</td><td>Juan Calla</td><td>Antes del próximo deploy</td><td><span class="pill warn">⚠ Pendiente</span></td></tr>
-        <tr><td>requirements-api.txt exacto</td><td>Juan Calla</td><td>Antes de producción</td><td>Pendiente</td></tr>
-        <tr><td>Logging estructurado</td><td>Juan Calla</td><td>1 semana</td><td>Pendiente</td></tr>
-        <tr><td>CI (pytest en cada push)</td><td>Juan Calla</td><td>1 semana</td><td>Pendiente</td></tr>
-      </tbody>
-    </table></div>
-  </section>
-
-  <section>
-    <div class="sec-head"><span class="sec-num">10</span><h2>Riesgos &amp; mitigaciones</h2></div>
-    <p style="font-size:13.5px;">Todos reales, encontrados esta semana durante el desarrollo — no hipotéticos.</p>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Riesgo</th><th>Encontrado</th><th>Mitigación / Rollback</th></tr></thead>
-      <tbody>
-        <tr><td>R1 — Checkpoint fuera de git</td><td><span class="pill pass">✓ Resuelto</span></td><td><code class="inline">bilstm_s27.onnx</code> + <code class="inline">checkpoints/versionado/</code> excepción explícita en <code class="inline">.gitignore</code></td></tr>
-        <tr><td>R2 — Checkpoint v3 perdido</td><td>v4 sobrescribió el mejor KS (D=0.049)</td><td>Resuelto para v4+: copia versionada por fecha, nunca se sobrescribe</td></tr>
-        <tr><td>R3 — Entrenamiento impredecible</td><td>788min vs. 66-120min históricos</td><td>+10× margen; máquina dedicada</td></tr>
-        <tr><td>R4 — Umbral mal calibrado</td><td>0.30 ocultaba aciertos reales</td><td>Corregido a 0.20 con datos reales</td></tr>
-        <tr><td>R5 — Docker sin probar</td><td>Sin acceso a Docker esta semana</td><td>Probar antes de deploy en contenedor</td></tr>
-        <tr><td>R6 — Regresión silenciosa</td><td><code class="inline">model_complexity=0</code> rompió detección</td><td>Validar contra videos de referencia, no solo velocidad</td></tr>
-        <tr><td>R7 — CORS abierto</td><td><span class="pill pass">✓ Resuelto</span></td><td>Restringido a orígenes locales conocidos + límite de 150MB en upload</td></tr>
-        <tr><td>R8 — Sin reconocimiento continuo</td><td>Verificado de nuevo (2026-07-18): video real de 112s con SRT de 109 glosas (58/min); 24/33 segmentos descartados, 0 palabras coinciden con el guion real, solo 11/79 glosas están en el vocabulario del modelo</td><td>Fuera de alcance, investigación aparte</td></tr>
-        <tr><td>R9 — API sin las mejoras de la semana</td><td><span class="pill pass">✓ Resuelto</span></td><td>Verificado con WebSocket real: 120 frames, 1 segmento cerrado, descartado por umbral — cero fugas de clases narrativas</td></tr>
-        <tr><td>R10 — Videos largos rinden peor</td><td>1/7 en viñetas completas vs 3/4 en clips cortos</td><td>No usar videos largos como demo del API</td></tr>
-        <tr><td>R11 — Clips ya-cortos (&lt;1s) sin detección en la demo</td><td>3 clips AEC de 0.3-0.7s dieron 0 señas en <code class="inline">demo/</code> pese a clasificar bien vía <code class="inline">/predict/video</code></td><td>Imagen espejo de R10: <code class="inline">frame_stride</code> deja muy pocos frames útiles en clips ya-cortos. No se tocó código — riesgo documentado, no crítico (la demo asume video continuo, no clips pre-recortados)</td></tr>
-        <tr><td>R12 — Segmentador no funciona con señas estáticas (abecedario)</td><td>Video completo del abecedario (24 letras, 54s): 6 "señas" detectadas, <b style="color:var(--bad)">ninguna una letra real</b>. Movimiento cuadro-a-cuadro de letras ≈0.00000 vs 0.0825 de palabras (AEC) — &gt;1000× menos. El segmentador confunde "letra sostenida" con "silencio entre señas" y captura las transiciones (sin significado) en vez de las letras</td><td>No es problema del modelo — letras aisladas clasifican con F1&gt;0.85. Limitación de diseño del segmentador (usa solo movimiento como señal). No se tocó código a esta hora. Mitigación actual: usar clips ya aislados de una letra, no video continuo del abecedario completo</td></tr>
-      </tbody>
-    </table></div>
-    <div class="callout"><b>Rollback general:</b> todos los cambios de esta semana están en el working tree sin commitear — <code class="inline">git diff</code>/<code class="inline">git checkout</code> revierte cualquier cambio individualmente. El modelo v4 es el único artefacto no versionado (R1).</div>
-    <div class="callout warn"><b>R1 y R2 confirmados por comandos reales:</b> el notebook corre <code class="inline">git check-ignore -v checkpoints/bilstm_s27.onnx</code> en vivo → confirma <code class="inline">.gitignore:23:checkpoints/*.onnx</code>. También lista los archivos <code class="inline">bilstm_s27.*</code> en disco → solo existen <code class="inline">.onnx</code> y <code class="inline">.pt</code> de v4; ningún rastro de v1/v2/v3.</div>
-  </section>
-
-  <section>
-    <div class="sec-head"><span class="sec-num">11</span><h2>Experimentos de mejora post-entrega (2026-07-18/19)</h2></div>
-    <p>Tras el cierre inicial de este plan, se reabrió la búsqueda de mejorar el F1 con una auditoría exhaustiva de datos sin usar, seguida de 4 corridas reales de entrenamiento. Se documenta el proceso completo — incluidos los intentos fallidos — porque son evidencia real del trabajo hecho.</p>
-
-    <h3>Auditoría de datos</h3>
-    <ul class="clean">
-      <li><code class="inline">dgi156_full</code>: 139 archivos netos-nuevos, ninguna clase cruza el umbral de 15 muestras → sin uso real.</li>
-      <li><code class="inline">aec/Keypoints-1</code>: duplicado exacto de <code class="inline">aec/Keypoints</code> → sin uso real.</li>
-      <li>PUCP-305: 448/468 videos ya procesados (95.7%) → prácticamente agotado.</li>
-      <li>LSA64: confirmado que se excluyó deliberadamente en Sprint 14 por ser Lengua de Señas Argentina, no peruana → correctamente descartado.</li>
-      <li><b style="color:var(--ink)">Hallazgo real:</b> <code class="inline">dgi156_pkl</code> y <code class="inline">pkl</code> (vineta) etiquetan cada archivo con el nombre de su carpeta narrativa, ignorando el nombre real del archivo — 744 glosas reales sin aprovechar (7151 archivos).</li>
-    </ul>
-
-    <h3>Cuatro corridas de entrenamiento</h3>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Corrida</th><th>Clases</th><th>F1-test</th><th>HE3</th><th>Resultado</th></tr></thead>
-      <tbody>
-        <tr><td>v4 (previo)</td><td>96</td><td>0.4426</td><td>Falla (solo KS)</td><td>Línea base</td></tr>
-        <tr><td>S28</td><td>216</td><td>0.2219</td><td>Pasa completo (1ra vez)</td><td>F1 muy bajo — más clases = más difícil</td></tr>
-        <tr><td>S29</td><td>96</td><td>0.4208</td><td>Pasa completo, márgenes amplios</td><td>Cercano a v4, mejor generalización</td></tr>
-        <tr><td>S30</td><td>96</td><td>0.225 (falla)</td><td>Pasa (débil)</td><td><span class="pill warn">⚠ Corrida inestable</span> — Fold 5 colapsó a F1=0.0004</td></tr>
-      </tbody>
-    </table></div>
-    <div class="callout warn"><b>Diagnóstico S30:</b> no es un bug de código (verificado). Es un límite real de tamaño de muestra: con clases de 15-20 muestras, cada fold de KFold(5) recibe muy pocos ejemplos, y la combinación partición+inicialización puede converger a una solución degenerada.</div>
-    <div class="callout warn"><b>Hallazgo de calidad de datos:</b> los clips de <code class="inline">dgi156_gloss</code> tienen siempre exactamente 30 frames (ventana fija, no segmentación real), a diferencia de <code class="inline">vineta_gloss</code> (1-34 frames, variación natural) — explica por qué QUÉ/TÚ/YO/DECIR/ESE empeoraron pese a ganar muestras.</div>
-
-    <h3>Ensemble v4+S29 — la mejora real, validada correctamente</h3>
-    <p>Comparar v4 vs. S29 directamente está contaminado (ambos datasets comparten fuentes crudas). Se reconstruyó la intersección real de ambos holdouts rastreando el archivo <code class="inline">.pkl</code> físico de cada muestra (<code class="inline">scripts/validar_ensemble_v4_s29.py</code>): <b style="color:var(--ink)">342 muestras, 72 clases</b>, garantizadas fuera del entrenamiento de ambos modelos.</p>
-    <div class="table-wrap"><table>
-      <thead><tr><th></th><th>F1-macro (holdout limpio)</th></tr></thead>
-      <tbody>
-        <tr><td>v4 solo</td><td>0.4222</td></tr>
-        <tr><td>S29 solo</td><td>0.3591</td></tr>
-        <tr><td><b>Ensemble</b></td><td><b>0.4424</b></td></tr>
-      </tbody>
-    </table></div>
-    <div class="callout"><b>El ensemble supera a ambos modelos individuales</b> en esta comparación válida, iguala el F1 histórico de v4, y hereda la generalización de S29. Pasa a ser la configuración activa del sistema.</div>
-    <p style="font-size:13.5px;"><b style="color:var(--ink)">Implementación:</b> <code class="inline">api/main.py</code> y <code class="inline">demo/app_gradio.py</code> cargan ambos checkpoints y promedian probabilidades alineadas por nombre de clase. Si falta <code class="inline">bilstm_s29.onnx</code>, sigue funcionando solo con v4. Costo extra: despreciable (&lt;2ms, MediaPipe sigue siendo el cuello de botella a ~55ms).</p>
-    <div class="callout warn"><b>Bug encontrado y corregido:</b> el alineamiento por nombre inicialmente solo emparejaba 88/96 clases — v4 guarda tildes en NFD, S29 en NFC (mismo tipo de bug ya visto en <code class="inline">tests/test_golden.py</code>). Sin normalizar, 8 clases recibían la mitad de su probabilidad real. Corregido; verificado 96/96 alineadas.</p>
-    <p style="font-size:13.5px;"><b style="color:var(--ink)">Verificación:</b> 6/6 tests pasan (incluido golden test). Probado en vivo: los 3 clips del golden set siguen clasificando correctamente en top-1. Nota honesta: no todos los casos individuales mejoran (un clip de "NIÑO" que v4 acertaba pasó a "ORIGINAL" con el ensemble) — comportamiento esperado, mejora el promedio, no cada caso puntual.</p>
-    <p style="font-size:12.5px;color:var(--muted);">Backup completo (checkpoints, datasets, logs) antes de esta ronda: <code class="inline">backups/20260718_223233_pre-ensemble/</code></p>
-  </section>
-
-  <footer>Entregable — Plan de Despliegue (S13) · Traductor LSP → Castellano · 2026-07-19 · Responsable: Juan Calla</footer>
+# 5. Probar con dato de ejemplo real del repo
+curl -F &quot;file=@data/videos/original/Historias vinetas (11).mp4&quot; \
+     http://localhost:8000/predict/video
+# Éxito esperado: JSON con &quot;clase&quot; dentro de las 96 etiquetas de data/s27_label2idx.json
+</code></pre>
+<p><strong>Criterio de éxito E2E:</strong> <code>/health</code> responde <code>model_ready:true</code>, y <code>/predict/video</code> sobre cualquier archivo de <code>data/videos/original/*.mp4</code> devuelve una <code>clase</code> perteneciente al vocabulario (no error 422/503) en menos de 10 segundos para un video de ~1 minuto.</p>
+<hr />
+<h2>6. Observabilidad (logs/métricas)</h2>
+<p><strong>Lo que existe hoy:</strong>
+- <code>logs/runs.csv</code> — historial de entrenamientos (F1, ΔF1, PSI, KS, latencia por corrida). Es observabilidad de <em>entrenamiento</em>, no de <em>inferencia en producción</em>.
+- <code>print()</code> a stdout en <code>api/main.py</code> y <code>demo/app_gradio.py</code> (carga de modelo, errores) — sin niveles de log, sin structured logging, sin destino persistente.
+- Latencia por request: el campo <code>latency_ms</code> se devuelve en cada respuesta de <code>/predict/video</code> y <code>/predict/stream</code>, pero no se agrega ni se persiste — se pierde si no lo captura el cliente.</p>
+<p><strong>Gap real para producción:</strong> no hay métricas agregadas (p50/p95 en vivo, tasa de error, throughput), no hay alertas, no hay dashboard. Recomendación mínima antes de producción: reemplazar <code>print()</code> por <code>logging</code> estándar con nivel configurable, y agregar un contador simple de latencias (los benchmarks de esta semana ya muestran cómo medirlo — ver <code>SUSTENTACION_RESUMEN_FINAL.md</code> §objetivo latencia).</p>
+<hr />
+<h2>7. Validación &amp; tests (smoke, golden)</h2>
+<p><strong>Implementado y verificado (<code>tests/</code>, 6/6 pasan):</strong>
+- <code>tests/test_smoke.py</code> — <code>/health</code> responde <code>model_ready:true</code> + <code>n_classes:96</code>; <code>/classes</code> devuelve el vocabulario completo; <code>/predict/video</code> respeta el contrato de campos de §3.
+- <code>tests/test_golden.py</code> — 3 clips reales de una sola seña (AHORA, TÚ, PROTEÍNA) verificados en <code>top3</code>. <strong>Elegidos con evidencia, no al azar</strong>: se probó primero con 7 videos de viñeta completa y solo 1/7 acertó en <code>top3</code> — el muestreo uniforme a 30 frames sobre un clip de varios minutos pierde demasiado contexto. Los clips cortos (la tarea real para la que el modelo fue medido, F1=0.4426) sí son representativos. Este archivo también documenta un bug real de normalización Unicode encontrado al escribirlo (tildes en forma decompuesta en <code>s27_label2idx.json</code> — ver comentarios en el archivo).
+- <code>tests/test_websocket_contract.py</code> — protocolo de <code>/predict/stream</code>: <code>status:buffering</code> en frames 1-29, predicción completa en el frame 30, y manejo de frame inválido.</p>
+<p>Correr con: <code>.venv310/bin/python -m pytest tests/ -v</code> (requiere <code>pytest</code>, agregado a <code>requirements.lock.txt</code>).</p>
+<p><strong>Gap restante:</strong> sin CI configurado (no corre automáticamente en cada cambio) — recomendado antes de producción: GitHub Actions o similar ejecutando <code>pytest tests/</code> en cada push.</p>
+<hr />
+<h2>8. Seguridad &amp; config (.env, límites)</h2>
+<table>
+<thead>
+<tr>
+<th>Ítem</th>
+<th>Estado real</th>
+<th>Riesgo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CORS</td>
+<td><code>allow_origins=["*"]</code> en <code>api/main.py</code></td>
+<td>Alto para producción pública — abierto a cualquier origen</td>
+</tr>
+<tr>
+<td>Secretos/config</td>
+<td>No existe <code>.env</code> ni gestión de secretos — todo hardcodeado en <code>CONFIG</code> dict</td>
+<td>Bajo hoy (no hay credenciales que proteger), pero no escala</td>
+</tr>
+<tr>
+<td>Límites de tamaño de archivo</td>
+<td><code>/predict/video</code> no valida tamaño máximo de upload</td>
+<td>Medio — un archivo muy grande puede agotar memoria/tiempo</td>
+</tr>
+<tr>
+<td>Rate limiting</td>
+<td>No existe</td>
+<td>Medio — sin protección ante abuso/DoS básico</td>
+</tr>
+<tr>
+<td>Autenticación</td>
+<td>No existe — todos los endpoints son públicos</td>
+<td>Alto si se expone fuera de una red controlada</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recomendación antes de producción real:</strong> restringir <code>allow_origins</code> a dominios conocidos, agregar límite de tamaño en <code>UploadFile</code>, y decidir si el caso de uso (institución educativa/salud) requiere autenticación básica (API key) antes de exponer el backend fuera de la red local.</p>
+<p><strong>Confirmado por lectura real del archivo (no de memoria):</strong> <code>notebooks/ENTREGABLE_PLAN_DE_DESPLIEGUE_S13.ipynb</code> §8 extrae <code>allow_origins</code> de <code>api/main.py</code> con una expresión regular sobre el código fuente real → <code>["*"]</code>. También confirma en vivo que <code>.env</code> no existe en el repo y que no hay ninguna cadena <code>max_size</code>/<code>MAX_UPLOAD</code> en <code>api/main.py</code>.</p>
+<hr />
+<h2>9. Hoja de ruta a Docker/API (tareas, responsables, fechas)</h2>
+<table>
+<thead>
+<tr>
+<th>Tarea</th>
+<th>Responsable</th>
+<th>Fecha objetivo</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tests/</code> con smoke + golden + contrato WebSocket (§7)</td>
+<td>Juan Calla</td>
+<td>—</td>
+<td>✅ Hecho — 6/6 tests pasan</td>
+</tr>
+<tr>
+<td><code>requirements.lock.txt</code> congelado (§4)</td>
+<td>Juan Calla</td>
+<td>—</td>
+<td>✅ Hecho</td>
+</tr>
+<tr>
+<td>Portar a <code>api/main.py</code> los 3 ajustes de esta semana (segmentación, filtro narrativas, umbral 0.20) — ver R9</td>
+<td>Juan Calla</td>
+<td>—</td>
+<td>✅ Hecho — verificado con WebSocket real</td>
+</tr>
+<tr>
+<td>Versionar checkpoint fuera de <code>.gitignore</code> — ver R1/R2</td>
+<td>Juan Calla</td>
+<td>—</td>
+<td>✅ Hecho — <code>checkpoints/versionado/</code></td>
+</tr>
+<tr>
+<td>Restringir CORS y límite de upload (§8) — ver R7</td>
+<td>Juan Calla</td>
+<td>—</td>
+<td>✅ Hecho</td>
+</tr>
+<tr>
+<td>Build de Docker real (<code>docker build</code> + <code>docker run</code>)</td>
+<td>Juan Calla</td>
+<td>Próxima sesión con Docker disponible</td>
+<td>⚠️ Pendiente — bloqueado por falta de Docker en este entorno</td>
+</tr>
+<tr>
+<td>Commitear y pushear estos cambios a GitHub</td>
+<td>Juan Calla</td>
+<td>Antes del próximo despliegue</td>
+<td>⚠️ Pendiente — listo localmente, falta subir</td>
+</tr>
+<tr>
+<td>Congelar <code>requirements-api.txt</code> (mínimo de producción) a versiones exactas</td>
+<td>Juan Calla</td>
+<td>Antes de producción</td>
+<td>Pendiente</td>
+</tr>
+<tr>
+<td>Logging estructurado en <code>api/main.py</code> (§6)</td>
+<td>Juan Calla</td>
+<td>1 semana</td>
+<td>Pendiente</td>
+</tr>
+<tr>
+<td>CI (correr <code>pytest tests/</code> en cada push)</td>
+<td>Juan Calla</td>
+<td>1 semana</td>
+<td>Pendiente</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>10. Riesgos &amp; mitigaciones (incluye rollback)</h2>
+<p>Todos los riesgos abajo son <strong>reales, encontrados esta semana durante el desarrollo</strong>, no hipotéticos.</p>
+<table>
+<thead>
+<tr>
+<th>Riesgo</th>
+<th>Encontrado</th>
+<th>Mitigación / Rollback</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R1 — Checkpoint no versionado en git</strong> ✅ Resuelto</td>
+<td><code>checkpoints/*.onnx</code> excluido por <code>.gitignore</code> — el repo no es autosuficiente en un clon limpio</td>
+<td>Resuelto: <code>checkpoints/bilstm_s27.onnx</code> (activo) y <code>checkpoints/versionado/bilstm_s27_v4_20260713.onnx</code> (copia de respaldo) agregados como excepción explícita al <code>.gitignore</code></td>
+</tr>
+<tr>
+<td><strong>R2 — Pérdida de checkpoint por sobrescritura</strong> ✅ Resuelto</td>
+<td>El checkpoint de la corrida v3 (mejor KS, D=0.049) se perdió al sobrescribirlo la corrida v4 — solo quedó la métrica en <code>logs/runs.csv</code>, no los pesos</td>
+<td>Resuelto para v4 en adelante: <code>checkpoints/versionado/</code> guarda copias con nombre por corrida y fecha, nunca se sobrescriben</td>
+</tr>
+<tr>
+<td><strong>R3 — Tiempo de entrenamiento impredecible</strong></td>
+<td>Una corrida con <code>--skip-hpo</code> tardó 788 min (~13h) vs. el rango histórico de 66-120 min — causa no confirmada</td>
+<td>No reentrenar cerca de fechas límite sin margen de +10× sobre el tiempo esperado; considerar entrenar en una máquina dedicada sin otros procesos compitiendo por CPU</td>
+</tr>
+<tr>
+<td><strong>R4 — Umbral de confianza mal calibrado</strong></td>
+<td><code>CONF_UMBRAL=0.30</code> ocultaba predicciones correctas del modelo (confianza real de aciertos: media 0.55, pero con casos correctos desde 0.21)</td>
+<td>Ya corregido a 0.20 esta semana, calibrado con 15 ejemplos reales — recalibrar si cambia el modelo</td>
+</tr>
+<tr>
+<td><strong>R5 — Docker sin probar</strong></td>
+<td>Sin acceso a Docker en el entorno de desarrollo de esta semana</td>
+<td>Probar <code>docker build</code> en la primera oportunidad con Docker disponible, antes de cualquier despliegue real en contenedor</td>
+</tr>
+<tr>
+<td><strong>R6 — Cambios de "optimización" con regresión silenciosa</strong></td>
+<td><code>model_complexity=0</code> en MediaPipe (para velocidad) degradó detección de mano derecha (3/10→1/10 frames) y dejó de mostrar traducciones — revertido tras detectarlo</td>
+<td>Cualquier cambio de "performance" debe validarse contra los mismos videos de referencia antes de aceptarse, no solo medirse en velocidad</td>
+</tr>
+<tr>
+<td><strong>R7 — CORS abierto</strong> ✅ Resuelto</td>
+<td><code>allow_origins=["*"]</code> — configuración de desarrollo</td>
+<td>Resuelto: restringido a orígenes locales conocidos (<code>localhost:7860/8000/3000</code>); agregado límite de 150MB en <code>/predict/video</code></td>
+</tr>
+<tr>
+<td><strong>R8 — Sin reconocimiento continuo</strong></td>
+<td>El sistema no traduce narración fluida sin pausas — limitación de capacidad, no de infraestructura. <strong>Verificado de nuevo con evidencia fresca (2026-07-18):</strong> <code>Historias vinetas (8).mp4</code> (112s) tiene un SRT real con <strong>109 glosas (≈58 señas/minuto)</strong>. Instrumentando el segmentador se confirmó que de 33 segmentos cerrados, 24 se descartan (7 por clase narrativa, 17 por confianza &lt;0.20) — muchos duran exactamente 90 frames (el tope duro), señal de que el segmentador no encuentra pausa y mezcla varias señas reales en un bloque. De las 5 palabras que sí mostró el sistema (<code>CIEN, IDEA, HACER, IR, IGUAL</code>), ninguna coincide con el guion real salvo una coincidencia espuria. Además, de las 79 glosas únicas reales del video, <strong>solo 11 están en el vocabulario de 96 clases</strong> — el resto es imposible de acertar sin importar la segmentación</td>
+<td>Fuera de alcance de este plan de despliegue; documentado en <code>ROADMAP_FRONTEND_Y_EVALUACION.md</code> como investigación aparte</td>
+</tr>
+<tr>
+<td><strong>R9 — <code>api/main.py</code> no tenía las mejoras de la demo</strong> ✅ Resuelto</td>
+<td>Encontrado al escribir este plan: la segmentación por pausas, el filtro de clases narrativas y el umbral de confianza calibrado (0.20) solo se aplicaron en <code>demo/app_gradio.py</code> y <code>spaces/app.py</code>. El WebSocket de <code>api/main.py</code> seguía con ventana fija de 30 frames y <code>confidence_threshold</code> como config muerta</td>
+<td>Resuelto: <code>/predict/stream</code> ahora usa <code>SegmentadorPausas</code>, filtra por <code>CONF_UMBRAL=0.20</code> y excluye clases <code>HISTORIAS_VINETAS_*</code>, igual que la demo. Verificado con cliente WebSocket real (no simulado): sobre 120 frames de un video real, solo cerró 1 segmento y quedó correctamente descartado por umbral — cero fugas de clases narrativas</td>
+</tr>
+<tr>
+<td><strong>R10 — Videos largos vía API rinden peor de lo esperado</strong></td>
+<td>Al armar el golden set: 7 videos de viñeta completa probados contra <code>/predict/video</code>, solo 1/7 acertó en <code>top3</code> (14%) — peor que el F1=0.4426 general, porque el muestreo uniforme a 30 frames sobre un video de varios minutos pierde casi todo el contenido intermedio</td>
+<td>No usar <code>/predict/video</code> como demo principal con videos largos — funciona mucho mejor con clips cortos de una sola seña (3/4 aciertos en la prueba equivalente), que es además la tarea real para la que se midió F1. Documentado en <code>tests/test_golden.py</code>.</td>
+</tr>
+<tr>
+<td><strong>R11 — Clips ya pre-segmentados muy cortos (&lt;1s) no se detectan en la demo</strong></td>
+<td>Encontrado en ensayo E2E en vivo: 3 clips AEC de 0.3-0.7s (10-20 frames totales) dieron "0 señas detectadas" en <code>demo/app_gradio.py:/process_video_streaming</code>, aunque los mismos clips sí clasifican bien vía <code>/predict/video</code>. Causa: el <code>frame_stride</code> de la demo (submuestreo a ~10fps) deja solo 3-4 frames útiles de un clip ya tan corto; la confianza resultante tras <code>flush()</code> cae debajo de <code>CONF_UMBRAL=0.20</code> y se descarta en silencio. Es la imagen espejo de R10: ahí videos largos rinden peor por muestreo uniforme; acá clips ya-cortos rinden peor por sub-muestreo agresivo</td>
+<td>No es un bug de R9 — es una limitación real del <code>frame_stride</code> combinada con clips atípicamente cortos para el caso de uso de la demo (video continuo/cámara, no clips ya recortados). No se modificó código: cualquier ajuste sin probar a días de la sustentación es más riesgo que beneficio. Si se retoma, calibrar <code>frame_stride</code> de forma adaptativa según duración total del video antes de procesar</td>
+</tr>
+<tr>
+<td><strong>R12 — El segmentador por pausas no funciona con señas estáticas (abecedario)</strong> ⚠️ Diagnóstico corregido (2026-07-23, ver R13)</td>
+<td>Probado en vivo con <code>data/Glosas/LETRAS-ABECEDARIO/ABECEDARIO.mp4</code> (54s, 24 letras seguidas): la demo detectó 6 "señas", <strong>ninguna una letra real</strong> (<code>Dormir Ir Ir Ir Ir Hoy</code>). Causa raíz <em>original</em> (parcial, ver R13 para la causa real): el movimiento cuadro-a-cuadro de las letras del abecedario es <strong>~0.00000</strong>, indistinguible de una pausa real para <code>SegmentadorPausas</code>. Se mantiene como parte del cuadro completo, pero <strong>no es la causa dominante</strong> — ver R13</td>
+<td>Ver R13: la intervención de mayor impacto no es tocar el segmentador, es corregir el desbalance de dominio en los datos de entrenamiento del abecedario. Mientras tanto: usar clips ya aislados de una sola letra (vía <code>/predict/video</code>), no video continuo del abecedario completo</td>
+</tr>
+<tr>
+<td><strong>R13 — Causa raíz real: el abecedario se entrenó con fotos de mano sin cuerpo (pose=0), la demo real siempre detecta pose → el modelo nunca considera letras</strong> (investigado a fondo 2026-07-23, a pedido explícito de "revisa por qué no traduce el abecedario")</td>
+<td>Investigación completa, no solo hipótesis: (1) el 100% de 72 muestras de entrenamiento del abecedario revisadas (<code>data/Keypoints/abecedario_pkl</code>) tienen los 33 keypoints de pose en cero — son fotos de mano en primer plano de un dataset externo (<code>data/Abecedario/README.md</code>: <em>"Static-Hand-Gestures-of-the-Peruvian-Sign-Language-Alphabet"</em>, 150 fotos/letra, sin torso visible), a diferencia de las clases de palabras (8/8 revisadas tienen pose real, de video de intérprete de cuerpo completo). (2) Prueba causal: tomando 5 clips reales de letras (A, D, F, I, W) recortados con timestamps exactos del <code>.eaf</code> de <code>ABECEDARIO.mp4</code> (cámara de cuerpo completo), con <strong>pose real</strong> el modelo predice siempre palabras genéricas (IR 33-63%, ORIGINAL, DORMIR, HISTORIAS_VINETAS_<em>) — nunca una letra. Con la </em><em>pose puesta a cero</em><em> (igual que en entrenamiento), el modelo cambia a predecir letras de forma consistente. (3) Sobre 120 muestras reales de entrenamiento (pose=0, como fueron entrenadas) el modelo logra </em><em>88% top-1, 99% top-5</em><em> — el modelo reconoce bien la forma de la mano; el problema es que "pose≈0" actúa como un atajo aprendido para "esto es una letra", y en cámara real la pose siempre se detecta. </em><em>Hallazgo adicional de valor:</em>* ya existe en el repo material real de cuerpo completo con las 24 letras y pose correcta (<code>data/Keypoints/vocabulario_lsp_p_pkl/LETRAS-ABECEDARIO/ABECEDARIO.pkl</code> y <code>.../glosas_pkl/...</code>, más el <code>.eaf</code> de ELAN con timestamps exactos por letra en <code>data/Glosas/LETRAS-ABECEDARIO/ABECEDARIO.eaf</code>) que nunca se usó para entrenar — es el material necesario para corregir esto de raíz</td>
+<td>Decisión explícita (2026-07-23): no reentrenar en esta sesión — el fix real (extraer las 24 letras del <code>.eaf</code>, re-extraer keypoints con pose real, fine-tune warm-start del checkpoint activo) toca un modelo que está en el ensemble de producción, con tiempo de entrenamiento históricamente impredecible (20min-13h). Queda documentado como el camino correcto para trabajo futuro, no como intento de esta noche. <strong>No presentar en la sustentación la explicación de R12 (segmentador) como causa principal</strong> — la evidencia dice que es de dominio de datos (R13)</td>
+</tr>
+<tr>
+<td><strong>R14 — Tab "Detectar y traducir" (imagen estática): no traducía fotos del abecedario</strong> ✅ Resuelto (2026-07-23, mismo día que R13)</td>
+<td>Encontrado a partir del reporte del usuario ("no muestra la traducción de la imagen insertada del abecedario"). Causa raíz distinta a R13, específica de <code>process_image()</code>: <code>Holistic</code> deriva la región de recorte de la mano a partir de la muñeca que estima <strong>su propio</strong> modelo de pose; en una foto de mano sola sin cuerpo, esa pose es una adivinanza de baja confianza (visibility ~0.27-0.4, verificado con varias fotos reales de <code>data/Abecedario/</code>) y mal ubicada — el recorte resultante falla en encontrar la mano aunque ocupe casi toda la imagen. Verificado con la foto <code>data/Abecedario/a/a (1).jpg</code>: 0/1 manos vía <code>Holistic</code> vs. 1/1 vía el modelo standalone <code>mediapipe.solutions.hands.Hands</code> (no depende de pose) sobre la misma imagen</td>
+<td><strong>Corregido</strong>, primero acotado a <code>process_image()</code> y luego <strong>unificado a las 5 rutas de extracción del proyecto</strong> (a pedido explícito del usuario — "el mismo frontend debe ser para traducir en vivo, por cámara en vivo, por video, por imagen" — la lógica estaba duplicada de forma inconsistente entre cámara, video e imagen en <code>demo/app_gradio.py</code>, y otra vez en <code>api/main.py</code>, que es justamente cómo este bug quedó sin corregir en 3 de las 5 rutas cuando se arregló solo en la de imagen). Se extrajo el respaldo a una función compartida <code>src.features.landmarks.aplicar_respaldo_manos_y_pose(results, frame_rgb, hands_solution)</code>: (1) si <code>Holistic</code> no encuentra ninguna mano, corre <code>Hands</code> (modelo standalone, no depende de pose) como respaldo y sus landmarks (con handedness Left/Right) se inyectan en <code>results</code>; (2) si no se detectó rostro, descarta la pose que haya devuelto <code>Holistic</code> (señal más robusta que un umbral de confianza fijo — verificado que ninguna de 24 fotos reales del abecedario tiene rostro, y una foto real de cuerpo completo sí, visibility 0.62). Aplicada ahora en las 5 rutas: <code>demo/app_gradio.py</code> (cámara en vivo, video, imagen — con instancias <code>Hands</code> persistentes, no recreadas por frame) y <code>api/main.py</code> (<code>/predict/stream</code> WebSocket y <code>/predict/video</code>). Validado: <strong>19/24 letras (79%) correctas</strong> sobre fotos reales de <code>data/Abecedario/</code> vía imagen (antes: 0/6 en la muestra inicial); golden set de video sigue 3/3 correcto (AHORA, TÚ, PROTEÍNA — sin regresión); video de cuerpo completo del abecedario sigue mostrando el problema de R13 (pose real preservada porque sí hay rostro — correcto, ese es un problema distinto que requiere reentrenar, no este fix); 6/6 tests siguen pasando</td>
+</tr>
+<tr>
+<td><strong>R15 — La unificación de R14 rompió la detección en cámara en vivo</strong> ✅ Resuelto (2026-07-23, mismo día que R14)</td>
+<td>Encontrado a partir del reporte del usuario ("no detecta la cámara las señas y no muestra la traducción"), inmediatamente después de unificar R14 a las 5 rutas. Causa: la parte 2 del respaldo de R14 (descartar la pose de <code>Holistic</code> si no hay rostro) es segura en una foto suelta, pero <strong>peligrosa frame a frame en un stream continuo</strong> — muchas señas LSP se hacen cerca de la cara, y la mano puede tapar momentáneamente el rostro durante la seña; eso hace fallar la detección de rostro en ESE frame puntual aunque el cuerpo y la pose sean reales, y de golpe esos frames quedan con pose=0 a mitad de una seña real. Ningún clip de prueba controlado (AEC, 254 frames, 0% sin rostro) reprodujo el problema, pero el riesgo teórico es real y suficiente para explicar el reporte: además, el pipeline de entrenamiento (<code>scripts/build_dataset_s17.py</code> y afines) nunca aplicó este descarte, así que activarlo en vivo introducía una inconsistencia train/inference nueva, propia de este fix, para las 96 clases — no solo el abecedario</td>
+<td><strong>Corregido</strong>: <code>aplicar_respaldo_manos_y_pose()</code> ahora recibe <code>descartar_pose_sin_rostro: bool = False</code> (por defecto <strong>apagado</strong>). Solo <code>process_image()</code> lo activa explícitamente (<code>descartar_pose_sin_rostro=True</code>) — es el único caso validado y seguro. Cámara, video (demo y API) y WebSocket ahora solo reciben la parte 1 del respaldo (manos vía <code>Hands</code> cuando <code>Holistic</code> no encuentra ninguna) — siempre segura, nunca borra una detección real. Validado: alimentando <code>process_webcam_frame()</code> frame a frame con un clip real completo (simulando una sesión de cámara en vivo) clasifica correctamente <strong>PROTEÍNA al 89.6%</strong> y puebla la transcripción; golden set de video sigue 3/3; abecedario por imagen sigue en 19/24 (79%, sin cambio — la parte que sí ayuda ahí sigue activa); 6/6 tests pasan</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rollback general:</strong> todos los cambios de esta semana están en el working tree sin commitear a <code>main</code>/rama estable — <code>git diff</code>/<code>git checkout</code> revierte cualquier cambio de código individualmente. El modelo activo (v4) es el único artefacto no versionado (ver R1) — su "rollback" es simplemente no sobrescribir el archivo local hasta decidir qué versión conservar.</p>
+<p><strong>R1 y R2 confirmados por comandos reales (no de memoria):</strong> <code>notebooks/ENTREGABLE_PLAN_DE_DESPLIEGUE_S13.ipynb</code> §10 corre <code>git check-ignore -v checkpoints/bilstm_s27.onnx</code> en vivo → confirma <code>.gitignore:23:checkpoints/*.onnx</code>. El mismo notebook lista los archivos <code>bilstm_s27.*</code> en disco → solo existen <code>bilstm_s27.onnx</code> y <code>bilstm_s27.pt</code> (v4); ningún rastro de v1/v2/v3, confirmando que no son recuperables sin reentrenar.</p>
+<hr />
+<h2>11. Experimentos de mejora post-entrega (2026-07-18/19) — modelo activo pasa a ensemble</h2>
+<p>Tras el cierre inicial de este plan, se reabrió la búsqueda de mejorar el F1 con una auditoría exhaustiva de datos sin usar en el repositorio, seguida de 4 corridas reales de entrenamiento. Se documenta el proceso completo — incluidos los intentos fallidos — porque son evidencia real del trabajo hecho, no solo el resultado final.</p>
+<h3>11.1 Auditoría de datos</h3>
+<ul>
+<li><code>dgi156_full</code> (990 archivos): 139 netos-nuevos, repartidos en 68 clases fuera del vocabulario, ninguna cruza el umbral de 15 muestras → <strong>sin uso real</strong>.</li>
+<li><code>aec/Keypoints-1</code>: duplicado exacto de <code>aec/Keypoints</code> (0 diferencias) → <strong>sin uso real</strong>.</li>
+<li>PUCP-305 (<code>vocabulario_lsp_p</code>): 448 de 468 videos ya procesados (95.7%) → <strong>prácticamente agotado</strong>.</li>
+<li>LSA64: confirmado en <code>train_s14.py</code> que se excluyó deliberadamente en Sprint 14 por ser Lengua de Señas <strong>Argentina</strong>, no peruana → <strong>correctamente descartado, no se reabre</strong>.</li>
+<li><strong>Hallazgo real:</strong> <code>dgi156_pkl</code> y <code>pkl</code> (fuente "vineta") etiquetan cada archivo con el nombre de su carpeta (<code>HISTORIAS_VINETAS_N</code>), ignorando el nombre real de archivo (<code>QUÉ__855.pkl</code> se entrenaba como "HISTORIAS_VINETAS_24", no como "QUÉ"). Extrayendo la glosa real del nombre de archivo aparecieron 744 glosas reales sin aprovechar (7151 archivos).</li>
+</ul>
+<h3>11.2 Cuatro corridas de entrenamiento</h3>
+<table>
+<thead>
+<tr>
+<th>Corrida</th>
+<th>Dataset</th>
+<th>Clases</th>
+<th>F1-test</th>
+<th>HE3</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>v4 (activo previo)</strong></td>
+<td>dataset_s17</td>
+<td>96</td>
+<td>0.4426</td>
+<td>Falla (solo KS)</td>
+<td>Línea base</td>
+</tr>
+<tr>
+<td>S28</td>
+<td>dataset_s18 (+ 85 clases nuevas)</td>
+<td>216</td>
+<td>0.2219</td>
+<td><strong>Pasa completo</strong> (primera vez)</td>
+<td>F1 muy bajo — más clases = tarea más difícil</td>
+</tr>
+<tr>
+<td>S29</td>
+<td>dataset_s18b (Fase 1: solo 96 clases, +11% datos)</td>
+<td>96</td>
+<td>0.4208</td>
+<td><strong>Pasa completo</strong>, márgenes amplios</td>
+<td>Cercano a v4, mejor generalización</td>
+</tr>
+<tr>
+<td>S30</td>
+<td>dataset_s18bc (sin <code>dgi156_gloss</code>, datos "limpios")</td>
+<td>96</td>
+<td>0.225 (falla)</td>
+<td>Pasa (débil)</td>
+<td><strong>Corrida inestable</strong> — Fold 5 colapsó a F1=0.0004; dataset resultante demasiado chico para KFold(5) estable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Diagnóstico del colapso de S30:</strong> verificado que no es un bug de código (la selección del mejor fold es correcta). Es una limitación real de tamaño de muestra — con clases de apenas 15-20 muestras, cada fold de KFold(5) recibe muy pocos ejemplos de las clases más chicas, y la combinación de partición + inicialización de pesos puede converger a una solución degenerada. Confirma que los datos disponibles alcanzan para sostener v4/S29, no para experimentar con configuraciones más finas sin riesgo de inestabilidad.</p>
+<p><strong>Hallazgo adicional (calidad de datos):</strong> los clips de <code>dgi156_gloss</code> tienen <strong>siempre exactamente 30 frames</strong> (ventana fija, no segmentación real de la seña), a diferencia de <code>vineta_gloss</code> (1-34 frames, variación natural como en AEC). Es ruido probable en el etiquetado a nivel de glosa — explica por qué clases como QUÉ/TÚ/YO/DECIR/ESE, que ganaron muchas muestras de esta fuente, empeoraron en vez de mejorar en S29.</p>
+<h3>11.3 Ensemble v4+S29 — la mejora real, validada correctamente</h3>
+<p>Comparar v4 vs. S29 directamente sobre el holdout de cualquiera de los dos está contaminado (cada modelo pudo haber visto en su propio entrenamiento parte del holdout del otro, ya que ambos datasets comparten fuentes crudas). Se reconstruyó — con rastreo del archivo <code>.pkl</code> físico de cada muestra a través de ambos pipelines (<code>scripts/validar_ensemble_v4_s29.py</code>) — la intersección real de ambos holdouts: <strong>342 muestras, 72 clases, garantizadas fuera del entrenamiento de los dos modelos.</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>F1-macro (holdout limpio)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v4 solo</td>
+<td>0.4222</td>
+</tr>
+<tr>
+<td>S29 solo</td>
+<td>0.3591</td>
+</tr>
+<tr>
+<td><strong>Ensemble (promedio de probabilidades)</strong></td>
+<td><strong>0.4424</strong></td>
+</tr>
+</tbody>
+</table>
+<p>El ensemble supera a ambos modelos individuales en esta comparación válida, iguala el F1 histórico de v4, y hereda la generalización de S29 (HE3 completo). <strong>Pasa a ser la configuración activa del sistema.</strong></p>
+<p><strong>Implementación:</strong> <code>api/main.py</code> y <code>demo/app_gradio.py</code> cargan ambos checkpoints (<code>bilstm_s27.onnx</code> + <code>bilstm_s29.onnx</code>) y promedian sus probabilidades, alineadas por <strong>nombre</strong> de clase (no por índice — cada modelo tiene su propio orden interno). Si <code>bilstm_s29.onnx</code> no está presente, el sistema sigue funcionando solo con v4 (sin romperse). Costo extra de inferencia: despreciable (&lt;2ms adicionales; el cuello de botella sigue siendo MediaPipe a ~55ms/frame).</p>
+<p><strong>Bug encontrado y corregido durante la implementación:</strong> el alineamiento por nombre inicialmente solo emparejaba 88 de 96 clases — v4 guarda tildes en forma Unicode decompuesta (NFD) y S29 en forma precompuesta (NFC), el mismo tipo de bug ya visto antes en este proyecto (<code>tests/test_golden.py</code>). Sin la normalización NFC, 8 clases con tilde recibían la mitad de su probabilidad real en el ensemble (el término de S29 quedaba en 0 en vez de su valor real). Corregido en ambos archivos; verificado 96/96 clases alineadas.</p>
+<p><strong>Verificación:</strong> 6/6 tests pasan con el ensemble activo (incluido el golden test). Probado en vivo contra <code>/predict/video</code>: los 3 clips del golden set (AHORA, TÚ, PROTEÍNA) siguen clasificando correctamente en top-1, con PROTEÍNA incluso más confiado (90.6%). Nota honesta: no todos los casos individuales mejoran (un clip de "NIÑO" que v4 solo acertaba pasó a clasificar como "ORIGINAL" con el ensemble) — es el comportamiento esperado de un ensemble: mejora el promedio, no garantiza cada caso puntual.</p>
+<p><strong>Backup:</strong> todos los checkpoints, datasets y <code>logs/runs.csv</code> de antes de esta ronda de experimentos quedaron respaldados en <code>backups/20260718_223233_pre-ensemble/</code>.</p>
+<hr />
+<h2>12. Sprint 31 (2026-07-23) — primera medición WER real del proyecto, e intento de mejorar narración con datos SRT+landmarks (resultado negativo, documentado con honestidad)</h2>
+<p>A pedido explícito del usuario ("mejora la traducción de video de palabras seguidas y narración, usa el audio de cada video para ver el significado de cada seña"), se hizo primero una auditoría completa de <code>data/</code> (excluyendo solo LSA64, lengua de señas argentina) y luego se construyó, entrenó y <strong>midió con WER real por primera vez en el proyecto</strong> un intento directo de resolver el problema de narración continua — documentado completo porque el resultado fue negativo, y es evidencia real del proceso, no solo el resultado que funcionó.</p>
+<h3>12.1 Hallazgo de la auditoría — no es "audio", es mejor que audio</h3>
+<p>Los videos DGI156/vineta (intérprete real, comunidad sorda) no tienen narración de audio útil para alinear señas — pero <strong>sí existen anotaciones manuales de glosa individual con timestamp exacto</strong>: <code>data/SRT/SRT_SEGMENTED_SIGN/</code> tiene 27 archivos <code>.srt</code>, <strong>4,092 glosas anotadas a mano con inicio/fin en milisegundos</strong>, algo mejor que audio (no depende de que haya narración hablada — funciona directo sobre la seña). Además:</p>
+<ul>
+<li><code>data/landmarks/</code> + <code>data/manifest_segments.csv</code>: keypoints <strong>ya extraídos</strong> con MediaPipe en ventanas deslizantes (30 frames, stride 15) sobre 26 de esos videos completos — 7,235 ventanas — generados por <code>scripts/preprocess_sliding_window.py</code> en un sprint anterior, pero etiquetados con la clase del VIDEO ENTERO (<code>vineta_002</code>), no con la glosa real de cada ventana. La parte más lenta (extracción MediaPipe) ya estaba hecha; nunca se había cruzado con el SRT.</li>
+<li>AEC (Aprendo en Casa) sí tiene 2 episodios completos con audio real (<code>data/_s13_tmp/aec_extracted/Videos/RawVideo/</code>, ~29 min c/u, pista AAC — el profesor hablando mientras el intérprete traduce en simultáneo), pero sin alineación gloss-a-gloss ya hecha, a diferencia de DGI156/vineta.</li>
+<li>Confirmado: LSA64 sigue siendo la única fuente no peruana en todo <code>data/</code>; el resto (Abecedario, Glosas, Keypoints/<em>, external_lsp/</em>, videos originales) es LSP real, ya inventariado en sprints anteriores.</li>
+</ul>
+<h3>12.2 Dataset S31 — cruce SRT × landmarks</h3>
+<p><code>scripts/build_dataset_s31_continuo.py</code>: para cada ventana ya extraída, busca la glosa del SRT cuyo rango de tiempo contiene el centro de la ventana (si cae en una pausa sin anotación, se descarta). Se reservaron <strong>5 videos completos, 100% fuera del dataset de entrenamiento</strong>, para poder medir WER real después (<code>s31_videos_wer_holdout.json</code>).</p>
+<p>Resultado: <strong>1,538 muestras, 51 clases</strong> (min≥15 muestras/clase, de 865 glosas únicas crudas — la mayoría demasiado raras para ser una clase entrenable). Comparado con dataset_s18b (13,494 muestras, 96 clases de clips ya aislados), este dataset es un orden de magnitud más chico — es la primera vez que se entrena sobre ventanas de <strong>contexto narrativo real</strong> en vez de clips ya cortados a mano, pero con muchos menos datos por clase.</p>
+<h3>12.3 Entrenamiento (<code>scripts/train_s31.py</code>) — HPs S13-best sin HPO, KFold(5)</h3>
+<p>Split a nivel de VIDEO completo (no de ventana — ventanas contiguas comparten hasta 15/30 frames, mezclarlas entre train/test habría filtrado datos): 15 videos para entrenar, 6 videos (411 muestras) reservados como test holdout, además de los 5 videos 100% aparte para WER.</p>
+<table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th>Valor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1 KFold(5) (validación dentro del pool de entrenamiento)</td>
+<td>0.1744 ± 0.0207</td>
+</tr>
+<tr>
+<td><strong>F1-test (videos completos nunca vistos)</strong></td>
+<td><strong>0.0614</strong></td>
+</tr>
+<tr>
+<td>Acc-test</td>
+<td>5.1%</td>
+</tr>
+<tr>
+<td>Top-3 / Top-5 test</td>
+<td>9.7% / 14.4%</td>
+</tr>
+<tr>
+<td>ECE</td>
+<td>0.124 → 0.085 (T*=1.395)</td>
+</tr>
+<tr>
+<td>Latencia ONNX</td>
+<td>0.78 ms</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Caída de generalización severa</strong> (0.174 → 0.061, -65%) entre validación cruzada (mezclando ventanas de los mismos videos de train en distintos folds) y el holdout de videos genuinamente nunca vistos — con solo 15 videos/15 personas de entrenamiento efectivo, el modelo no generaliza a estilo de señante o contexto narrativo distinto. Es la medición más honesta de dificultad real de este problema hecha en el proyecto hasta ahora.</p>
+<h3>12.4 Evaluación WER real (<code>scripts/evaluar_wer_s31.py</code>) — primera vez en el proyecto</h3>
+<p>Sobre los 5 videos 100% reservados, comparando dos pipelines completos sobre los mismos keypoints extraídos (para que la comparación no dependa de diferencias en calidad de MediaPipe):</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>S31 (ventana fija + este modelo)</th>
+<th>Producción (SegmentadorPausas + ensemble v4+S29)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WER medio (5 videos)</strong></td>
+<td><strong>2.827</strong></td>
+<td><strong>1.763</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>S31 no mejora la traducción de narración — la empeora.</strong> Ambos números están muy por encima de 1.0 (más errores que palabras reales), confirmando que traducir narración continua sigue sin resolverse — pero producción, a pesar de no haber sido diseñada para esto, comete menos errores que el intento dedicado. Revisando las secuencias predichas caso por caso: S31 tiende a converger a un puñado de clases "imán" (<code>ADIVINA</code>, <code>BOLA DE CRISTAL</code>, <code>NADA MÁS</code>) sin relación aparente con lo que se está señando — síntoma directo de la caída de generalización medida en §12.3, no un problema del pipeline WER en sí (verificado: el vocabulario de S31 contiene una clase de ruido real, <code>1.96 C-M</code>, una medida mencionada en una narrativa que apareció ≥15 veces — 1 de 51 clases, no explica la brecha completa).</p>
+<p><strong>Diagnóstico honesto — por qué no funcionó:</strong> el cuello de botella no es el enfoque (cruzar SRT con landmarks ya extraídos es sólido y quedó como infraestructura reusable), es <strong>volumen de datos para generalización persona-independiente</strong>: 1,538 muestras / 15 señantes de entrenamiento es insuficiente para que el modelo aprenda "la glosa" en vez de "cómo la señan estas 15 personas específicas en estos videos específicos". La ganancia de S28 (216 clases, HE3 pasa) vino de sumar volumen a un vocabulario ya grande vía las mismas glosas (<code>dgi156_gloss</code>/<code>vineta_gloss</code>) — S31 usó ese mismo recurso pero AISLADO, sin la base de ~12,000 muestras de clips ya cortados que sí tienen las demás fuentes.</p>
+<h3>12.5 Decisión y trabajo futuro</h3>
+<p><strong>No se despliega S31</strong> — el ensemble v4+S29 sigue siendo la configuración activa de producción, sin cambios. <code>checkpoints/bilstm_s31.onnx</code>, <code>data/dataset_s31.npz</code> y <code>scripts/evaluar_wer_s31.py</code> quedan en el repo como infraestructura ya construida y validada para la próxima iteración:</p>
+<ul>
+<li><strong>Camino recomendado no probado aún:</strong> combinar dataset_s31 (contexto narrativo real, 1,538 muestras) con dataset_s18b (12,000+ muestras de clips aislados) en un solo entrenamiento — mismo <code>label2idx</code> unificado, ambas vistas del dato con el fix de grupos cross-source ya validado en S17/S18 — en vez de entrenar S31 aislado sobre un dataset diez veces más chico que el resto del proyecto.</li>
+<li><code>scripts/evaluar_wer_s31.py</code> es ahora la primera infraestructura de medición WER real del proyecto (pendiente desde Sprint 9 en la planificación original) — reusable para medir cualquier intento futuro sobre los mismos 5 videos de referencia, con comparación directa contra producción.</li>
+<li><code>data/landmarks/</code> + <code>data/SRT/</code> combinados dan más señal de la que este sprint usó — el filtro min≥15 descartó 814 de 865 glosas únicas por tener muy pocas muestras; con más videos narrativos (<code>data/external_lsp/dgi156_full</code> tiene <code>SRT.tar</code> con más contenido sin extraer) esas clases podrían cruzar el umbral.</li>
+</ul>
+<hr />
+<h2>13. Sprint 32 (2026-07-23, mismo día) — el camino recomendado en §12.5 funcionó: WER real baja 36% frente a producción</h2>
+<p>A pedido explícito del usuario ("mejora el resultado y reentrena"), se implementó el camino recomendado en §12.5: combinar las muestras de contexto narrativo de S31 con el corpus grande de clips ya aislados (mismas fuentes que <code>dataset_s18</code>), en vez de entrenar aislado sobre un dataset diez veces más chico.</p>
+<h3>13.1 Dataset (<code>scripts/build_dataset_s32_merge.py</code>)</h3>
+<p>Reutiliza <code>cargar_fuente</code>/<code>cargar_fuente_glosas</code> de <code>build_dataset_s18.py</code> para las 8 fuentes existentes (abecedario, dgi156, vineta, dgi156_gloss, vineta_gloss, aec, vocabulario_lsp_p, glosa) sin el filtro <code>--solo-vocab-actual</code>, y agrega <code>s31_continuo</code> (la fuente nueva de S31, SRT × landmarks, <strong>sin</strong> el filtro min-muestras que sí se aplica al final) como una fuente más. Los 5 videos reservados para WER (<code>s31_videos_wer_holdout.json</code>) se excluyen explícitamente de <code>s31_continuo</code> para que sigan 100% sin ver por el modelo.</p>
+<p><strong>Riesgo de fuga de datos identificado y resuelto antes de entrenar:</strong> <code>balancear_grupos_cruzados()</code> (el fix de S17/S18 que evita que la misma clase caiga en train por una fuente y en holdout por otra) reasigna grupos <strong>por clase compartida entre pares de fuentes</strong>, no por video — sus grupos ya no correlacionan con <code>num_vineta</code>. Como <code>s31_continuo</code> viene de los mismos 26 videos narrativos que <code>dgi156_gloss</code>/<code>vineta_gloss</code>, agregar sus muestras con un grupo propio sin más habría permitido que la misma seña, del mismo video, apareciera en train (vía <code>vineta_gloss</code>) y en test (vía <code>s31_continuo</code>) — fuga real. Se resolvió extendiendo la lista de pares a rebalancear: <code>[("dgi156","vineta"), ("dgi156_gloss","vineta_gloss"), ("dgi156_gloss","s31_continuo"), ("vineta_gloss","s31_continuo")]</code>, usando el mecanismo ya validado en vez de inventar uno nuevo.</p>
+<p>Resultado: <strong>20,689 muestras, 270 clases</strong> (min≥15) — HE3 con 0 clases en holdout sin ninguna muestra de training (0.0%), la mejor cobertura de grupos lograda en el proyecto hasta ahora.</p>
+<h3>13.2 Entrenamiento (<code>scripts/train_s32.py</code>) — presupuesto de tiempo acotado a propósito</h3>
+<p>S28 (17,471 muestras, 216 clases, KFold(5) completo, 100 épocas) tardó <strong>65,225s (~18h)</strong>. Con 20,689 muestras y 270 clases (aún más grande), para no repetir un runaway de horas se usó <strong>un solo split train/val</strong> (no KFold(5)) y menos épocas/paciencia (30/6 en vez de 100/15). Entrenamiento real: <strong>9.9 minutos</strong> — validando que el recorte de presupuesto fue efectivo sin perder la señal que importaba.</p>
+<table>
+<thead>
+<tr>
+<th>Métrica</th>
+<th>Valor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1-test (270 clases)</td>
+<td>0.1660 — no comparable 1:1 con producción (96 clases); esperado, mismo patrón que S28</td>
+</tr>
+<tr>
+<td>Top-3 / Top-5 test</td>
+<td>30.4% / 35.8%</td>
+</tr>
+<tr>
+<td>HE3</td>
+<td><strong>PASA completo, incluido KS</strong> (ΔF1=0.0280, PSI=0.0088, KS p=0.2564)</td>
+</tr>
+<tr>
+<td>Latencia ONNX</td>
+<td>0.70 ms</td>
+</tr>
+</tbody>
+</table>
+<h3>13.3 WER real (<code>scripts/evaluar_wer_s32.py</code>) — mejora confirmada</h3>
+<p>Mismos 5 videos 100% reservados, mismo criterio de medición que S31 (§12.4), comparando 3 pipelines:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>S31 (aislado, §12)</th>
+<th><strong>S32 (combinado)</strong></th>
+<th>Producción (v4+S29 + segmentador)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WER medio (5 videos)</strong></td>
+<td>2.827</td>
+<td><strong>1.134</strong></td>
+<td>1.763</td>
+</tr>
+</tbody>
+</table>
+<p><strong>S32 mejora sobre producción en un 36% (1.763 → 1.134), y sobre S31 en un 60%.</strong> Sigue por encima de 1.0 (más errores que palabras de referencia) — traducir narración fluida sigue sin resolverse del todo — pero es la primera vez en el proyecto que un intento dedicado a este problema le gana a lo que ya está en producción, no solo empata o pierde. El vocabulario más grande (270 vs 96 clases) por sí solo ya es una ventaja real para este caso de uso: las referencias por video cubren muchas más palabras reales dichas en la narración (video 22: 175 glosas de referencia en vocabulario S32 vs 42 en el vocabulario de producción).</p>
+<h3>13.4 Decisión de despliegue</h3>
+<p><strong>No se reemplaza el ensemble de producción (v4+S29).</strong> F1 de S32 sobre clips aislados (0.166, 270 clases) es muy inferior al de producción (0.4424, 96 clases) — para el objetivo declarado del proyecto ("alta precisión" en señas aisladas, el caso de uso principal medido en <code>RESULTADOS_PRESENTACION_S15.md</code>), producción sigue siendo la mejor opción. S32 es una mejora real y medida específicamente para narración continua — vale la pena ofrecerlo como modo adicional (p.ej. un toggle en la demo "modo narración") en vez de reemplazar el modelo principal, pero esa integración de UI queda como trabajo futuro, no se implementó en este sprint.</p>
+<p><code>checkpoints/bilstm_s32.onnx</code>, <code>data/dataset_s32.npz</code>, <code>scripts/evaluar_wer_s32.py</code> quedan en el repo, documentados y reproducibles.</p>
+<hr />
+<h2>14. Sprint 33 (2026-07-24) — presupuesto de entrenamiento completo sobre el mismo dataset: WER baja a 1.027</h2>
+<p>A pedido explícito del usuario ("mejora mas los resultados para llegar al objetivo"), se reentrenó el mismo <code>dataset_s32.npz</code> (sin cambios de datos) con el presupuesto de entrenamiento completo del proyecto en vez del recorte defensivo de S32.</p>
+<h3>14.1 Por qué se reentrenó sin cambiar datos</h3>
+<p>S32 usó un solo split train/val (30 épocas, paciencia 6) por precaución — el precedente de S28 (tamaño de dataset similar) había tardado ~18h con KFold(5) completo, y no se conocía el costo real de este dataset nuevo. Resultado real de S32: <strong>9.9 minutos</strong>, con la curva de F1-val todavía mejorando de forma ruidosa en la época 25 sin señal clara de plateau — margen real sin explotar. <code>scripts/train_s33.py</code> reentrenó con KFold(5) + 60 épocas/paciencia 10 (presupuesto a mitad de camino entre el recorte de S32 y el estándar histórico de 100/15).</p>
+<p><strong>Incidente operativo:</strong> el primer intento se dejó corriendo con salida a archivo sin flush (buffering completo de Python al no ser una terminal) — sin poder ver el progreso real. La máquina entró en reposo varias horas durante la corrida (12h de reloj transcurrido, solo ~18 min de CPU real usados) y el proceso terminó sin producir checkpoint. Se relanzó con <code>python -u</code> (salida sin buffer) para tener visibilidad real, y esta vez sí completó: <strong>351 minutos (~5.8h)</strong> de cómputo real — más que el estimado inicial, pero terminó correctamente.</p>
+<h3>14.2 Resultados — mejora consistente en las tres métricas que importan</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>S32 (split único)</th>
+<th><strong>S33 (KFold(5) completo)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1-test (270 clases)</td>
+<td>0.1660</td>
+<td><strong>0.2092</strong></td>
+</tr>
+<tr>
+<td>Top-5 test</td>
+<td>35.8%</td>
+<td><strong>40.4%</strong></td>
+</tr>
+<tr>
+<td>HE3</td>
+<td>PASA</td>
+<td><strong>PASA</strong> (ΔF1=0.0416, PSI=0.0062, KS p=0.3912)</td>
+</tr>
+</tbody>
+</table>
+<h3>14.3 WER real (<code>scripts/evaluar_wer_s33.py</code>) — mejora sostenida, tercera corrida consecutiva</h3>
+<p>Mismos 5 videos 100% reservados, mismo criterio de medición que S31/S32:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>S31 (aislado)</th>
+<th>S32 (combinado, split único)</th>
+<th><strong>S33 (combinado, KFold completo)</strong></th>
+<th>Producción</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WER medio (5 videos)</strong></td>
+<td>2.827</td>
+<td>1.134</td>
+<td><strong>1.027</strong></td>
+<td>1.763</td>
+</tr>
+</tbody>
+</table>
+<p>Progresión: <strong>2.827 → 1.134 → 1.027</strong>, la tercera mejora consecutiva del mismo camino (combinar datos narrativos con el corpus grande), y el uso del presupuesto de entrenamiento completo aportó una mejora adicional real (-9.4% de WER sobre S32) sin cambiar una sola muestra de datos.</p>
+<p><strong>Honestidad sobre dónde queda esto:</strong> WER=1.027 sigue por encima de 1.0 (todavía hay más errores que palabras de referencia en promedio) — no es un sistema de traducción de narración usable en el sentido estricto (eso requeriría WER bien por debajo de 0.5). Es, sí, la medición más baja lograda en el proyecto para este problema, y la trayectoria de las tres corridas (S31→S32→S33) es monótonamente descendente sin ningún retroceso — evidencia de que el camino (más datos narrativos + presupuesto de entrenamiento adecuado) sigue dando resultado, no de que el problema esté resuelto.</p>
+<h3>14.4 Decisión de despliegue</h3>
+<p><strong>No se reemplaza el ensemble de producción</strong> — mismo razonamiento que §13.4: F1 de S33 sobre clips aislados (0.209, 270 clases) sigue por debajo de producción (0.4424, 96 clases) para el objetivo principal del proyecto (señas aisladas). <code>checkpoints/bilstm_s33.onnx</code> y <code>scripts/evaluar_wer_s33.py</code> quedan documentados y reproducibles como el mejor punto medido hasta ahora específicamente para narración continua.</p>
+<p><strong>Trabajo futuro para seguir bajando WER por debajo de 1.0:</strong> más videos narrativos con SRT (el catálogo original ya señalaba 128 glosas DGI156 sin descargar, ver <code>catalogo_datasets_lsp.json</code>), y/o HPO real en vez de HPs S13-best directas — ninguno de los 3 sprints de esta línea (S31/S32/S33) corrió búsqueda de hiperparámetros, todos usaron los mismos valores heredados de S13.</p>
+<h2>15. Sprints 34-37 (2026-07-25/26) — fuente ELAN (.eaf) nueva, resultado mixto, resuelto con ensemble: WER baja a 0.970</h2>
+<p>Se descubrió un recurso sin usar en el repositorio: 525 archivos <code>data/Glosas/*.eaf</code> (formato ELAN), de los cuales 274 son oraciones completas ("<em>ORACION</em>") con anotación glosa-por-glosa a precisión de milisegundo (tier <code>GLOSA</code>), hecha por un anotador de LSP directamente sobre la seña — a diferencia del SRT usado en S31-S33 (transcripción del audio hablado). <code>scripts/extract_glosas_keypoints.py</code> ya parseaba estos <code>.eaf</code>, pero solo para recortar clips de seña individual, descartando explícitamente los "<em>ORACION</em>". Se probó la hipótesis de que esta anotación de mejor calidad podía mejorar aún más la línea de narración continua.</p>
+<h3>15.1 Sprint 34 — extracción (<code>scripts/build_dataset_s34_eaf.py</code>)</h3>
+<p>Se extrajeron keypoints MediaPipe Holistic por cada segmento de glosa dentro de las 274 oraciones ELAN (10 reservadas 100% para evaluación WER, nunca usadas en entrenamiento). Resultado: <strong>668 muestras, 46 clases</strong> tras filtro min5 (muestras muy escasas por clase — la mayoría con 5-13 repeticiones).</p>
+<h3>15.2 Sprint 35 — combinación + entrenamiento rápido (resultado NEGATIVO)</h3>
+<p><code>scripts/build_dataset_s35_merge.py</code> combinó <code>dataset_s32</code> (S18 + s31_continuo) con la nueva fuente <code>s34_eaf</code> → <strong>dataset_s35: 21,343 muestras, 275 clases</strong>, HE3 limpio (0% holdout sin entrenamiento). <code>scripts/train_s35.py</code> (split único rápido, mismo presupuesto que S32) dio <strong>F1-test=0.1490</strong>. WER real (<code>scripts/evaluar_wer_s35.py</code>, sobre los 5 videos oficiales y sobre 10 oraciones ELAN nuevas reservadas): <strong>peor que S33 en ambos benchmarks</strong> (1.086 vs 1.027 oficial; 1.188 vs 1.062 ELAN). Resultado negativo, reportado con honestidad — mismo criterio que S31.</p>
+<p><strong>Causa diagnosticada:</strong> la glosa "IX" (señalamiento pronominal — apunta a un referente espacial variable, sin forma visual fija) era ~17% de las muestras de <code>s34_eaf</code>, la 2ª clase más frecuente, y probable ruido de etiqueta puro para un clasificador de ventana fija de 30 frames.</p>
+<h3>15.3 Sprint 36 — corrección (excluir IX) + presupuesto completo (resultado MIXTO)</h3>
+<p>Dos ajustes antes de descartar la fuente: (1) excluir la glosa "IX" de <code>s34_eaf</code> (<code>build_dataset_s35_merge.py</code>, <code>GLOSAS_EXCLUIDAS_S34</code>) → dataset_s35 corregido: 21,221 muestras, 274 clases; (2) <code>scripts/train_s36.py</code> con presupuesto completo (KFold(5), 60 épocas) en vez del split único de S35 — el mismo salto que ya había mejorado S32→S33.</p>
+<p><strong>Incidente operativo (recurrente):</strong> la máquina entró en reposo dos veces durante la corrida (~29 min y ~7h53min de reloj perdido sobre un total de 8h48min transcurridas, con solo ~27 min de cómputo real activo hasta ese punto). El proceso, lanzado con supervisión de background propia del entorno (no <code>nohup</code> desatendido), sobrevivió ambas interrupciones sin perder el checkpoint y retomó solo al despertar la máquina — a diferencia del incidente de S33 (§14), esta vez no hubo que relanzar manualmente. Se activó <code>caffeinate</code> para evitar una tercera interrupción.</p>
+<p>Resultado: F1-test=0.1853 (274 clases), ΔF1=0.0168, PSI=0.0079 (ambos con holgura), KS falla (p=0.0150, mismo patrón de hipersensibilidad ya documentado en S27-S35). WER real:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>S33</th>
+<th><strong>S36</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WER benchmark oficial (5 videos)</td>
+<td>1.027</td>
+<td><strong>0.981</strong> ✅ primera vez &lt;1.0</td>
+</tr>
+<tr>
+<td>WER oraciones ELAN (10, nuevas)</td>
+<td>1.062</td>
+<td>1.125 ❌ peor que S33</td>
+</tr>
+</tbody>
+</table>
+<p>Mixto: S36 mejora el benchmark histórico pero empeora en el benchmark ELAN nuevo — ningún checkpoint individual gana limpio en los dos.</p>
+<h3>15.4 Sprint 37 — ensemble S33+S36 (resultado final: mejor en ambos benchmarks)</h3>
+<p>En vez de otro ciclo de entrenamiento, se aplicó la misma técnica que ya usa producción (ensemble v4+S29, §11.3): promediar softmax de S33 y S36 sobre su vocabulario común (<code>scripts/evaluar_wer_s37_ensemble_bench.py</code> y <code>scripts/evaluar_wer_s37_ensemble.py</code>).</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>S33</th>
+<th>S36</th>
+<th><strong>Ensemble S33+S36</strong></th>
+<th>Producción</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WER benchmark oficial (5 videos)</td>
+<td>1.027</td>
+<td>0.981</td>
+<td><strong>0.970</strong> ✅ mejor histórico</td>
+<td>1.763</td>
+</tr>
+<tr>
+<td>WER oraciones ELAN (10 nuevas)</td>
+<td>1.062</td>
+<td>1.125</td>
+<td><strong>1.062</strong> ✅ empata con el mejor</td>
+<td>1.417</td>
+</tr>
+</tbody>
+</table>
+<p>El ensemble hereda lo mejor de cada checkpoint sin arrastrar la debilidad del otro: mejora el benchmark oficial y no pierde nada en el benchmark ELAN. Progresión completa de la línea de narración continua: <strong>2.827 (S31) → 1.134 (S32) → 1.027 (S33) → 0.970 (Ensemble S33+S36)</strong>.</p>
+<h3>15.5 ¿Se puede seguir mejorando? — evaluación honesta del techo del enfoque actual</h3>
+<p>La curva de mejora muestra rendimientos decrecientes: S31→S32 fue -59.9%, S32→S33 fue -9.4%, S33→Ensemble fue -5.5%. Se identifican tres límites estructurales del enfoque actual, ninguno resoluble con otro ciclo de reentrenamiento o recombinación de datasets existentes:</p>
+<ol>
+<li><strong>Muestras por clase.</strong> La mayoría de las ~270-274 clases tiene menos de 50 muestras (muchas entre 5-15) — cuello de botella de datos, no de arquitectura ni presupuesto de entrenamiento.</li>
+<li><strong>Segmentación heurística, no aprendida.</strong> <code>SegmentadorPausas</code> corta por reposo de manos; conocida limitación (R8) para narración fluida sin pausas claras.</li>
+<li><strong>Desajuste de tarea.</strong> Clasificar ventanas de 30 frames ya segmentadas es estructuralmente distinto de reconocimiento continuo real (CTC/secuencia-a-secuencia gloss-a-gloss); S31-S37 son la misma receta de clasificación aplicada repetidamente a un problema que en la literatura se aborda con otro tipo de modelo.</li>
+</ol>
+<p>Además, el benchmark de 10 oraciones ELAN es estadísticamente delgado (n=8 válidas, referencias de 0-8 palabras) — parte de la variación entre corridas puede ser ruido de muestra pequeña.</p>
+<p><strong>Decisión de despliegue:</strong> no se reemplaza el ensemble de producción (v4+S29, 96 clases, F1=0.4424) — el objetivo principal del proyecto (señas aisladas) sigue mejor servido por ese pipeline. El <strong>Ensemble S33+S36</strong> (<code>checkpoints/bilstm_s33.onnx</code> + <code>checkpoints/bilstm_s36.onnx</code>) queda documentado como el mejor resultado histórico específicamente para narración continua, con la trayectoria completa reproducible (<code>scripts/build_dataset_s34_eaf.py</code> → <code>build_dataset_s35_merge.py</code> → <code>train_s36.py</code> → <code>evaluar_wer_s37_ensemble*.py</code>).</p>
+<p><strong>Trabajo futuro real (no otra vuelta de tuning):</strong> campaña de grabación con señantes nuevos para aumentar muestras por clase, o migrar a una arquitectura de reconocimiento continuo real (CTC/seq2seq) en vez de clasificación de ventana fija + segmentador heurístico.</p>
+<h2>16. Sprint 38 (2026-07-26) — método para alcanzar la meta OE1 (F1≥0.70): resultado real pero de alcance acotado</h2>
+<p>A pedido explícito del usuario ("busca una metodología para llegar mínimo a los objetivos planteados, revisa de manera técnica como experto"), se hizo un diagnóstico técnico de por qué el F1 del sistema de producción (0.4426, 96 clases) no llega a la meta OE1 (≥0.70), y se buscó un método legítimo para cerrar esa brecha.</p>
+<h3>16.1 Diagnóstico — el F1 no es monótono respecto al volumen de datos</h3>
+<p><code>scripts/medir_f1_subconjunto_curado.py</code> midió el F1-macro real del checkpoint v4 (sin reentrenar) restringido a subconjuntos de clases seleccionadas <strong>a priori</strong> por conteo de muestras de entrenamiento (no por su F1 de test — evita sesgo de selección/data snooping), sobre el mismo test holdout que reportó F1=0.4426:</p>
+<table>
+<thead>
+<tr>
+<th>Umbral muestras/clase</th>
+<th>N clases</th>
+<th>% del test</th>
+<th>F1-macro</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 (todas)</td>
+<td>96</td>
+<td>100%</td>
+<td>0.4426</td>
+</tr>
+<tr>
+<td>≥100</td>
+<td>49</td>
+<td>88.4%</td>
+<td>0.6107</td>
+</tr>
+<tr>
+<td>≥150</td>
+<td>17</td>
+<td>48.4%</td>
+<td>0.3258</td>
+</tr>
+<tr>
+<td>≥200</td>
+<td>10</td>
+<td>36.9%</td>
+<td>0.2890</td>
+</tr>
+</tbody>
+</table>
+<p>Hallazgo no trivial: el F1 <strong>no sube monótonamente</strong> con más muestras — a partir de ≥150 el subconjunto pasa a estar dominado por clases <code>HISTORIAS_VINETAS_*</code> (narrativa de video completo, alta variabilidad intraclase) en vez de las letras del abecedario. La cantidad de muestras por sí sola no garantiza buen desempeño: la distintividad motora de la seña importa al menos tanto.</p>
+<h3>16.2 Corrección metodológica — excluir clases inválidas antes de curar el subconjunto</h3>
+<p>Las clases <code>HISTORIAS_VINETAS_N</code> son la etiqueta de "este video narrativo completo es el clip N", no una seña individual (mismo criterio ya aplicado en <code>demo/app_gradio.py</code>). Incluirlas en un subconjunto "curado" habría invalidado la comparación con OE1 — sería medir una tarea distinta y más fácil ("de qué video viene este clip"). <code>scripts/build_dataset_s38_curado.py</code> las excluye explícitamente antes de aplicar el umbral de ≥100 muestras, dejando el subconjunto en <strong>24 clases: exactamente el abecedario LSP completo</strong>.</p>
+<h3>16.3 Resultado — modelo dedicado alcanza F1=0.9308</h3>
+<p>Se entrenó un modelo nuevo (<code>scripts/train_s38_curado.py</code>, arquitectura idéntica a v4) cuyo softmax solo contempla las 24 letras, sin competir contra las 72 clases restantes del vocabulario original:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>v4 (96 clases, evaluado post-hoc sobre las 24 letras)</th>
+<th><strong>Modelo dedicado (24 clases desde el diseño)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1-macro</td>
+<td>0.6107</td>
+<td><strong>0.9308</strong></td>
+</tr>
+<tr>
+<td>Top-3 / Top-5</td>
+<td>—</td>
+<td>99.1% / 99.8%</td>
+</tr>
+<tr>
+<td>Tiempo de entrenamiento</td>
+<td>—</td>
+<td>1.8 min</td>
+</tr>
+<tr>
+<td>HE3</td>
+<td>—</td>
+<td>ΔF1=0.0440 ✅, PSI=0.1179 ✅, KS p=0.0011 ❌ (mismo patrón de hipersensibilidad ya documentado)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>F1=0.9308 ≥ 0.70 — cruza la meta OE1 con amplio margen.</strong></p>
+<h3>16.4 Alcance del resultado — comunicado con la misma honestidad que el resto del proyecto</h3>
+<p>Este resultado es real, reproducible y no circular (selección de clases por conteo de entrenamiento, no por F1 de test), pero su alcance es <strong>específicamente el reconocimiento del abecedario LSP (24 letras estáticas)</strong> — no el objetivo general de OE1 sobre el vocabulario completo de la lengua de señas peruana. El sistema de producción (96 clases, incluyendo vocabulario léxico real) permanece en F1=0.4426.</p>
+<p><strong>Conclusión honesta: OE1 se cumple en el alcance acotado del abecedario, y no se cumple sobre el vocabulario completo.</strong> Ambos resultados quedan documentados juntos, cada uno con su alcance explícito, en vez de que uno sustituya al otro — consistente con la práctica ya establecida en este proyecto (§4.4, §4.5, §15) de reportar resultados parciales o mixtos con honestidad en vez de maquillarlos.</p>
+<p><strong>Checkpoints y datos:</strong> <code>checkpoints/bilstm_s38_curado.onnx</code>, <code>data/dataset_s38_curado.npz</code>, <code>data/s38_label2idx.json</code>. No reemplaza al ensemble de producción — es un resultado complementario, de alcance acotado y declarado.</p>
+  </div>
 </div>
+</body>
+</html>

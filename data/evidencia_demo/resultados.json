@@ -1,0 +1,22 @@
+{
+  "caso1_imagen_n": {
+    "entrada": "data/Abecedario/n/n (118).jpg (imagen real, letra N)",
+    "resultado_md": "## N\n\n**Confianza:** 41.1%  |  **Modelo:** BiLSTM-S27+S29 (ensemble)  |  **Latencia:** 36 ms",
+    "top3_md": "**Top 5:**\n1. N — 41.1%\n2. M — 10.1%\n3. Q — 9.5%\n4. ORIGINAL — 7.3%\n5. P — 2.8%"
+  },
+  "caso2_video_dos": {
+    "entrada": "data/Glosas/DOS/DOS_1.mp4 (video real, seña DOS, en vocabulario)",
+    "resultado_md": "⚠️ No se reconocieron señas LSP en este video.\n\n**Posibles causas:**\n- El video no contiene señas visibles o la persona no aparece claramente\n- La confianza del modelo no superó el umbral del 30%\n- El video es muy corto (necesita al menos 2 segundos)\n\n**Umbral de confianza:** 20%  |  **Frames procesados:** 88",
+    "resumen": "✅ Procesamiento completado — 0 señas detectadas en 88 frames"
+  },
+  "caso3_video_chau": {
+    "entrada": "data/Glosas/CHAU/CHAU_1.mp4 (video real, seña CHAU, fuera de vocabulario)",
+    "resultado_md": "## TRADUCCIÓN EN TIEMPO REAL\n\n### Igual\n\n\n**Última seña:** `IGUAL`  <span style='color:orange'>**58%**</span>  |  **Modelo:** BiLSTM-S27+S29 (ensemble)",
+    "resumen": "✅ Procesamiento completado — 1 señas detectadas en 77 frames"
+  },
+  "caso4_video_narrativo": {
+    "entrada": "data/videos/original/Historias vinetas (2).mp4 (video narrativo real)",
+    "resultado_md": "## TRADUCCIÓN EN TIEMPO REAL\n\n### Igual Igual Igual Igual Igual Igual Sí\n\n\n**Última seña:** `SÍ`  <span style='color:gray'>**27%**</span>  |  **Modelo:** BiLSTM-S27+S29 (ensemble)",
+    "resumen": "✅ Procesamiento completado — 7 señas detectadas en 3045 frames"
+  }
+}

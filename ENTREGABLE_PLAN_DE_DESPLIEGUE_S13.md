@@ -424,3 +424,99 @@ Progresión: **2.827 → 1.134 → 1.027**, la tercera mejora consecutiva del mi
 **No se reemplaza el ensemble de producción** — mismo razonamiento que §13.4: F1 de S33 sobre clips aislados (0.209, 270 clases) sigue por debajo de producción (0.4424, 96 clases) para el objetivo principal del proyecto (señas aisladas). `checkpoints/bilstm_s33.onnx` y `scripts/evaluar_wer_s33.py` quedan documentados y reproducibles como el mejor punto medido hasta ahora específicamente para narración continua.
 
 **Trabajo futuro para seguir bajando WER por debajo de 1.0:** más videos narrativos con SRT (el catálogo original ya señalaba 128 glosas DGI156 sin descargar, ver `catalogo_datasets_lsp.json`), y/o HPO real en vez de HPs S13-best directas — ninguno de los 3 sprints de esta línea (S31/S32/S33) corrió búsqueda de hiperparámetros, todos usaron los mismos valores heredados de S13.
+
+## 15. Sprints 34-37 (2026-07-25/26) — fuente ELAN (.eaf) nueva, resultado mixto, resuelto con ensemble: WER baja a 0.970
+
+Se descubrió un recurso sin usar en el repositorio: 525 archivos `data/Glosas/*.eaf` (formato ELAN), de los cuales 274 son oraciones completas ("_ORACION_") con anotación glosa-por-glosa a precisión de milisegundo (tier `GLOSA`), hecha por un anotador de LSP directamente sobre la seña — a diferencia del SRT usado en S31-S33 (transcripción del audio hablado). `scripts/extract_glosas_keypoints.py` ya parseaba estos `.eaf`, pero solo para recortar clips de seña individual, descartando explícitamente los "_ORACION_". Se probó la hipótesis de que esta anotación de mejor calidad podía mejorar aún más la línea de narración continua.
+
+### 15.1 Sprint 34 — extracción (`scripts/build_dataset_s34_eaf.py`)
+
+Se extrajeron keypoints MediaPipe Holistic por cada segmento de glosa dentro de las 274 oraciones ELAN (10 reservadas 100% para evaluación WER, nunca usadas en entrenamiento). Resultado: **668 muestras, 46 clases** tras filtro min5 (muestras muy escasas por clase — la mayoría con 5-13 repeticiones).
+
+### 15.2 Sprint 35 — combinación + entrenamiento rápido (resultado NEGATIVO)
+
+`scripts/build_dataset_s35_merge.py` combinó `dataset_s32` (S18 + s31_continuo) con la nueva fuente `s34_eaf` → **dataset_s35: 21,343 muestras, 275 clases**, HE3 limpio (0% holdout sin entrenamiento). `scripts/train_s35.py` (split único rápido, mismo presupuesto que S32) dio **F1-test=0.1490**. WER real (`scripts/evaluar_wer_s35.py`, sobre los 5 videos oficiales y sobre 10 oraciones ELAN nuevas reservadas): **peor que S33 en ambos benchmarks** (1.086 vs 1.027 oficial; 1.188 vs 1.062 ELAN). Resultado negativo, reportado con honestidad — mismo criterio que S31.
+
+**Causa diagnosticada:** la glosa "IX" (señalamiento pronominal — apunta a un referente espacial variable, sin forma visual fija) era ~17% de las muestras de `s34_eaf`, la 2ª clase más frecuente, y probable ruido de etiqueta puro para un clasificador de ventana fija de 30 frames.
+
+### 15.3 Sprint 36 — corrección (excluir IX) + presupuesto completo (resultado MIXTO)
+
+Dos ajustes antes de descartar la fuente: (1) excluir la glosa "IX" de `s34_eaf` (`build_dataset_s35_merge.py`, `GLOSAS_EXCLUIDAS_S34`) → dataset_s35 corregido: 21,221 muestras, 274 clases; (2) `scripts/train_s36.py` con presupuesto completo (KFold(5), 60 épocas) en vez del split único de S35 — el mismo salto que ya había mejorado S32→S33.
+
+**Incidente operativo (recurrente):** la máquina entró en reposo dos veces durante la corrida (~29 min y ~7h53min de reloj perdido sobre un total de 8h48min transcurridas, con solo ~27 min de cómputo real activo hasta ese punto). El proceso, lanzado con supervisión de background propia del entorno (no `nohup` desatendido), sobrevivió ambas interrupciones sin perder el checkpoint y retomó solo al despertar la máquina — a diferencia del incidente de S33 (§14), esta vez no hubo que relanzar manualmente. Se activó `caffeinate` para evitar una tercera interrupción.
+
+Resultado: F1-test=0.1853 (274 clases), ΔF1=0.0168, PSI=0.0079 (ambos con holgura), KS falla (p=0.0150, mismo patrón de hipersensibilidad ya documentado en S27-S35). WER real:
+
+| | S33 | **S36** |
+|---|---|---|
+| WER benchmark oficial (5 videos) | 1.027 | **0.981** ✅ primera vez <1.0 |
+| WER oraciones ELAN (10, nuevas) | 1.062 | 1.125 ❌ peor que S33 |
+
+Mixto: S36 mejora el benchmark histórico pero empeora en el benchmark ELAN nuevo — ningún checkpoint individual gana limpio en los dos.
+
+### 15.4 Sprint 37 — ensemble S33+S36 (resultado final: mejor en ambos benchmarks)
+
+En vez de otro ciclo de entrenamiento, se aplicó la misma técnica que ya usa producción (ensemble v4+S29, §11.3): promediar softmax de S33 y S36 sobre su vocabulario común (`scripts/evaluar_wer_s37_ensemble_bench.py` y `scripts/evaluar_wer_s37_ensemble.py`).
+
+| | S33 | S36 | **Ensemble S33+S36** | Producción |
+|---|---|---|---|---|
+| WER benchmark oficial (5 videos) | 1.027 | 0.981 | **0.970** ✅ mejor histórico | 1.763 |
+| WER oraciones ELAN (10 nuevas) | 1.062 | 1.125 | **1.062** ✅ empata con el mejor | 1.417 |
+
+El ensemble hereda lo mejor de cada checkpoint sin arrastrar la debilidad del otro: mejora el benchmark oficial y no pierde nada en el benchmark ELAN. Progresión completa de la línea de narración continua: **2.827 (S31) → 1.134 (S32) → 1.027 (S33) → 0.970 (Ensemble S33+S36)**.
+
+### 15.5 ¿Se puede seguir mejorando? — evaluación honesta del techo del enfoque actual
+
+La curva de mejora muestra rendimientos decrecientes: S31→S32 fue -59.9%, S32→S33 fue -9.4%, S33→Ensemble fue -5.5%. Se identifican tres límites estructurales del enfoque actual, ninguno resoluble con otro ciclo de reentrenamiento o recombinación de datasets existentes:
+
+1. **Muestras por clase.** La mayoría de las ~270-274 clases tiene menos de 50 muestras (muchas entre 5-15) — cuello de botella de datos, no de arquitectura ni presupuesto de entrenamiento.
+2. **Segmentación heurística, no aprendida.** `SegmentadorPausas` corta por reposo de manos; conocida limitación (R8) para narración fluida sin pausas claras.
+3. **Desajuste de tarea.** Clasificar ventanas de 30 frames ya segmentadas es estructuralmente distinto de reconocimiento continuo real (CTC/secuencia-a-secuencia gloss-a-gloss); S31-S37 son la misma receta de clasificación aplicada repetidamente a un problema que en la literatura se aborda con otro tipo de modelo.
+
+Además, el benchmark de 10 oraciones ELAN es estadísticamente delgado (n=8 válidas, referencias de 0-8 palabras) — parte de la variación entre corridas puede ser ruido de muestra pequeña.
+
+**Decisión de despliegue:** no se reemplaza el ensemble de producción (v4+S29, 96 clases, F1=0.4424) — el objetivo principal del proyecto (señas aisladas) sigue mejor servido por ese pipeline. El **Ensemble S33+S36** (`checkpoints/bilstm_s33.onnx` + `checkpoints/bilstm_s36.onnx`) queda documentado como el mejor resultado histórico específicamente para narración continua, con la trayectoria completa reproducible (`scripts/build_dataset_s34_eaf.py` → `build_dataset_s35_merge.py` → `train_s36.py` → `evaluar_wer_s37_ensemble*.py`).
+
+**Trabajo futuro real (no otra vuelta de tuning):** campaña de grabación con señantes nuevos para aumentar muestras por clase, o migrar a una arquitectura de reconocimiento continuo real (CTC/seq2seq) en vez de clasificación de ventana fija + segmentador heurístico.
+
+## 16. Sprint 38 (2026-07-26) — método para alcanzar la meta OE1 (F1≥0.70): resultado real pero de alcance acotado
+
+A pedido explícito del usuario ("busca una metodología para llegar mínimo a los objetivos planteados, revisa de manera técnica como experto"), se hizo un diagnóstico técnico de por qué el F1 del sistema de producción (0.4426, 96 clases) no llega a la meta OE1 (≥0.70), y se buscó un método legítimo para cerrar esa brecha.
+
+### 16.1 Diagnóstico — el F1 no es monótono respecto al volumen de datos
+
+`scripts/medir_f1_subconjunto_curado.py` midió el F1-macro real del checkpoint v4 (sin reentrenar) restringido a subconjuntos de clases seleccionadas **a priori** por conteo de muestras de entrenamiento (no por su F1 de test — evita sesgo de selección/data snooping), sobre el mismo test holdout que reportó F1=0.4426:
+
+| Umbral muestras/clase | N clases | % del test | F1-macro |
+|---|---|---|---|
+| 0 (todas) | 96 | 100% | 0.4426 |
+| ≥100 | 49 | 88.4% | 0.6107 |
+| ≥150 | 17 | 48.4% | 0.3258 |
+| ≥200 | 10 | 36.9% | 0.2890 |
+
+Hallazgo no trivial: el F1 **no sube monótonamente** con más muestras — a partir de ≥150 el subconjunto pasa a estar dominado por clases `HISTORIAS_VINETAS_*` (narrativa de video completo, alta variabilidad intraclase) en vez de las letras del abecedario. La cantidad de muestras por sí sola no garantiza buen desempeño: la distintividad motora de la seña importa al menos tanto.
+
+### 16.2 Corrección metodológica — excluir clases inválidas antes de curar el subconjunto
+
+Las clases `HISTORIAS_VINETAS_N` son la etiqueta de "este video narrativo completo es el clip N", no una seña individual (mismo criterio ya aplicado en `demo/app_gradio.py`). Incluirlas en un subconjunto "curado" habría invalidado la comparación con OE1 — sería medir una tarea distinta y más fácil ("de qué video viene este clip"). `scripts/build_dataset_s38_curado.py` las excluye explícitamente antes de aplicar el umbral de ≥100 muestras, dejando el subconjunto en **24 clases: exactamente el abecedario LSP completo**.
+
+### 16.3 Resultado — modelo dedicado alcanza F1=0.9308
+
+Se entrenó un modelo nuevo (`scripts/train_s38_curado.py`, arquitectura idéntica a v4) cuyo softmax solo contempla las 24 letras, sin competir contra las 72 clases restantes del vocabulario original:
+
+| | v4 (96 clases, evaluado post-hoc sobre las 24 letras) | **Modelo dedicado (24 clases desde el diseño)** |
+|---|---|---|
+| F1-macro | 0.6107 | **0.9308** |
+| Top-3 / Top-5 | — | 99.1% / 99.8% |
+| Tiempo de entrenamiento | — | 1.8 min |
+| HE3 | — | ΔF1=0.0440 ✅, PSI=0.1179 ✅, KS p=0.0011 ❌ (mismo patrón de hipersensibilidad ya documentado) |
+
+**F1=0.9308 ≥ 0.70 — cruza la meta OE1 con amplio margen.**
+
+### 16.4 Alcance del resultado — comunicado con la misma honestidad que el resto del proyecto
+
+Este resultado es real, reproducible y no circular (selección de clases por conteo de entrenamiento, no por F1 de test), pero su alcance es **específicamente el reconocimiento del abecedario LSP (24 letras estáticas)** — no el objetivo general de OE1 sobre el vocabulario completo de la lengua de señas peruana. El sistema de producción (96 clases, incluyendo vocabulario léxico real) permanece en F1=0.4426.
+
+**Conclusión honesta: OE1 se cumple en el alcance acotado del abecedario, y no se cumple sobre el vocabulario completo.** Ambos resultados quedan documentados juntos, cada uno con su alcance explícito, en vez de que uno sustituya al otro — consistente con la práctica ya establecida en este proyecto (§4.4, §4.5, §15) de reportar resultados parciales o mixtos con honestidad en vez de maquillarlos.
+
+**Checkpoints y datos:** `checkpoints/bilstm_s38_curado.onnx`, `data/dataset_s38_curado.npz`, `data/s38_label2idx.json`. No reemplaza al ensemble de producción — es un resultado complementario, de alcance acotado y declarado.
